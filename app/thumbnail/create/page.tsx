@@ -16,7 +16,7 @@ import Link from "next/link";
 
 type InputType = "automated" | "manual" | null;
 
-export default function CreateYoutubeThumbnail() {
+export default function CreateThumbnailPage() {
   const [inputType, setInputType] = useState<InputType>(null);
 
   const handleAutomatedSubmit = async (data: any) => {
@@ -30,7 +30,7 @@ export default function CreateYoutubeThumbnail() {
   };
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto py-8">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -52,7 +52,7 @@ export default function CreateYoutubeThumbnail() {
         </p>
       </div>
 
-      <div className="mx-auto">
+      <div className="max-w-4xl mx-auto">
         {!inputType ? (
           <ThumbnailInputType onSelect={setInputType} />
         ) : (
