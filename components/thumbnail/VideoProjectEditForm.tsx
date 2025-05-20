@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Plus, X, Link2 } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useState } from "react";
 
 const formSchema = z.object({
@@ -23,28 +23,23 @@ const formSchema = z.object({
   targetAudience: z.string().min(1, "Target audience is required"),
 });
 
-interface ManualInputFormProps {
-  onSubmit: (data: z.infer<typeof formSchema>) => void;
-  initialValues?: {
+interface VideoProjectEditFormProps {
+  initialValues: {
     videoTitle: string;
     videoDescription: string;
     highlights: string[];
     targetAudience: string;
   };
+  onSubmit: (data: z.infer<typeof formSchema>) => void;
+  isSaving: boolean;
 }
 
-const ManualInputForm = ({ onSubmit, initialValues }: ManualInputFormProps) => {
+const VideoProjectEditForm = ({ initialValues, onSubmit, isSaving }: VideoProjectEditFormProps) => {
   const [highlightCount, setHighlightCount] = useState(initialValues?.highlights?.length || 2);
-  const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialValues || {
-      videoTitle: "",
-      videoDescription: "",
-      highlights: ["", ""],
-      targetAudience: "",
-    },
+    defaultValues: initialValues,
   });
 
   const addHighlight = () => {
@@ -181,13 +176,9 @@ const ManualInputForm = ({ onSubmit, initialValues }: ManualInputFormProps) => {
             </FormItem>
           )}
         />
-
-        <Button type="submit" variant="brand" className="w-full">
-          Continue
-        </Button>
       </form>
     </Form>
   );
 };
 
-export default ManualInputForm; 
+export default VideoProjectEditForm; 

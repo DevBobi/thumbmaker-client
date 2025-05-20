@@ -2,11 +2,11 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +14,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
+import TemplateSelector from "./TemplateSelector";
+import { useState } from "react";
+import { X } from "lucide-react";
 
 const formSchema = z.object({
   videoTitle: z.string().min(1, "Video title is required"),
@@ -28,6 +30,8 @@ interface AutomatedInputFormProps {
 }
 
 const AutomatedInputForm = ({ onSubmit }: AutomatedInputFormProps) => {
+  const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,6 +44,7 @@ const AutomatedInputForm = ({ onSubmit }: AutomatedInputFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+
         <FormField
           control={form.control}
           name="videoTitle"
@@ -133,7 +138,7 @@ const AutomatedInputForm = ({ onSubmit }: AutomatedInputFormProps) => {
           </TabsContent>
         </Tabs>
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" variant="brand">
           Continue
         </Button>
       </form>
