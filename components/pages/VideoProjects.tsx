@@ -40,7 +40,7 @@ const mockProjects: VideoProject[] = [
     userId: "user1"
   },
   {
-    id: "2", 
+    id: "2",
     name: "Company Overview",
     description: "A comprehensive overview of our company history, mission and values",
     thumbnail: "https://picsum.photos/seed/2/800/600",
@@ -52,7 +52,7 @@ const mockProjects: VideoProject[] = [
     id: "3",
     name: "Tutorial Series",
     description: "Step-by-step tutorial videos explaining how to use our platform",
-    createdAt: "2024-01-05T08:45:00Z", 
+    createdAt: "2024-01-05T08:45:00Z",
     updatedAt: "2024-01-07T16:15:00Z",
     userId: "user1"
   }
@@ -277,18 +277,14 @@ const VideoProjects = () => {
             >
               <div className="border rounded-lg overflow-hidden transition-all hover:shadow-md">
                 <div className="aspect-video relative bg-accent/10">
-                  {project.thumbnail ? (
-                    <Image
-                      src={project.thumbnail}
-                      alt={project.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <span className="text-muted-foreground">No thumbnail</span>
-                    </div>
-                  )}
+
+                  <Image
+                    src="/logo/youtube.png"
+                    alt={project.name}
+                    fill
+                    className="object-cover"
+                  />
+
                 </div>
                 <div className="p-5">
                   <div className="flex justify-between items-start mb-2">
@@ -320,20 +316,12 @@ const VideoProjects = () => {
               <div className="border rounded-lg overflow-hidden transition-all hover:shadow-md hover:bg-accent/5 p-4">
                 <div className="flex gap-4 flex-wrap sm:flex-nowrap">
                   <div className="h-16 w-24 bg-accent/10 rounded-md flex-shrink-0 relative">
-                    {project.thumbnail ? (
-                      <Image
-                        src={project.thumbnail}
-                        alt={project.name}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <span className="text-xs text-muted-foreground">
-                          No thumbnail
-                        </span>
-                      </div>
-                    )}
+                    <Image
+                      src="/logo/youtube.png"
+                      alt={project.name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg text-foreground group-hover:text-brand-600 transition-colors duration-200">

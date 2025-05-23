@@ -11,11 +11,10 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import TemplateSelector from "@/components/thumbnail/TemplateSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Upload, Plus } from "lucide-react";
+import { X, Upload, Plus, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +36,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 interface Project {
   id: string;
@@ -189,8 +194,8 @@ export default function CreateYoutubeThumbnail() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="my-8">
-        <h1 className="text-4xl font-bold mb-4">Create YouTube Thumbnail</h1>
+      <div className="mt-6 mb-8 gap-2">
+        <h1 className="text-3xl font-bold">Create YouTube Thumbnail</h1>
         <p className="text-lg text-muted-foreground">
           Configure your thumbnail settings and choose a generation method
         </p>
@@ -198,283 +203,315 @@ export default function CreateYoutubeThumbnail() {
 
       <div className="space-y-8">
         {/* Project Selection */}
-        <div className="space-y-4">
-          <div className="flex flex-row justify-between">
-          <h2 className="text-2xl font-semibold">Select Project</h2>
-          <Button variant="brand" asChild>
-            <Link href="/dashboard/create-video-project">
-            <Plus />
-            Add a Video Project
-            </Link>
-          </Button>
-          </div>
-          
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                {selectedProject ? selectedProject.name : "Select a Project"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Select a Project</DialogTitle>
-              </DialogHeader>
-
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search projects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
+        <Card>
+          <CardHeader>
+            <div className="flex flex-row justify-between items-center">
+              <div>
+                <CardTitle>Select Project</CardTitle>
+                <p className="text-sm mt-2 text-muted-foreground">
+                  Configure your ad details before choosing a template
+                </p>
               </div>
-
-              <div className="mt-4 space-y-2">
-                {isLoading ? (
-                  <div className="flex justify-center items-center p-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="ml-2">Searching projects...</span>
-                  </div>
-                ) : error ? (
-                  <div className="text-center p-4 text-destructive">
-                    Error loading projects. Please try again.
-                  </div>
-                ) : searchResults?.length > 0 ? (
-                  searchResults.map((project: Project) => (
-                    <div
-                      key={project.id}
-                      className={`p-3 border rounded-md cursor-pointer hover:bg-accent transition-colors ${
-                        selectedProject?.id === project.id
-                          ? "bg-accent/80 border-primary"
-                          : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedProject(project);
-                        setIsOpen(false);
-                      }}
-                    >
-                      <div className="font-medium">{project.name}</div>
-                      <div className="text-sm text-muted-foreground line-clamp-1">
-                        {project.overview}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center p-4 text-muted-foreground">
-                    No projects found. Please create a project first.
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Thumbnail Assets */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Thumbnail Assets</h2>
-          <div className="border-2 border-dashed rounded-lg p-6">
-            <div className="flex flex-col items-center">
-              <Upload className="h-12 w-12 text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">
-                Click to upload thumbnail assets
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                JPG, PNG, SVG formats accepted
-              </p>
-              <Input
-                type="file"
-                className="hidden"
-                multiple
-                accept="image/jpeg,image/png,image/svg+xml"
-                onChange={handleFileChange}
-                id="thumbnail-assets"
-              />
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => document.getElementById("thumbnail-assets")?.click()}
-              >
-                Upload Files
+              <Button variant="brand" asChild>
+                <Link href="/dashboard/create-video-project">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add a Video Project
+                </Link>
               </Button>
             </div>
-            {thumbnailAssets.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {thumbnailAssets.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2 bg-accent rounded-md"
-                  >
-                    <span className="text-sm truncate">{file.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+          </CardHeader>
+          <CardContent>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  {selectedProject ? selectedProject.name : "Select a Project"}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Select a Project</DialogTitle>
+                </DialogHeader>
+
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search projects..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {isLoading ? (
+                    <div className="flex justify-center items-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <span className="ml-2">Searching projects...</span>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center p-4 text-destructive">
+                      Error loading projects. Please try again.
+                    </div>
+                  ) : searchResults?.length > 0 ? (
+                    searchResults.map((project: Project) => (
+                      <div
+                        key={project.id}
+                        className={`p-3 border rounded-md cursor-pointer hover:bg-accent transition-colors ${
+                          selectedProject?.id === project.id
+                            ? "bg-accent/80 border-primary"
+                            : ""
+                        }`}
+                        onClick={() => {
+                          setSelectedProject(project);
+                          setIsOpen(false);
+                        }}
+                      >
+                        <div className="font-medium">{project.name}</div>
+                        <div className="text-sm text-muted-foreground line-clamp-1">
+                          {project.overview}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center p-4 text-muted-foreground">
+                      No projects found. Please create a project first.
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+
+        {/* Thumbnail Assets */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Thumbnail Assets</CardTitle>
+            <CardDescription>Upload images to use in your thumbnail</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border-2 border-dashed rounded-lg p-6">
+              <div className="flex flex-col items-center">
+                <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">
+                  Click to upload thumbnail assets
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  JPG, PNG, SVG formats accepted
+                </p>
+                <Input
+                  type="file"
+                  className="hidden"
+                  multiple
+                  accept="image/jpeg,image/png,image/svg+xml"
+                  onChange={handleFileChange}
+                  id="thumbnail-assets"
+                />
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => document.getElementById("thumbnail-assets")?.click()}
+                >
+                  Upload Files
+                </Button>
               </div>
-            )}
-          </div>
-        </div>
+              {thumbnailAssets.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {thumbnailAssets.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-accent rounded-md"
+                    >
+                      <span className="text-sm truncate">{file.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Channel Style */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Channel Style</h2>
-          <Select value={channelStyle} onValueChange={setChannelStyle}>
-            <SelectTrigger className="w-full text-left py-8">
-              <SelectValue placeholder="Select channel style" />
-            </SelectTrigger>
-            <SelectContent>
-              {channelStyles.map((style) => (
-                <SelectItem key={style.value} value={style.value}>
-                  <div>
-                    <div className="font-medium">{style.label}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {style.description}
-                    </div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Primary Thumbnail Goal */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Primary Thumbnail Goal</h2>
-          <Select value={thumbnailGoal} onValueChange={setThumbnailGoal}>
-            <SelectTrigger className="w-full text-left py-8">
-              <SelectValue placeholder="Select thumbnail goal" />
-            </SelectTrigger>
-            <SelectContent>
-              {thumbnailGoals.map((goal) => (
-                <SelectItem key={goal.value} value={goal.value}>
-                  <div>
-                    <div className="font-medium">{goal.label}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {goal.description}
-                    </div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Generation Method Tabs */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Generation Method</h2>
-          <Tabs defaultValue="youtube" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="youtube">Use a YouTube Video</TabsTrigger>
-              <TabsTrigger value="templates">Choose from Templates</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="youtube" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-lg font-medium mb-2">YouTube Video URL</h3>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="https://youtube.com/watch?v=..."
-                      value={inspirationUrl}
-                      onChange={(e) => handleInspirationUrlChange(e.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="shrink-0"
-                      onClick={() => {
-                        setInspirationUrl("");
-                        setInspirationPreview(null);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Paste a YouTube video URL to use its thumbnail as inspiration
-                  </p>
-                </div>
-
-                {inspirationPreview && (
-                  <div className="relative aspect-video rounded-lg overflow-hidden border">
-                    <img
-                      src={inspirationPreview}
-                      alt="Inspiration thumbnail preview"
-                      className="object-cover w-full h-full"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="text-white text-center p-4">
-                        <p className="text-sm">Inspiration Thumbnail</p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Channel Style</CardTitle>
+            <CardDescription>Select the style that best matches your channel</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={channelStyle} onValueChange={setChannelStyle}>
+              <SelectTrigger className="w-full text-left py-6">
+                <SelectValue placeholder="Select channel style" />
+              </SelectTrigger>
+              <SelectContent>
+                {channelStyles.map((style) => (
+                  <SelectItem key={style.value} value={style.value}>
+                    <div>
+                      <div className="font-medium">{style.label}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {style.description}
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
 
-            <TabsContent value="templates" className="space-y-4">
-              <div className="space-y-4">
-                <TemplateSelector
-                  selectedTemplateIds={selectedTemplates}
-                  onSelect={setSelectedTemplates}
-                  maxSelections={5}
-                />
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Variations per Template</h3>
-                  <div className="flex gap-2">
-                    {[1, 2, 3].map((num) => (
+        {/* Primary Thumbnail Goal */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Primary Thumbnail Goal</CardTitle>
+            <CardDescription>What do you want to achieve with this thumbnail?</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={thumbnailGoal} onValueChange={setThumbnailGoal}>
+              <SelectTrigger className="w-full text-left py-6">
+                <SelectValue placeholder="Select thumbnail goal" />
+              </SelectTrigger>
+              <SelectContent>
+                {thumbnailGoals.map((goal) => (
+                  <SelectItem key={goal.value} value={goal.value}>
+                    <div>
+                      <div className="font-medium">{goal.label}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {goal.description}
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Generation Method Tabs */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Generation Method</CardTitle>
+            <CardDescription>Choose how you want to generate your thumbnail</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="youtube" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="youtube">Use a YouTube Video</TabsTrigger>
+                <TabsTrigger value="templates">Choose from Templates</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="youtube" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">YouTube Video URL</h3>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="https://youtube.com/watch?v=..."
+                        value={inspirationUrl}
+                        onChange={(e) => handleInspirationUrlChange(e.target.value)}
+                      />
                       <Button
-                        key={num}
-                        variant={templateVariations === num ? "default" : "outline"}
-                        onClick={() => setTemplateVariations(num)}
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => {
+                          setInspirationUrl("");
+                          setInspirationPreview(null);
+                        }}
                       >
-                        {num}
+                        <X className="h-4 w-4" />
                       </Button>
-                    ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Paste a YouTube video URL to use its thumbnail as inspiration
+                    </p>
+                  </div>
+
+                  {inspirationPreview && (
+                    <div className="relative aspect-video rounded-lg overflow-hidden border">
+                      <img
+                        src={inspirationPreview}
+                        alt="Inspiration thumbnail preview"
+                        className="object-cover w-full h-full"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="text-white text-center p-4">
+                          <p className="text-sm">Inspiration Thumbnail</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="templates" className="space-y-4">
+                <div className="space-y-4">
+                  <TemplateSelector
+                    selectedTemplateIds={selectedTemplates}
+                    onSelect={setSelectedTemplates}
+                    maxSelections={5}
+                  />
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-medium">Variations per Template</h3>
+                    <div className="flex gap-2">
+                      {[1, 2, 3].map((num) => (
+                        <Button
+                          key={num}
+                          variant={templateVariations === num ? "default" : "outline"}
+                          onClick={() => setTemplateVariations(num)}
+                        >
+                          {num}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
 
         {/* Additional Instructions */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Additional Instructions</h2>
-          <Textarea
-            placeholder="Enter any additional instructions or requirements for the thumbnail generation..."
-            value={additionalInstructions}
-            onChange={(e) => setAdditionalInstructions(e.target.value)}
-            rows={4}
-          />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Additional Instructions</CardTitle>
+            <CardDescription>Add any specific requirements or preferences</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Enter any additional instructions or requirements for the thumbnail generation..."
+              value={additionalInstructions}
+              onChange={(e) => setAdditionalInstructions(e.target.value)}
+              rows={4}
+            />
+          </CardContent>
+        </Card>
 
         {/* Proceed Button */}
-        <div className="flex justify-end">
-          <Button
-            onClick={handleGenerate}
-            variant="brand"
-            className="px-8"
-            disabled={!selectedProject}
-          >
-            Generate Thumbnails
-          </Button>
-        </div>
+        <Button
+          onClick={handleGenerate}
+          variant="brand"
+          className="px-8 w-full text-center"
+          disabled={!selectedProject}
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Generate Thumbnails
+        </Button>
       </div>
     </div>
   );
