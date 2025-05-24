@@ -53,9 +53,24 @@ const navigationItems = [
     icon: PlusCircle,
   },
   {
+    title: "Create Video Project",
+    path: "/dashboard/create-video-project",
+    icon: PlusCircle,
+  },
+  {
+    title: "Create Youtube Thumbnail",
+    path: "/dashboard/create-youtube-thumbnail",
+    icon: PlusCircle,
+  },
+  {
     title: "All Products",
     path: "/dashboard/products",
     icon: Package,
+  },
+  {
+    title: "All Projects",
+    path: "/dashboard/video-projects",
+    icon: FileText,
   },
   {
     title: "Templates",
