@@ -125,7 +125,10 @@ export default function CreateYoutubeThumbnail() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      setThumbnailAssets(prev => [...prev, ...newFiles]);
+      const remainingSlots = 4 - thumbnailAssets.length;
+      if (remainingSlots > 0) {
+        setThumbnailAssets(prev => [...prev, ...newFiles.slice(0, remainingSlots)]);
+      }
     }
   };
 
@@ -306,7 +309,7 @@ export default function CreateYoutubeThumbnail() {
                   Click to upload thumbnail assets
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  JPG, PNG, SVG formats accepted
+                  JPG, PNG, SVG formats accepted (max 4 files)
                 </p>
                 <Input
                   type="file"
@@ -315,32 +318,47 @@ export default function CreateYoutubeThumbnail() {
                   accept="image/jpeg,image/png,image/svg+xml"
                   onChange={handleFileChange}
                   id="thumbnail-assets"
+                  disabled={thumbnailAssets.length >= 4}
                 />
                 <Button
                   variant="outline"
                   className="mt-4"
                   onClick={() => document.getElementById("thumbnail-assets")?.click()}
+                  disabled={thumbnailAssets.length >= 4}
                 >
-                  Upload Files
+                  {thumbnailAssets.length >= 4 ? "Maximum files reached" : "Upload Files"}
                 </Button>
               </div>
               {thumbnailAssets.length > 0 && (
-                <div className="mt-4 space-y-2">
+                <div>
+                  <p className="text-muted-foreground">
+                    {thumbnailAssets.length} files selected
+                  </p>
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {thumbnailAssets.map((file, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-2 bg-accent rounded-md"
+                      className="relative aspect-video rounded-lg overflow-hidden border group"
                     >
-                      <span className="text-sm truncate">{file.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          className="flex items-center gap-2"
+                        >
+                          <X className="h-4 w-4" />
+                          Remove
+                        </Button>
+                      </div>
                     </div>
                   ))}
+                </div>
                 </div>
               )}
             </div>
