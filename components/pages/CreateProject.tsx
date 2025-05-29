@@ -11,25 +11,36 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function CreateProject() {
-  const router = useRouter();
+  const { authFetch } = useAuthFetch();
 
   const handleAutomatedSubmit = async (data: any) => {
-    data['id'] = Math.floor(Math.random() * 1000000);
-    console.log("Automated form data:", data);
-    // TODO: Create project with automated data
-    // After successful creation, redirect to edit page
-    router.push(`/dashboard/create-video-project/edit/${data.id}`);
+    const response = await authFetch("/api/projects", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return response;
   };
 
   const handleManualSubmit = async (data: any) => {
-    console.log("Manual form data:", data);
-    // TODO: Create project with manual data
-    // After successful creation, redirect to edit page
-    router.push(`/dashboard/create-video-project/edit/${data.id}`);
+    const body = {
+      title: data.videoTitle,
+      description: data.videoDescription,
+      highlights: data.highlights,
+      targetAudience: data.targetAudience,
+    };
+
+    const response = await authFetch("/api/projects/create", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+
+    const project = await response.json();
+
+    return project;
   };
 
   return (
@@ -63,7 +74,7 @@ export default function CreateProject() {
           </TabsList>
 
           <TabsContent value="automated" className="mt-6">
-            <AutomatedInputForm onSubmit={handleAutomatedSubmit} />
+            <AutomatedInputForm />
           </TabsContent>
 
           <TabsContent value="manual" className="mt-6">
@@ -73,4 +84,4 @@ export default function CreateProject() {
       </div>
     </div>
   );
-} 
+}

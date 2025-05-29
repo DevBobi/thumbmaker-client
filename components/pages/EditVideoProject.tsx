@@ -46,22 +46,23 @@ const EditVideoProject = () => {
       if (id) {
         try {
           setIsLoading(true);
-          const response = await authFetch(`/api/video-projects/${id}`);
+          const response = await authFetch(`/api/projects/${id}`);
 
           if (response.status === 404) {
             // For development/testing, set mock data
             const mockData = {
               videoTitle: "Sample Video Title",
-              videoDescription: "This is a sample video description that would typically come from the backend. It's being used as mock data while the backend is under construction.",
+              videoDescription:
+                "This is a sample video description that would typically come from the backend. It's being used as mock data while the backend is under construction.",
               highlights: [
                 "Key highlight point 1",
                 "Important feature or benefit",
-                "Another compelling point"
+                "Another compelling point",
               ],
-              targetAudience: "Digital marketers and small business owners"
+              targetAudience: "Digital marketers and small business owners",
             };
             // ##################################
-            
+
             setFormData(mockData);
             setIsLoading(false);
 
@@ -77,11 +78,13 @@ const EditVideoProject = () => {
           if (project) {
             // Ensure we have valid data for all fields
             setFormData({
-              videoTitle: project.videoTitle || "",
-              videoDescription: project.videoDescription || "",
-              highlights: Array.isArray(project.highlights) && project.highlights.length > 0 
-                ? project.highlights 
-                : [""],
+              videoTitle: project.title || "",
+              videoDescription: project.description || "",
+              highlights:
+                Array.isArray(project.highlights) &&
+                project.highlights.length > 0
+                  ? project.highlights
+                  : [""],
               targetAudience: project.targetAudience || "",
             });
           } else {
@@ -91,20 +94,22 @@ const EditVideoProject = () => {
           console.error("Error fetching project:", error);
           toast({
             title: "Error",
-            description: "Failed to load project details. Using sample data instead.",
+            description:
+              "Failed to load project details. Using sample data instead.",
             variant: "destructive",
           });
-          
+
           // Set mock data on error as well
           setFormData({
             videoTitle: "Sample Video Title",
-            videoDescription: "This is a sample video description that would typically come from the backend. It's being used as mock data while the backend is under construction.",
+            videoDescription:
+              "This is a sample video description that would typically come from the backend. It's being used as mock data while the backend is under construction.",
             highlights: [
               "Key highlight point 1",
               "Important feature or benefit",
-              "Another compelling point"
+              "Another compelling point",
             ],
-            targetAudience: "Digital marketers and small business owners"
+            targetAudience: "Digital marketers and small business owners",
           });
         } finally {
           setIsLoading(false);
@@ -122,9 +127,15 @@ const EditVideoProject = () => {
   const handleSubmit = async (data: any) => {
     setIsSaving(true);
     try {
-      const response = await authFetch(`/api/video-projects/${id}`, {
+      console.log(data);
+      const response = await authFetch(`/api/projects/${id}`, {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          title: data.videoTitle,
+          description: data.videoDescription,
+          highlights: data.highlights,
+          targetAudience: data.targetAudience,
+        }),
       });
 
       if (response.ok) {
@@ -139,7 +150,10 @@ const EditVideoProject = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save project changes. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to save project changes. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -152,8 +166,8 @@ const EditVideoProject = () => {
   };
 
   const handleReturnBack = () => {
-      router.back();
-  }
+    router.back();
+  };
 
   const handleConfirmDelete = async () => {
     if (id) {
@@ -206,7 +220,10 @@ const EditVideoProject = () => {
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Edit Project", href: `/dashboard/create-video-project/edit/${id}` },
+          {
+            label: "Edit Project",
+            href: `/dashboard/create-video-project/edit/${id}`,
+          },
         ]}
       />
 
@@ -221,7 +238,7 @@ const EditVideoProject = () => {
             <ProjectEditSkeleton />
           ) : (
             <div className="space-y-6">
-              <VideoProjectEditForm 
+              <VideoProjectEditForm
                 initialValues={formData}
                 onSubmit={handleSubmit}
                 isSaving={isSaving}
@@ -245,10 +262,10 @@ const EditVideoProject = () => {
                     Delete
                   </Button>
                   <Button
+                    variant="brand"
                     type="submit"
-                    className="gap-2 bg-brand-600 hover:bg-brand-700 text-brand-foreground"
                     disabled={isSaving}
-                    onClick={() => handleSubmit(formData)}
+                    form="edit-video-form"
                   >
                     {isSaving ? (
                       <>
@@ -294,4 +311,4 @@ const EditVideoProject = () => {
   );
 };
 
-export default EditVideoProject; 
+export default EditVideoProject;

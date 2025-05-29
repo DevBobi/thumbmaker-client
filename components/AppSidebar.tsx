@@ -23,6 +23,10 @@ import {
   FileText,
   HelpCircle,
   Loader2,
+  Video,
+  Image,
+  FolderOpen,
+  LayoutTemplate,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -48,45 +52,30 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Create Ad",
-    path: "/dashboard/create-ad",
-    icon: PlusCircle,
-  },
-  {
     title: "Create Video Project",
     path: "/dashboard/create-video-project",
-    icon: PlusCircle,
+    icon: Video,
   },
   {
     title: "Create Youtube Thumbnail",
     path: "/dashboard/create-youtube-thumbnail",
-    icon: PlusCircle,
-  },
-  {
-    title: "All Products",
-    path: "/dashboard/products",
-    icon: Package,
+    icon: Image,
   },
   {
     title: "All Projects",
     path: "/dashboard/video-projects",
-    icon: FileText,
+    icon: FolderOpen,
   },
   {
     title: "Templates",
     path: "/dashboard/templates",
-    icon: FileText,
+    icon: LayoutTemplate,
   },
   {
     title: "History",
     path: "/dashboard/history",
     icon: History,
   },
-  // {
-  //   title: "Support",
-  //   path: "/dashboard/support",
-  //   icon: HelpCircle,
-  // },
 ];
 
 export function AppSidebar({

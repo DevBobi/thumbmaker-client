@@ -2,8 +2,8 @@ import { serverAuthFetch } from "@/lib/server-auth-fetch";
 import Dashboard from "@/components/pages/Dashboard";
 
 export default async function DashboardPage() {
-  const products = await serverAuthFetch("/api/products/recent");
-  const productsData = await products.json();
+  const projects = await serverAuthFetch("/api/projects/recent");
+  const projectsData = await projects.json();
 
-  return <Dashboard products={productsData} />;
+  return <Dashboard projects={projectsData} />;
 }

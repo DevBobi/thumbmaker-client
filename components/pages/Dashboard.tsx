@@ -1,17 +1,17 @@
 "use client";
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/contexts/ProductContext";
 import { Sparkles, Plus } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/products/ProductCard";
 import { GuaranteePopup } from "@/components/GuaranteePopup";
+import { Project } from "@/types";
 
 interface DashboardProps {
-  products: Product[];
+  projects: Project[];
 }
 
-const Dashboard = ({ products }: DashboardProps) => {
+const Dashboard = ({ projects }: DashboardProps) => {
   return (
     <div className="space-y-10">
       <GuaranteePopup />
@@ -65,23 +65,23 @@ const Dashboard = ({ products }: DashboardProps) => {
               className="bg-brand-600 hover:bg-brand-700 gap-2 shadow-sm dark:text-primary"
               asChild
             >
-              <Link href="/dashboard/create-product">
+              <Link href="/dashboard/create-video-project">
                 <Plus className="h-4 w-4" />
-                Add Product
+                Add Project
               </Link>
             </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products?.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {projects?.map((project: Project) => (
+            <ProductCard key={project.id} project={project} />
           ))}
 
-          {products.length === 0 && (
+          {projects.length === 0 && (
             <div className="col-span-full p-8 text-center border border-dashed rounded-lg border-border">
               <p className="text-muted-foreground">
-                No products yet. Add your first product to get started.
+                No projects yet. Add your first project to get started.
               </p>
             </div>
           )}

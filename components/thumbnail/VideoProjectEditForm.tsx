@@ -19,7 +19,10 @@ import { useState } from "react";
 const formSchema = z.object({
   videoTitle: z.string().min(1, "Video title is required"),
   videoDescription: z.string().min(1, "Video description is required"),
-  highlights: z.array(z.string()).min(2, "At least two highlights are required").max(5, "Maximum 5 highlights allowed"),
+  highlights: z
+    .array(z.string())
+    .min(2, "At least two highlights are required")
+    .max(5, "Maximum 5 highlights allowed"),
   targetAudience: z.string().min(1, "Target audience is required"),
 });
 
@@ -34,8 +37,14 @@ interface VideoProjectEditFormProps {
   isSaving: boolean;
 }
 
-const VideoProjectEditForm = ({ initialValues, onSubmit, isSaving }: VideoProjectEditFormProps) => {
-  const [highlightCount, setHighlightCount] = useState(initialValues?.highlights?.length || 2);
+const VideoProjectEditForm = ({
+  initialValues,
+  onSubmit,
+  isSaving,
+}: VideoProjectEditFormProps) => {
+  const [highlightCount, setHighlightCount] = useState(
+    initialValues?.highlights?.length || 2
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,7 +55,7 @@ const VideoProjectEditForm = ({ initialValues, onSubmit, isSaving }: VideoProjec
     if (highlightCount < 5) {
       const currentHighlights = form.getValues("highlights");
       form.setValue("highlights", [...currentHighlights, ""]);
-      setHighlightCount(prev => prev + 1);
+      setHighlightCount((prev) => prev + 1);
     }
   };
 
@@ -55,13 +64,17 @@ const VideoProjectEditForm = ({ initialValues, onSubmit, isSaving }: VideoProjec
       const currentHighlights = form.getValues("highlights");
       const newHighlights = currentHighlights.filter((_, i) => i !== index);
       form.setValue("highlights", newHighlights);
-      setHighlightCount(prev => prev - 1);
+      setHighlightCount((prev) => prev - 1);
     }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-8"
+        id="edit-video-form"
+      >
         <FormField
           control={form.control}
           name="videoTitle"
@@ -116,8 +129,7 @@ const VideoProjectEditForm = ({ initialValues, onSubmit, isSaving }: VideoProjec
                 className="py-4 px-4"
               >
                 <Plus className="h-4 w-4" />
-                &nbsp;
-                Add more Highlights
+                &nbsp; Add more Highlights
               </Button>
             )}
           </div>
@@ -143,7 +155,7 @@ const VideoProjectEditForm = ({ initialValues, onSubmit, isSaving }: VideoProjec
                           variant="outline"
                           size="icon"
                           onClick={() => removeHighlight(index)}
-                          className="h-10 w-10 flex-shrink-0"
+                          className="flex-shrink-0"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -181,4 +193,4 @@ const VideoProjectEditForm = ({ initialValues, onSubmit, isSaving }: VideoProjec
   );
 };
 
-export default VideoProjectEditForm; 
+export default VideoProjectEditForm;
