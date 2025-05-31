@@ -27,39 +27,6 @@ interface VideoProject {
   userId: string;
 }
 
-// Mock data
-const mockProjects: VideoProject[] = [
-  {
-    id: "1",
-    title: "Product Launch Video",
-    description:
-      "A promotional video for our new product launch featuring key features and benefits",
-    thumbnail: "https://picsum.photos/seed/1/800/600",
-    createdAt: "2024-01-15T10:00:00Z",
-    updatedAt: "2024-01-15T10:00:00Z",
-    userId: "user1",
-  },
-  {
-    id: "2",
-    title: "Company Overview",
-    description:
-      "A comprehensive overview of our company history, mission and values",
-    thumbnail: "https://picsum.photos/seed/2/800/600",
-    createdAt: "2024-01-10T15:30:00Z",
-    updatedAt: "2024-01-12T09:20:00Z",
-    userId: "user1",
-  },
-  {
-    id: "3",
-    title: "Tutorial Series",
-    description:
-      "Step-by-step tutorial videos explaining how to use our platform",
-    createdAt: "2024-01-05T08:45:00Z",
-    updatedAt: "2024-01-07T16:15:00Z",
-    userId: "user1",
-  },
-];
-
 const VideoProjects = () => {
   // Use React Query to fetch video projects
   const { authFetch } = useAuthFetch();

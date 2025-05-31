@@ -30,7 +30,7 @@ const formSchema = z.object({
 });
 
 interface ManualInputFormProps {
-  onSubmit: (data: z.infer<typeof formSchema>) => Promise<void>;
+  onSubmit: (data: z.infer<typeof formSchema>) => Promise<{ id: string }>;
   initialValues?: {
     videoTitle: string;
     videoDescription: string;
