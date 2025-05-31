@@ -64,77 +64,65 @@ interface GeneratedThumbnail {
   progress?: number;
 }
 
-const GeneratedThumbnailsPage = ({id}: {id: string}) => {
+interface ThumbnailSet {
+  id: string;
+  name: string;
+  status: string;
+  thumbnails: GeneratedThumbnail[];
+}
+
+const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
   const router = useRouter();
   const { authFetch } = useAuthFetch();
-  const campaignId = id;
   const [thumbnails, setThumbnails] = useState<GeneratedThumbnail[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingCount, setProcessingCount] = useState(0);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     const fetchThumbnails = async () => {
       try {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        /* or replace with API call
-        const response = await authFetch(`/api/thumbnails/${campaignId}`);
-        const data = await response.json();
-        */
-        // Use mock data instead of API call
-        const mockData = {
-          thumbnails: MOCK_THUMBNAILS,
-          jobStatuses: [],
-          jobIds: []
-        };
+        const response = await authFetch(`/api/thumbnails/${id}`);
+        const data: ThumbnailSet = await response.json();
 
-        const formattedThumbnails = mockData.thumbnails.map((thumbnail: any) => ({
-          id: thumbnail.id,
-          title: thumbnail.title || "Untitled Thumbnail",
-          description: thumbnail.description || "",
-          aspectRatio: thumbnail.aspectRatio || "",
-          image: thumbnail.image,
-          createdAt: thumbnail.createdAt || new Date().toISOString(),
-        }));
+        if (!data) {
+          throw new Error("No data received");
+        }
 
-        // Add loading states for pending jobs
-        const pendingJobs = mockData.jobStatuses
-          .filter(
-            (job: any) => job.status === "active" || job.status === "waiting"
-          )
-          .map((job: any) => ({
-            id: `pending-${job.jobId}`,
-            title: "Generating Thumbnail...",
-            description: "",
-            aspectRatio: "",
-            image: "",
-            createdAt: new Date().toISOString(),
-            jobId: job.jobId,
-            status: job.status,
-            progress: job.progress,
-          }));
+        // Format thumbnails from the set
+        const formattedThumbnails = data.thumbnails || [];
 
-        setThumbnails([...formattedThumbnails, ...pendingJobs]);
-        setProcessingCount(mockData.jobIds?.length || 0);
-        setIsProcessing(pendingJobs.length > 0);
+        setThumbnails(formattedThumbnails);
+        setIsProcessing(data.status !== "COMPLETED");
         setIsLoading(false);
+
+        // If status is not completed, continue polling
+        return data.status !== "COMPLETED";
       } catch (error) {
         console.error("Error fetching thumbnails:", error);
         setError(true);
         setIsProcessing(false);
         setIsLoading(false);
+        return false; // Stop polling on error
       }
     };
 
+    // Initial fetch
     fetchThumbnails();
-    // Remove the interval for mock data
-    // const intervalId = setInterval(fetchThumbnails, 5000);
-    // return () => {
-    //   clearInterval(intervalId);
-    // };
-  }, [campaignId]);
+
+    // Set up polling if needed
+    const intervalId = setInterval(async () => {
+      const shouldContinuePolling = await fetchThumbnails();
+      if (!shouldContinuePolling) {
+        clearInterval(intervalId);
+      }
+    }, 5000);
+
+    // Cleanup
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [id]);
 
   const handleDownload = (imageUrl: string, title: string) => {
     const link = document.createElement("a");
@@ -182,7 +170,10 @@ const GeneratedThumbnailsPage = ({id}: {id: string}) => {
         <Breadcrumb
           items={[
             { label: "Dashboard", href: "/dashboard" },
-            { label: "Generated Thumbnails", href: `/dashboard/generated-thumbnails` },
+            {
+              label: "Generated Thumbnails",
+              href: `/dashboard/generated-thumbnails`,
+            },
           ]}
         />
         <div className="flex items-center">
@@ -194,18 +185,21 @@ const GeneratedThumbnailsPage = ({id}: {id: string}) => {
           </div>
         </div>
         <p>
-          Thumbnails are being generated. The workflow is complex and requires time.
-          Thanks for your patience.
+          Thumbnails are being generated. The workflow is complex and requires
+          time. Thanks for your patience.
         </p>
 
         <div className="space-y-8">
           {Object.entries(
-            thumbnails.reduce((acc: Record<string, GeneratedThumbnail[]>, thumbnail) => {
-              const ratio = thumbnail.aspectRatio || "";
-              if (!acc[ratio]) acc[ratio] = [];
-              acc[ratio].push(thumbnail);
-              return acc;
-            }, {})
+            thumbnails.reduce(
+              (acc: Record<string, GeneratedThumbnail[]>, thumbnail) => {
+                const ratio = thumbnail.aspectRatio || "";
+                if (!acc[ratio]) acc[ratio] = [];
+                acc[ratio].push(thumbnail);
+                return acc;
+              },
+              {}
+            )
           )
             .sort(([ratioA], [ratioB]) => {
               // Define the order of aspect ratios
@@ -236,7 +230,9 @@ const GeneratedThumbnailsPage = ({id}: {id: string}) => {
                         </div>
                       ) : (
                         <GeneratedThumbnailCard
-                          download={() => handleDownload(thumbnail.image, thumbnail.title)}
+                          download={() =>
+                            handleDownload(thumbnail.image, thumbnail.title)
+                          }
                           key={thumbnail.id}
                           ad={thumbnail}
                         />
@@ -257,7 +253,10 @@ const GeneratedThumbnailsPage = ({id}: {id: string}) => {
         <Breadcrumb
           items={[
             { label: "Dashboard", href: "/dashboard" },
-            { label: "Generated Thumbnails", href: `/dashboard/generated-thumbnails` },
+            {
+              label: "Generated Thumbnails",
+              href: `/dashboard/generated-thumbnails`,
+            },
           ]}
         />
         <h1 className="text-2xl font-bold mb-4">Error</h1>
@@ -274,14 +273,19 @@ const GeneratedThumbnailsPage = ({id}: {id: string}) => {
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Generated Thumbnails", href: `/dashboard/generated-thumbnails` },
+          {
+            label: "Generated Thumbnails",
+            href: `/dashboard/generated-thumbnails`,
+          },
         ]}
       />
       <h1 className="text-2xl font-bold">Your Generated Thumbnails</h1>
 
       {thumbnails.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">No thumbnails have been generated yet.</p>
+          <p className="text-gray-500 mb-4">
+            No thumbnails have been generated yet.
+          </p>
           <Button onClick={handleBack} variant="outline">
             Return to Dashboard
           </Button>

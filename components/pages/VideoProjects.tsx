@@ -20,8 +20,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 // Define the VideoProject type
 interface VideoProject {
   id: string;
-  name: string;
-  thumbnail?: string;
+  title: string;
   description: string;
   createdAt: string;
   updatedAt: string;
@@ -32,30 +31,33 @@ interface VideoProject {
 const mockProjects: VideoProject[] = [
   {
     id: "1",
-    name: "Product Launch Video",
-    description: "A promotional video for our new product launch featuring key features and benefits",
+    title: "Product Launch Video",
+    description:
+      "A promotional video for our new product launch featuring key features and benefits",
     thumbnail: "https://picsum.photos/seed/1/800/600",
     createdAt: "2024-01-15T10:00:00Z",
     updatedAt: "2024-01-15T10:00:00Z",
-    userId: "user1"
+    userId: "user1",
   },
   {
     id: "2",
-    name: "Company Overview",
-    description: "A comprehensive overview of our company history, mission and values",
+    title: "Company Overview",
+    description:
+      "A comprehensive overview of our company history, mission and values",
     thumbnail: "https://picsum.photos/seed/2/800/600",
     createdAt: "2024-01-10T15:30:00Z",
     updatedAt: "2024-01-12T09:20:00Z",
-    userId: "user1"
+    userId: "user1",
   },
   {
     id: "3",
-    name: "Tutorial Series",
-    description: "Step-by-step tutorial videos explaining how to use our platform",
+    title: "Tutorial Series",
+    description:
+      "Step-by-step tutorial videos explaining how to use our platform",
     createdAt: "2024-01-05T08:45:00Z",
     updatedAt: "2024-01-07T16:15:00Z",
-    userId: "user1"
-  }
+    userId: "user1",
+  },
 ];
 
 const VideoProjects = () => {
@@ -68,15 +70,11 @@ const VideoProjects = () => {
 
   // Function to fetch video projects from the API
   const fetchVideoProjects = async (): Promise<VideoProject[]> => {
-    /*
-    const response = await authFetch("/api/video-projects");
+    const response = await authFetch("/api/projects");
     if (!response.ok) {
       throw new Error("Failed to fetch video projects");
     }
     return response.json();
-    */
-    // Return mock data instead of making API call
-    return Promise.resolve(mockProjects);
   };
 
   const {
@@ -91,7 +89,7 @@ const VideoProjects = () => {
   // Filter video projects based on search term
   const filteredProjects = videoProjects.filter(
     (project) =>
-      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -99,8 +97,8 @@ const VideoProjects = () => {
   const sortedProjects = [...filteredProjects].sort((a, b) => {
     if (sortBy === "name") {
       return sortOrder === "asc"
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name);
+        ? a.title.localeCompare(b.title)
+        : b.title.localeCompare(a.title);
     } else {
       // Sort by date
       const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -143,9 +141,12 @@ const VideoProjects = () => {
             <div className="bg-red-100 rounded-full p-3">
               <Search className="h-6 w-6 text-red-500" />
             </div>
-            <h3 className="font-medium text-lg">Error loading video projects</h3>
+            <h3 className="font-medium text-lg">
+              Error loading video projects
+            </h3>
             <p className="text-muted-foreground">
-              There was a problem loading your video projects. Please try again later.
+              There was a problem loading your video projects. Please try again
+              later.
             </p>
             <Button
               variant="outline"
@@ -277,19 +278,17 @@ const VideoProjects = () => {
             >
               <div className="border rounded-lg overflow-hidden transition-all hover:shadow-md">
                 <div className="aspect-video relative bg-accent/10">
-
                   <Image
                     src="/logo/youtube.png"
-                    alt={project.name}
+                    alt={project.title}
                     fill
                     className="object-cover"
                   />
-
                 </div>
                 <div className="p-5">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold text-lg text-foreground group-hover:text-brand-600 transition-colors duration-200">
-                      {project.name}
+                      {project.title}
                     </h3>
                   </div>
 
@@ -318,14 +317,14 @@ const VideoProjects = () => {
                   <div className="h-16 w-24 bg-accent/10 rounded-md flex-shrink-0 relative">
                     <Image
                       src="/logo/youtube.png"
-                      alt={project.name}
+                      alt={project.title}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg text-foreground group-hover:text-brand-600 transition-colors duration-200">
-                      {project.name}
+                      {project.title}
                     </h3>
                     <p className="text-muted-foreground text-sm line-clamp-2 mt-1">
                       {project.description}

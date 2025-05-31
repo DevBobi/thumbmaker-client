@@ -148,19 +148,12 @@ export function AppSidebar({
         {subscription.isActive ? (
           ""
         ) : (
-          <>
-            {!subscription.gotFreeCredits && (
-              <Button size="lg">
-                <Link href="/pricing">Get 10 Free Ad Credits</Link>
-              </Button>
-            )}
-            <Button variant="brand" size="lg" asChild>
-              <Link href="/pricing">
-                <Crown className="h-4 w-4" />
-                Upgrade
-              </Link>
-            </Button>
-          </>
+          <Button variant="brand" size="lg" asChild>
+            <Link href="/pricing">
+              <Crown className="h-4 w-4" />
+              Upgrade
+            </Link>
+          </Button>
         )}
       </SidebarFooter>
     </Sidebar>

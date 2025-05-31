@@ -34,11 +34,11 @@ export default function RootLayout({
       >
         <AllProvider>{children}</AllProvider>
       </body>
-      <Script
+      {/* <Script
         async
         src="https://cloud.umami.is/script.js"
         data-website-id="dc6b8527-f537-4de2-97c5-0b970dd08bc8"
-      />
+      /> */}
     </html>
   );
 }

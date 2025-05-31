@@ -43,31 +43,31 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-
-interface Project {
-  id: string;
-  name: string;
-  overview: string;
-}
+import { Project } from "@/types";
+import { uploadToStorage } from "@/actions/upload";
+import { useRouter } from "next/navigation";
 
 const channelStyles = [
   {
-    value: "professional",
+    value: "professional & educational",
     label: "Professional & Educational",
-    description: "Clean, informative, and authoritative style suitable for educational content",
+    description:
+      "Clean, informative, and authoritative style suitable for educational content",
   },
   {
-    value: "entertainment",
+    value: "entertainment & gaming",
     label: "Entertainment & Gaming",
-    description: "Dynamic, energetic, and engaging style for entertainment content",
+    description:
+      "Dynamic, energetic, and engaging style for entertainment content",
   },
   {
-    value: "lifestyle",
+    value: "lifestyle & vlog",
     label: "Lifestyle & Vlog",
-    description: "Personal, authentic, and relatable style for lifestyle content",
+    description:
+      "Personal, authentic, and relatable style for lifestyle content",
   },
   {
-    value: "tech",
+    value: "tech & reviews",
     label: "Tech & Reviews",
     description: "Modern, sleek, and technical style for technology content",
   },
@@ -75,33 +75,42 @@ const channelStyles = [
 
 const thumbnailGoals = [
   {
-    value: "clickbait",
+    value: "clickbait & curiosity",
     label: "Clickbait & Curiosity",
     description: "Create intrigue and curiosity to drive clicks",
   },
   {
-    value: "preview",
+    value: "content preview",
     label: "Content Preview",
     description: "Show a preview of the video content",
   },
   {
-    value: "branding",
+    value: "branding recognition",
     label: "Brand Recognition",
     description: "Focus on brand identity and recognition",
   },
   {
-    value: "emotion",
+    value: "emotion response",
     label: "Emotional Response",
     description: "Evoke specific emotions from viewers",
   },
 ];
 
+interface ThumbnailAsset {
+  file: File;
+  type: string;
+  url?: string;
+}
+
 export default function CreateYoutubeThumbnail() {
   const { authFetch } = useAuthFetch();
+  const router = useRouter();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
   const [inspirationUrl, setInspirationUrl] = useState("");
-  const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
+  const [inspirationPreview, setInspirationPreview] = useState<string | null>(
+    null
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [channelStyle, setChannelStyle] = useState<string>("");
@@ -109,14 +118,18 @@ export default function CreateYoutubeThumbnail() {
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [videoVariations, setVideoVariations] = useState(1);
   const [templateVariations, setTemplateVariations] = useState(1);
-  const [thumbnailAssets, setThumbnailAssets] = useState<File[]>([]);
+  const [thumbnailAssets, setThumbnailAssets] = useState<ThumbnailAsset[]>([]);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const handleInspirationUrlChange = (url: string) => {
     setInspirationUrl(url);
-    const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
+    const videoId = url.match(
+      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+    )?.[1];
     if (videoId) {
-      setInspirationPreview(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+      setInspirationPreview(
+        `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+      );
     } else {
       setInspirationPreview(null);
     }
@@ -127,13 +140,19 @@ export default function CreateYoutubeThumbnail() {
       const newFiles = Array.from(e.target.files);
       const remainingSlots = 4 - thumbnailAssets.length;
       if (remainingSlots > 0) {
-        setThumbnailAssets(prev => [...prev, ...newFiles.slice(0, remainingSlots)]);
+        setThumbnailAssets((prev) => [
+          ...prev,
+          ...newFiles.slice(0, remainingSlots).map((file) => ({
+            file,
+            type: file.type.split("/")[1],
+          })),
+        ]);
       }
     }
   };
 
-  const removeFile = (index: number) => {
-    setThumbnailAssets(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveFile = (index: number) => {
+    setThumbnailAssets((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Search projects API query
@@ -167,18 +186,52 @@ export default function CreateYoutubeThumbnail() {
   });
 
   const handleGenerate = async () => {
-    // TODO: Handle thumbnail generation
-    console.log({
-      projectId: selectedProject?.id,
-      templates: selectedTemplates,
-      inspirationUrl,
-      channelStyle,
-      thumbnailGoal,
-      additionalInstructions,
-      videoVariations,
-      templateVariations,
-      thumbnailAssets,
-    });
+    try {
+      // Upload all media files first
+      const uploadPromises = thumbnailAssets.map(async (asset) => {
+        const formData = new FormData();
+        formData.append("file", asset.file);
+
+        const uploadResult = await uploadToStorage(formData);
+
+        if (!uploadResult.success) {
+          throw new Error(
+            `Failed to upload ${asset.file.name}: ${uploadResult.error}`
+          );
+        }
+
+        return {
+          ...asset,
+          url: uploadResult.fileUrl,
+        };
+      });
+
+      const uploadedAssets = await Promise.all(uploadPromises);
+
+      const response = await authFetch("/api/thumbnails/create", {
+        method: "POST",
+        body: JSON.stringify({
+          projectId: selectedProject?.id,
+          templates: selectedTemplates,
+          mediaFiles: uploadedAssets.map((asset) => asset.url),
+          channelStyle,
+          thumbnailGoal,
+          additionalInstructions,
+          variations: templateVariations,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate thumbnail");
+      }
+
+      const data = await response.json();
+
+      router.push(`/dashboard/generated-thumbnails/${data.id}`);
+    } catch (error) {
+      console.error("Error generating thumbnail:", error);
+      // You might want to show an error toast or message to the user here
+    }
   };
 
   return (
@@ -230,7 +283,7 @@ export default function CreateYoutubeThumbnail() {
                   variant="outline"
                   className="w-full justify-start text-left font-normal"
                 >
-                  {selectedProject ? selectedProject.name : "Select a Project"}
+                  {selectedProject ? selectedProject.title : "Select a Project"}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
@@ -248,7 +301,7 @@ export default function CreateYoutubeThumbnail() {
                   />
                 </div>
 
-                <div className="mt-4 space-y-2">
+                <div className="space-y-2">
                   {isLoading ? (
                     <div className="flex justify-center items-center p-4">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -272,9 +325,9 @@ export default function CreateYoutubeThumbnail() {
                           setIsOpen(false);
                         }}
                       >
-                        <div className="font-medium">{project.name}</div>
+                        <div className="font-medium">{project.title}</div>
                         <div className="text-sm text-muted-foreground line-clamp-1">
-                          {project.overview}
+                          {project.description}
                         </div>
                       </div>
                     ))
@@ -299,7 +352,9 @@ export default function CreateYoutubeThumbnail() {
         <Card>
           <CardHeader>
             <CardTitle>Thumbnail Assets</CardTitle>
-            <CardDescription>Upload images to use in your thumbnail</CardDescription>
+            <CardDescription>
+              Upload images to use in your thumbnail
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="border-2 border-dashed rounded-lg p-6">
@@ -323,10 +378,14 @@ export default function CreateYoutubeThumbnail() {
                 <Button
                   variant="outline"
                   className="mt-4"
-                  onClick={() => document.getElementById("thumbnail-assets")?.click()}
+                  onClick={() =>
+                    document.getElementById("thumbnail-assets")?.click()
+                  }
                   disabled={thumbnailAssets.length >= 4}
                 >
-                  {thumbnailAssets.length >= 4 ? "Maximum files reached" : "Upload Files"}
+                  {thumbnailAssets.length >= 4
+                    ? "Maximum files reached"
+                    : "Upload Files"}
                 </Button>
               </div>
               {thumbnailAssets.length > 0 && (
@@ -334,31 +393,28 @@ export default function CreateYoutubeThumbnail() {
                   <p className="text-muted-foreground">
                     {thumbnailAssets.length} files selected
                   </p>
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {thumbnailAssets.map((file, index) => (
-                    <div
-                      key={index}
-                      className="relative aspect-video rounded-lg overflow-hidden border group"
-                    >
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                          className="flex items-center gap-2"
-                        >
-                          <X className="h-4 w-4" />
-                          Remove
-                        </Button>
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {thumbnailAssets.map((asset, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-video rounded-lg overflow-hidden border group"
+                      >
+                        <div className="relative aspect-video">
+                          <img
+                            src={URL.createObjectURL(asset.file)}
+                            alt={asset.file.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            onClick={() => handleRemoveFile(index)}
+                            className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                          >
+                            <X className="h-4 w-4 text-white" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -369,7 +425,9 @@ export default function CreateYoutubeThumbnail() {
         <Card>
           <CardHeader>
             <CardTitle>Channel Style</CardTitle>
-            <CardDescription>Select the style that best matches your channel</CardDescription>
+            <CardDescription>
+              Select the style that best matches your channel
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={channelStyle} onValueChange={setChannelStyle}>
@@ -396,7 +454,9 @@ export default function CreateYoutubeThumbnail() {
         <Card>
           <CardHeader>
             <CardTitle>Primary Thumbnail Goal</CardTitle>
-            <CardDescription>What do you want to achieve with this thumbnail?</CardDescription>
+            <CardDescription>
+              What do you want to achieve with this thumbnail?
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={thumbnailGoal} onValueChange={setThumbnailGoal}>
@@ -423,24 +483,32 @@ export default function CreateYoutubeThumbnail() {
         <Card>
           <CardHeader>
             <CardTitle>Generation Method</CardTitle>
-            <CardDescription>Choose how you want to generate your thumbnail</CardDescription>
+            <CardDescription>
+              Choose how you want to generate your thumbnail
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="youtube" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="youtube">Use a YouTube Video</TabsTrigger>
-                <TabsTrigger value="templates">Choose from Templates</TabsTrigger>
+                <TabsTrigger value="templates">
+                  Choose from Templates
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="youtube" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-lg font-medium mb-2">YouTube Video URL</h3>
+                    <h3 className="text-lg font-medium mb-2">
+                      YouTube Video URL
+                    </h3>
                     <div className="flex gap-2">
                       <Input
                         placeholder="https://youtube.com/watch?v=..."
                         value={inspirationUrl}
-                        onChange={(e) => handleInspirationUrlChange(e.target.value)}
+                        onChange={(e) =>
+                          handleInspirationUrlChange(e.target.value)
+                        }
                       />
                       <Button
                         type="button"
@@ -456,7 +524,8 @@ export default function CreateYoutubeThumbnail() {
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Paste a YouTube video URL to use its thumbnail as inspiration
+                      Paste a YouTube video URL to use its thumbnail as
+                      inspiration
                     </p>
                   </div>
 
@@ -485,12 +554,16 @@ export default function CreateYoutubeThumbnail() {
                     maxSelections={5}
                   />
                   <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Variations per Template</h3>
+                    <h3 className="text-lg font-medium">
+                      Variations per Template
+                    </h3>
                     <div className="flex gap-2">
                       {[1, 2, 3].map((num) => (
                         <Button
                           key={num}
-                          variant={templateVariations === num ? "default" : "outline"}
+                          variant={
+                            templateVariations === num ? "default" : "outline"
+                          }
                           onClick={() => setTemplateVariations(num)}
                         >
                           {num}
@@ -508,7 +581,9 @@ export default function CreateYoutubeThumbnail() {
         <Card>
           <CardHeader>
             <CardTitle>Additional Instructions</CardTitle>
-            <CardDescription>Add any specific requirements or preferences</CardDescription>
+            <CardDescription>
+              Add any specific requirements or preferences
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
@@ -533,4 +608,4 @@ export default function CreateYoutubeThumbnail() {
       </div>
     </div>
   );
-} 
+}

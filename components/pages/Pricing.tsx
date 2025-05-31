@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { PricingCard } from "@/components/cards/PricingCard";
 import { CustomPricingCard } from "@/components/cards/CustomPricingCard";
-import { FreeCreditsCard } from "@/components/cards/FreeCreditsCard";
 import { pricingPlans } from "@/lib/plans";
 
 export default function Pricing({ currentPlan }: { currentPlan: any }) {
@@ -95,13 +94,6 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
             credits you need.
           </p>
         </div>
-
-        {/* Pricing Cards */}
-        {!currentPlan.gotFreeCredits ? (
-          <div className="mb-12 max-w-7xl mx-auto">
-            <FreeCreditsCard />
-          </div>
-        ) : null}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-8 max-w-7xl mx-auto">
           {pricingPlans.map((plan, index) => (
