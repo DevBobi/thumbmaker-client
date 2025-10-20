@@ -32,7 +32,7 @@ function TermsAndConditions() {
             by you through the Services.
           </li>
           <li>
-            <strong>"Templates"</strong> means the ad templates, designs, or
+            <strong>"Templates"</strong> means the thumbnail templates, designs, or
             assets made available via the Services.
           </li>
         </ul>

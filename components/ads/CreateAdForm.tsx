@@ -235,16 +235,16 @@ export const CreateAdForm: React.FC<CreateAdFormProps> = ({ onNext }) => {
   return (
     <div className="mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Create Ad</h1>
+        <h1 className="text-3xl font-bold">Create Thumbnail</h1>
         <p className="text-muted-foreground">
-          Configure your ad details before choosing a template
+          Configure your thumbnail details before choosing a template
         </p>
       </div>
 
       <AdCreationStepper
         currentStep={1}
         steps={[
-          { id: 1, name: "Ad Details" },
+          { id: 1, name: "Thumbnail Details" },
           { id: 2, name: "Select Template" },
         ]}
       />
@@ -255,7 +255,7 @@ export const CreateAdForm: React.FC<CreateAdFormProps> = ({ onNext }) => {
             <CardHeader>
               <CardTitle>Product Details</CardTitle>
               <CardDescription>
-                Select the product you want to create an ad for
+                Select the product you want to create a thumbnail for
               </CardDescription>
             </CardHeader>
             <CardContent>

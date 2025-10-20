@@ -19,7 +19,7 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "THUMBMAKER",
   description:
-    "Generate stunning AI-powered ads with THUMBMAKER - Transform your marketing with intelligent ad creation",
+    "Generate stunning AI-powered YouTube thumbnails with THUMBMAKER - Transform your videos with intelligent thumbnail creation that gets clicks",
 };
 
 export default function RootLayout({

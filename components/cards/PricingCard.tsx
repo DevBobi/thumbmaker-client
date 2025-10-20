@@ -67,13 +67,13 @@ export function PricingCard({
       animate={{ opacity: 1, y: 0 }}
       className={`relative rounded-2xl bg-card p-8 shadow-lg ${
         plan.popular
-          ? "border-2 border-brand-500 scale-105"
+          ? "border-2 border-primary scale-105"
           : "border border-border"
       }`}
     >
       {plan.popular && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-          <span className="bg-brand-500 text-white dark:text-primary px-4 py-1 rounded-full text-sm font-medium">
+          <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium shadow-sm">
             Most Popular
           </span>
         </div>
@@ -98,7 +98,7 @@ export function PricingCard({
       {plan.credits !== null && (
         <div className="mt-8">
           <div className="flex items-center justify-center">
-            <span className="text-xl font-semibold text-brand-500">
+            <span className="text-xl font-semibold text-primary">
               {plan.credits.toLocaleString()} Credits
             </span>
           </div>
@@ -109,7 +109,7 @@ export function PricingCard({
       <ul className="mt-8 space-y-4">
         {plan.features.map((feature) => (
           <li key={feature} className="flex items-center">
-            <Check className="h-5 w-5 text-brand-500 mr-3" />
+            <Check className="h-5 w-5 text-primary mr-3" />
             <span className="text-muted-foreground">{feature}</span>
           </li>
         ))}
@@ -132,11 +132,8 @@ export function PricingCard({
             onClick={
               stripeCustomerId ? handleUpgradeOrDowngrade : handleGetStarted
             }
-            className={`w-full rounded-lg px-4 py-3 text-center font-semibold transition-all cursor-pointer ${
-              plan.popular
-                ? "bg-brand-500 text-white dark:text-primary hover:bg-brand-600"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            }`}
+            variant={plan.popular ? "default" : "secondary"}
+            className="w-full cursor-pointer"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

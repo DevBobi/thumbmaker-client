@@ -167,9 +167,9 @@ export function ExploreGallery() {
     >
       <div className="">
         <div className="max-w-6xl mx-auto">
-          <h3 className="text-sm mb-4 font-medium text-gray-600">Examples ads generated</h3>
+          <h3 className="text-sm mb-4 font-medium text-gray-600">Example thumbnails generated</h3>
           <h1 className="text-4xl md:text-5xl lg:text-6xl text-gray-900 leading-tight mb-2 font-bold">
-            All these ads were one-shot by THUMBMAKER. Try it to believe!
+            All these thumbnails were one-shot by THUMBMAKER. Try it to believe!
           </h1>
         </div>
         <Tabs

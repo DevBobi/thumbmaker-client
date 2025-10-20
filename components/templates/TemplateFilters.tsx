@@ -114,7 +114,7 @@ const TemplateFilters: React.FC<TemplateFiltersProps> = ({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           className="pl-10"
-          placeholder="Search ad templates by keywords or tags..."
+          placeholder="Search thumbnail templates by keywords or tags..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
         />

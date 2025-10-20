@@ -63,7 +63,7 @@ const UserTemplateGallery: React.FC<UserTemplateGalleryProps> = ({
                   </div>
                   <h3 className="font-medium">Create New Template</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Design your own custom ad template
+                    Design your own custom thumbnail template
                   </p>
                 </div>
               </div>

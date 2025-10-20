@@ -13,7 +13,7 @@ export function Footer() {
               </h1>
             </Link>
             <p className="text-sm text-gray-600 max-w-xs">
-              Creating billion-dollar ads effortlessly with AI-powered
+              Creating viral YouTube thumbnails effortlessly with AI-powered
               innovation.
             </p>
             <div className="flex flex-col space-y-1">
@@ -42,46 +42,46 @@ export function Footer() {
             <h3 className="font-semibold text-base text-gray-900">Key Features</h3>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="hover:text-brand-600 transition-colors">
-                One-Shot Ad Generation
+                One-Shot Thumbnail Generation
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                AI Copywriting
+                AI Text Overlays
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Proven Ad Templates
+                Proven Templates
               </li>
               <li className="hover:text-brand-600 transition-colors">
                 Multi-Format Export
               </li>
             </ul>
           </div>
-          {/* Ad Categories */}
+          {/* Thumbnail Categories */}
           <div className="space-y-3">
-            <h3 className="font-semibold text-base text-gray-900">Ad Categories</h3>
+            <h3 className="font-semibold text-base text-gray-900">Thumbnail Styles</h3>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="hover:text-brand-600 transition-colors">
-                eCommerce Ads
+                Gaming Content
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                SaaS Marketing
+                Educational Videos
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                B2B Lead Generation
+                Vlogs & Lifestyle
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Finance Advertising
+                Tech Reviews
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Service Promotion
+                How-To Tutorials
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Mobile App Marketing
+                Product Reviews
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Real Estate Ads
+                Entertainment
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Retail Promotions
+                Business & Finance
               </li>
             </ul>
           </div>
@@ -96,19 +96,19 @@ export function Footer() {
                 Template Filtering
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Copy Generation
+                Text Generation
               </li>
               <li className="hover:text-brand-600 transition-colors">
                 Visual Asset Creation
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Ad Variations
+                Thumbnail Variations
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Format Conversion
+                Format Optimization
               </li>
               <li className="hover:text-brand-600 transition-colors">
-                Campaign Scaling
+                Video Project Management
               </li>
               <li className="hover:text-brand-600 transition-colors">
                 Performance Analytics

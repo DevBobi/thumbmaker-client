@@ -16,36 +16,36 @@ export function Features() {
   const features = [
     {
       icon: "AI",
-      title: "Instant product understanding with AI",
-      subtitle: "Smart Product Profiling",
-      description: "Simply paste your URL or upload product documentation. Our AI instantly analyzes and understands your offering to create perfectly tailored ads.",
-      cta: "Add Your First Product",
+      title: "Instant video understanding with AI",
+      subtitle: "Smart Video Analysis",
+      description: "Simply paste your YouTube URL or upload video details. Our AI instantly analyzes and understands your content to create perfectly tailored thumbnails that capture attention.",
+      cta: "Add Your First Video",
       ctaHref: "/dashboard",
       media: "/images/features/product-create.png",
     },
     {
       icon: "📚",
-      title: "Choose from 2600+ proven ad templates",
+      title: "Choose from 2600+ proven thumbnail templates",
       subtitle: "Template Library",
-      description: "Filter and search through our library of templates that have generated billions in revenue. Find the perfect match for your product, audience, and goals.",
+      description: "Filter and search through our library of templates used by top YouTubers. Find the perfect match for your video style, audience, and goals.",
       cta: "Explore Templates",
       ctaHref: "/dashboard",
       media: "/images/features/ad-templates.png",
     },
     {
       icon: "⚡",
-      title: "One-shot ad generation",
-      subtitle: "AI Ad Creation",
-      description: "Select your product, campaign context, and ad dimensions. THUMBMAKER handles everything from copywriting to visuals, creating multiple high-converting variations instantly.",
-      cta: "Create Your First Ad",
+      title: "One-shot thumbnail generation",
+      subtitle: "AI Thumbnail Creation",
+      description: "Select your video project, add context, and choose dimensions. THUMBMAKER handles everything from text overlays to visuals, creating multiple high-converting thumbnail variations instantly.",
+      cta: "Create Your First Thumbnail",
       ctaHref: "/dashboard",
       media: "/images/features/ad-generation.png",
     },
     {
       icon: "📱",
-      title: "Flexible Ad Formats",
+      title: "Flexible Thumbnail Formats",
       subtitle: "Multi-Platform Support",
-      description: "Generate ads in portrait, landscape, or square formats. Perfect for any platform from Instagram to Facebook, LinkedIn to Google Display Network.",
+      description: "Generate thumbnails optimized for YouTube with perfect 16:9 ratio. Also works for other platforms with portrait, landscape, or square formats.",
       cta: "Try Different Formats",
       ctaHref: "/dashboard",
       media: "/images/features/ad-formats.png",
@@ -71,9 +71,9 @@ export function Features() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h3 className="text-sm mb-4 font-medium text-gray-300">Discover what you can do</h3>
           <h1 className="text-4xl md:text-5xl lg:text-6xl text-white leading-tight mb-2 font-bold">
-            Powerful AI ad features
+            Powerful AI thumbnail features
             <br />
-            for every marketer
+            for every creator
           </h1>
         </div>
       </div>

@@ -158,7 +158,7 @@ function PrivacyPolicy() {
             usage and improve performance.
           </li>
           <li>
-            <strong>Marketing Cookies:</strong> To deliver relevant advertising
+            <strong>Marketing Cookies:</strong> To deliver relevant content
             on our site and elsewhere.
           </li>
         </ul>

@@ -144,7 +144,7 @@ const Products = () => {
         <div>
           <h1 className="text-3xl font-bold">All Products</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your products and create ads for them
+            Manage your products and create thumbnails for them
           </p>
         </div>
         <Button
@@ -231,7 +231,7 @@ const Products = () => {
               <p className="text-muted-foreground text-sm mb-4">
                 {searchTerm
                   ? `No products match "${searchTerm}". Try a different search term.`
-                  : "Create your first product to start generating thumbnails and ads."}
+                  : "Create your first product to start generating thumbnails."}
               </p>
             </div>
             {searchTerm ? (

@@ -432,11 +432,11 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
       <div className="">
         <Button variant="ghost" className="gap-1" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
-          Back to Ad Details
+          Back to Thumbnail Details
         </Button>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="text-xl sm:text-2xl font-bold">Select Ad Templates</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">Select Thumbnail Templates</h1>
 
           <div className="flex gap-2">
             <TemplateCreator onTemplateCreated={handleTemplateCreated} />
@@ -451,7 +451,7 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
               ) : (
                 <>
                   <Check className="h-4 w-4" />
-                  Create Ad
+                  Create Thumbnail
                 </>
               )}
             </Button>

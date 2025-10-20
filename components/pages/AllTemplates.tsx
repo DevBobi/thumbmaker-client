@@ -257,11 +257,11 @@ const AllTemplates = () => {
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Ad Templates", href: "/dashboard/all-templates" },
+          { label: "Thumbnail Templates", href: "/dashboard/all-templates" },
         ]}
       />
       <div>
-        <h1 className="text-3xl font-bold">Ad Templates</h1>
+        <h1 className="text-3xl font-bold">Thumbnail Templates</h1>
         <p className="text-muted-foreground mt-1">
           Browse our preset templates or create your own custom templates
         </p>

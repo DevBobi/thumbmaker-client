@@ -89,7 +89,7 @@ export function AppSidebar({
       <SidebarHeader className="px-6 py-6 border-b border-gray-200 dark:border-gray-800">
         <Link href="/dashboard" className="block">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#FF0000] to-[#CC0000] rounded-lg flex items-center justify-center shadow-md">
               <Zap className="h-5 w-5 text-white" />
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-gray-100 dark:via-gray-200 dark:to-gray-100 bg-clip-text text-transparent">
@@ -145,15 +145,17 @@ export function AppSidebar({
       <SidebarFooter className="px-3 pb-6 mt-auto border-t border-gray-200 dark:border-gray-800 pt-4">
         <div className="space-y-3">
           {!subscription.isActive && (
-            <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 p-4 rounded-lg border border-purple-200 dark:border-purple-900/30">
+            <div className="bg-gradient-to-br from-accent/50 to-muted dark:from-accent/30 dark:to-muted/50 p-4 rounded-lg border border-border shadow-sm">
               <div className="flex items-center gap-2 mb-2">
-                <Crown className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-xs font-semibold text-purple-900 dark:text-purple-100">Upgrade to Pro</span>
+                <div className="p-1 rounded-md bg-primary/10 dark:bg-primary/20">
+                  <Crown className="h-4 w-4 text-primary dark:text-primary" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">Upgrade to Pro</span>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 Unlimited thumbnails & premium features
               </p>
-              <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" asChild>
+              <Button size="sm" className="w-full shadow-sm" asChild>
                 <Link href="/pricing">
                   <Sparkles className="h-3.5 w-3.5 mr-1" />
                   Upgrade Now

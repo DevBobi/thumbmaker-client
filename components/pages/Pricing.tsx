@@ -90,8 +90,7 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Choose the perfect plan for your advertising needs. Pay only for the
-            credits you need.
+            Choose the perfect plan for your YouTube thumbnail needs. Create stunning thumbnails that get clicks.
           </p>
         </div>
 

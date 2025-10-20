@@ -8,10 +8,10 @@ export function CustomPricingCard() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-2xl bg-gradient-to-br from-brand-500/10 via-brand-500/5 to-brand-500/20 dark:from-brand-500/20 dark:via-brand-500/10 dark:to-brand-500/30 p-8 shadow-lg border border-brand-500/20 dark:border-brand-500/30"
+      className="relative rounded-2xl bg-gradient-to-br from-accent/50 to-muted dark:from-accent/30 dark:to-muted/50 p-8 shadow-lg border border-border"
     >
       <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-        <span className="bg-brand-500 text-white dark:text-primary px-4 py-1 rounded-full text-sm font-medium">
+        <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium shadow-sm">
           Enterprise
         </span>
       </div>
@@ -28,17 +28,17 @@ export function CustomPricingCard() {
           <h4 className="text-lg font-semibold text-foreground">Features</h4>
           <ul className="space-y-3">
             <li className="flex items-center">
-              <div className="h-2 w-2 rounded-full bg-brand-500 mr-3" />
+              <div className="h-2 w-2 rounded-full bg-primary mr-3" />
               <span className="text-muted-foreground">
                 Custom credit packages
               </span>
             </li>
             <li className="flex items-center">
-              <div className="h-2 w-2 rounded-full bg-brand-500 mr-3" />
+              <div className="h-2 w-2 rounded-full bg-primary mr-3" />
               <span className="text-muted-foreground">Priority support</span>
             </li>
             <li className="flex items-center">
-              <div className="h-2 w-2 rounded-full bg-brand-500 mr-3" />
+              <div className="h-2 w-2 rounded-full bg-primary mr-3" />
               <span className="text-muted-foreground">
                 Dedicated account manager
               </span>

@@ -1,6 +1,6 @@
 # Thumbmaker
 
-A modern web application built with Next.js 15 and React 19 to generate ads for your business (with care and support)
+A modern web application built with Next.js 15 and React 19 to generate YouTube thumbnails for your videos (with care and support)
 
 ## 🚀 Getting Started
 

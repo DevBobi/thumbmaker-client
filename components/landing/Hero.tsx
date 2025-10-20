@@ -32,8 +32,8 @@ export function Hero() {
     },
   };
 
-  // Sample ads for the carousel
-  const ads = [
+  // Sample thumbnails for the carousel
+  const thumbnails = [
     "/ads/ad-1.jpg",
     "/ads/ad-2.jpg", 
     "/ads/ad-3.jpg",
@@ -70,9 +70,9 @@ export function Hero() {
               variants={itemVariants}
               className="flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-700"
             >
-              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-purple-600 transform rotate-45"></div>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-[#FF0000] transform rotate-45"></div>
               <span>AI-Powered Thumbnail Generation</span>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF0000]" />
             </motion.div>
 
             {/* Main Headline */}
@@ -81,7 +81,7 @@ export function Hero() {
               className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl lg:font-black font-bold text-gray-900 leading-tight"
             >
               Create High-Performing{" "}
-              <span className="bg-gradient-to-r from-[#B049F4] to-[#F98888] bg-clip-text text-transparent">YouTube Thumbnails</span>{" "}
+              <span className="bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">YouTube Thumbnails</span>{" "}
               in 60 Seconds!
             </motion.h1>
 
@@ -176,7 +176,7 @@ export function Hero() {
             </motion.div>
           </motion.div>
 
-          {/* Right Ads Section */}
+          {/* Right Thumbnails Section */}
           <motion.div
             variants={itemVariants}
             className="relative mt-8 lg:mt-0"
@@ -184,7 +184,7 @@ export function Hero() {
             animate="visible"
           >
             <div className="relative overflow-hidden space-y-3 lg:space-y-4">
-              {/* First row of ads */}
+              {/* First row of thumbnails */}
               <Marquee
                 gradient={false}
                 speed={30}
@@ -192,14 +192,14 @@ export function Hero() {
                 direction="left"
                 className="py-2"
               >
-                {ads.map((ad, index) => (
+                {thumbnails.map((thumbnail, index) => (
                   <div
                     key={index}
                     className="relative aspect-square w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-1 sm:mx-2 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
                   >
                     <Image
-                      src={ad}
-                      alt={`Ad example ${index + 1}`}
+                      src={thumbnail}
+                      alt={`Thumbnail example ${index + 1}`}
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 192px"
@@ -213,15 +213,15 @@ export function Hero() {
                     )}
                   </div>
                 ))}
-                {/* Duplicate ads for seamless loop */}
-                {ads.map((ad, index) => (
+                {/* Duplicate thumbnails for seamless loop */}
+                {thumbnails.map((thumbnail, index) => (
                   <div
                     key={`duplicate-${index}`}
                     className="relative aspect-square w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-1 sm:mx-2 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
                   >
                     <Image
-                      src={ad}
-                      alt={`Ad example ${index + 1}`}
+                      src={thumbnail}
+                      alt={`Thumbnail example ${index + 1}`}
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 192px"
@@ -237,7 +237,7 @@ export function Hero() {
                 ))}
               </Marquee>
 
-              {/* Second row of ads */}
+              {/* Second row of thumbnails */}
               <Marquee
                 gradient={false}
                 speed={25}
@@ -245,14 +245,14 @@ export function Hero() {
                 direction="right"
                 className="py-2"
               >
-                {ads.map((ad, index) => (
+                {thumbnails.map((thumbnail, index) => (
                   <div
                     key={`row2-${index}`}
                     className="relative aspect-square w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-1 sm:mx-2 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
                   >
                     <Image
-                      src={ad}
-                      alt={`Ad example ${index + 1}`}
+                      src={thumbnail}
+                      alt={`Thumbnail example ${index + 1}`}
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 192px"
@@ -266,15 +266,15 @@ export function Hero() {
                     )}
                   </div>
                 ))}
-                {/* Duplicate ads for seamless loop */}
-                {ads.map((ad, index) => (
+                {/* Duplicate thumbnails for seamless loop */}
+                {thumbnails.map((thumbnail, index) => (
                   <div
                     key={`row2-duplicate-${index}`}
                     className="relative aspect-square w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-1 sm:mx-2 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
                   >
                     <Image
-                      src={ad}
-                      alt={`Ad example ${index + 1}`}
+                      src={thumbnail}
+                      alt={`Thumbnail example ${index + 1}`}
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 192px"
