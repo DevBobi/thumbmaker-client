@@ -1,11 +1,36 @@
-[phases.setup]
-nixPkgs = ['nodejs_20']
+# .nixpacks/nixpacks.toml
 
+# 1. Explicitly define the provider
+providers = ["node"]
+
+# --- INSTALL PHASE OPTIMIZATION (Speed & Caching) ---
 [phases.install]
-cmds = ['npm install --legacy-peer-deps']
+# Ensure only these files trigger a fresh install. If they don't change,
+# Nixpacks will use a cached layer, drastically reducing the 7+ minute install time.
+onlyIncludeFiles = [
+  "package.json",
+  "package-lock.json",
+  ".npmrc",
+]
+# The command used in your log (can be skipped, but explicit is better)
+cmds = ["npm install --legacy-peer-deps"]
 
+
+# --- BUILD PHASE OPTIMIZATION (Memory & Next.js Cache) ---
 [phases.build]
-cmds = ['npm run build']
+# Increase Node's memory limit to prevent "heap out of memory" errors
+# during the Next.js build and compilation process.
+# Use 4GB (4096MB) as a safe starting point.
+args = [
+  "NODE_OPTIONS='--max-old-space-size=4096'",
+]
+# Explicitly cache the .next/cache folder to speed up subsequent builds
+cacheDirectories = [
+  ".next/cache",
+]
+cmds = ["npm run build"]
 
+
+# --- START PHASE (Standard Next.js Server) ---
 [start]
-cmd = 'npm start'
+cmd = "npm run start"
