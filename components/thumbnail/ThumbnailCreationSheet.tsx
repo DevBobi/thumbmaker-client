@@ -271,7 +271,7 @@ export default function ThumbnailCreationSheet({
       const uploadedAssets = await Promise.all(uploadPromises);
 
       // Prepare request body based on generation method
-      let requestBody: any = {
+      const requestBody: any = {
         projectId: selectedProject.id,
         mediaFiles: uploadedAssets.map((asset) => asset.url),
         channelStyle,

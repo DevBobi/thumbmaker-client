@@ -12,6 +12,7 @@ import {
   ArrowUpDown,
   Loader2,
   ImageIcon,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";

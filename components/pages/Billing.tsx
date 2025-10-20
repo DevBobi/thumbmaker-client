@@ -18,6 +18,7 @@ import { pricingPlans } from "@/lib/plans";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface BillingProps {}
 
 const Billing = ({}: BillingProps) => {
