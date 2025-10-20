@@ -1,4 +1,4 @@
-# TryKillion
+# Thumbmaker
 
 A modern web application built with Next.js 15 and React 19 to generate ads for your business (with care and support)
 
@@ -14,7 +14,7 @@ A modern web application built with Next.js 15 and React 19 to generate ads for 
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd trykillion
+cd Thumbmaker
 ```
 
 2. Install dependencies:
