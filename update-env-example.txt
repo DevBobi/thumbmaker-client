@@ -1,0 +1,12 @@
+# Update your .env.local file with these correct keys:
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_YOUR_CORRECT_KEY_HERE
+CLERK_SECRET_KEY=sk_test_YOUR_CORRECT_KEY_HERE
+
+# Keep these as they are:
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+API_URL=http://localhost:8000/api
+
+# Optional - add these if you have them:
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+STRIPE_API_KEY=your_stripe_secret_key

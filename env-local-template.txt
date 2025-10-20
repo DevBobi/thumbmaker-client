@@ -1,0 +1,16 @@
+# Copy this to your .env.local file:
+
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
+CLERK_SECRET_KEY=your_clerk_secret_key_here
+
+# JWT Template (optional - will use fallback if not found)
+CLERK_JWT_TEMPLATE=api-access
+
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+API_URL=http://localhost:8000/api
+
+# Optional - Stripe
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+STRIPE_API_KEY=your_stripe_secret_key
