@@ -11,7 +11,7 @@ export default async function PricingPage() {
     }
   } catch (error) {
     // User is not authenticated, which is fine
-    console.log("User not authenticated, showing public pricing");
+    console.log("User not authenticated, showing public pricing", error);
   }
 
   return (

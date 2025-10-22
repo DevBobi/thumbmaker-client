@@ -1,8 +1,4 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +6,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Check, X } from "lucide-react";
 
 // Custom Components
-import TemplateCreator from "@/components/dialogs/TemplateCreator";
 import AdCreationStepper from "@/components/ads/AdCreationStepper";
+import TemplateCreator from "@/components/dialogs/TemplateCreator";
 import EnhancedTemplateFilters from "@/components/templates/EnhancedTemplateFilters";
 import { TemplatePagination } from "@/components/templates/TemplatePagination";
 
 // Hooks and Context
-import { toast } from "@/hooks/use-toast";
-import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { useAdCreation } from "@/contexts/AdCreationContext";
-import { AdTemplate } from "@/contexts/AdContext";
-import { filterOptions } from "@/constants/filters";
 import { TemplateCard } from "@/components/cards/TemplateCard";
+import { filterOptions } from "@/constants/filters";
+import { AdTemplate } from "@/contexts/AdContext";
+import { useAdCreation } from "@/contexts/AdCreationContext";
+import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { toast } from "@/hooks/use-toast";
 
 interface AdTemplateSearchProps {
   onBack: () => void;

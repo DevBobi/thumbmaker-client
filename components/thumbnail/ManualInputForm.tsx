@@ -1,4 +1,7 @@
+import { uploadToStorage } from "@/actions/upload";
+import LogoUpload from "@/components/products/LogoUpload";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -10,16 +13,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Plus, X } from "lucide-react";
-import { useState } from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import LogoUpload from "@/components/products/LogoUpload";
-import { uploadToStorage } from "@/actions/upload";
 
 const formSchema = z.object({
   videoTitle: z.string().min(1, "Video title is required"),

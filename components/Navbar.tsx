@@ -1,8 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,17 +10,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { useAuth, useUser } from "@clerk/nextjs";
 import {
   CreditCardIcon,
+  HelpCircleIcon,
   LogOutIcon,
   MenuIcon,
   UserCircleIcon,
-  HelpCircleIcon,
 } from "lucide-react";
-import { useAuth, useUser } from "@clerk/nextjs";
-import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
 
 const NavbarItems = [
   {

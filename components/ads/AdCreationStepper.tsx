@@ -1,5 +1,5 @@
+import { Check } from "lucide-react";
 import React from "react";
-import { Check, ArrowRight } from "lucide-react";
 
 interface StepperProps {
   currentStep: number;

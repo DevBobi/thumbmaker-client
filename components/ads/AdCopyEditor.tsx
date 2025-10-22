@@ -1,18 +1,18 @@
-import React, { useState } from "react";
-import { Pencil, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { AdCopy } from "@/contexts/AdContext";
-import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { AdCopy } from "@/contexts/AdContext";
+import { toast } from "@/hooks/use-toast";
+import { Pencil, Save } from "lucide-react";
+import React, { useState } from "react";
 
 interface AdCopyEditorProps {
   templateId: string;

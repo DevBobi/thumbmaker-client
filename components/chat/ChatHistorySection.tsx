@@ -1,8 +1,7 @@
-import React from "react";
-import { MessageSquare, ChevronRight } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChatThread } from "@/types/ad.types";
+import { ChevronRight, MessageSquare } from "lucide-react";
 
 type ChatThreadWithAdInfo = {
   thread: ChatThread;

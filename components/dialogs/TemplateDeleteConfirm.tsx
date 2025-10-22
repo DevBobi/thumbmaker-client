@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetDescription,
   SheetFooter,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { Trash2 } from "lucide-react";
+import React, { useState } from "react";
 
 interface TemplateDeleteConfirmProps {
   templateId: string;

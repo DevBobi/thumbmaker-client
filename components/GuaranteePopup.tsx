@@ -1,19 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2 } from "lucide-react";
-import { useFreeCredits } from "@/hooks/use-free-credits";
+import { Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export const GuaranteePopup = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isLoading, error, handleGetFreeCredits } = useFreeCredits();
 
   useEffect(() => {
     const hasSeenPopup = localStorage.getItem("hasSeenGuaranteePopup");

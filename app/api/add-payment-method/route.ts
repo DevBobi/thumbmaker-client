@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { absoluteUrl } from "@/lib/utils";
 import { currentUser } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const RETURN_URL = absoluteUrl("/dashboard");
 

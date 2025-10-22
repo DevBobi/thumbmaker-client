@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from "react";
-import { usePathname } from "next/navigation";
+import { NavUser } from "@/components/NavUser";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -12,28 +13,21 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useFreeCredits } from "@/hooks/use-free-credits";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
-  History,
   Crown,
-  User,
-  PlusCircle,
-  Package,
-  FileText,
-  HelpCircle,
-  Loader2,
+  History,
   Image,
-  Video,
+  LayoutDashboard,
   LayoutTemplate,
   Sparkles,
-  Zap,
+  User,
+  Video,
+  Zap
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { NavUser } from "@/components/NavUser";
-import { Badge } from "@/components/ui/badge";
-import { useFreeCredits } from "@/hooks/use-free-credits";
+import { usePathname } from "next/navigation";
 
 type User = {
   name: string;

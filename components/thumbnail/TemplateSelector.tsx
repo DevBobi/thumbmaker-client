@@ -1,18 +1,5 @@
 "use client";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { cn } from "@/lib/utils";
-import {
-  Check,
-  Search,
-  ArrowUpDown,
-  Plus,
-  ExternalLink,
-  X,
-  ChevronsUpDown,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import CreateTemplateThumbnail from "./CreateTemplateThumbnail";
 import {
   Command,
   CommandEmpty,
@@ -20,13 +7,7 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -36,6 +17,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowUpDown,
+  Check,
+  ChevronsUpDown,
+  ExternalLink,
+  Plus,
+  Search,
+  X,
+} from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import CreateTemplateThumbnail from "./CreateTemplateThumbnail";
 
 // Types
 interface Template {

@@ -1,12 +1,12 @@
 "use client";
-import { useClerk, useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 
 import {
   CreditCardIcon,
+  HelpCircleIcon,
   LogOutIcon,
   MoreVerticalIcon,
   UserCircleIcon,
-  HelpCircleIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

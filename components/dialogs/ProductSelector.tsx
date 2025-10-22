@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Product, useProducts } from "@/contexts/ProductContext";
-import { Search, Loader2 } from "lucide-react";
+import { Product } from "@/contexts/ProductContext";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2, Search } from "lucide-react";
+import React, { useState } from "react";
 
 interface ProductSelectorProps {
   onSelectProduct: (product: Product) => void;
