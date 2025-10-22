@@ -357,7 +357,7 @@ const History = () => {
                             {/* Title and Status */}
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="text-lg font-semibold text-gray-900">
-                                {thumbnail.title || "Thumbnail Generated"}
+                                {thumbnail.title || `Thumbnail - ${thumbnail.project?.title || "Generated"}`}
                               </h3>
                               <Badge 
                                 variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
@@ -479,7 +479,7 @@ const History = () => {
         <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col">
           <SheetHeader className="px-6 py-4 border-b">
             <SheetTitle>
-              {selectedThumbnail?.title || "Thumbnail Preview"}
+              {selectedThumbnail?.title || `Thumbnail - ${selectedThumbnail?.project?.title || "Preview"}`}
             </SheetTitle>
             <SheetDescription>
               View and download thumbnail details
