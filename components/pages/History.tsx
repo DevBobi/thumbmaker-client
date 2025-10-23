@@ -327,13 +327,13 @@ const History = () => {
                   >
                     <div className="flex">
                       {/* Thumbnail Image - Left Side */}
-                      <div className="w-56 h-36 relative overflow-hidden bg-gray-100">
+                      <div className="w-56 h-36 relative overflow-hidden bg-gray-100 flex items-center justify-center">
                         {thumbnail.image ? (
                           <Image
                             src={thumbnail.image}
                             alt={thumbnail.title || "Thumbnail preview"}
                             fill
-                            className="object-cover"
+                            className="object-contain"
                             unoptimized
                             onError={(e) => {
                               console.error('❌ Image failed to load:', thumbnail.image);
