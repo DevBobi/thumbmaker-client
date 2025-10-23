@@ -323,11 +323,11 @@ const History = () => {
                 {campaigns.map((thumbnail: any) => (
                   <div
                     key={thumbnail.id}
-                    className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+                    className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
                   >
                     <div className="flex">
                       {/* Thumbnail Image - Left Side */}
-                      <div className="w-48 h-32 relative rounded-l-lg overflow-hidden bg-gray-100">
+                      <div className="w-56 h-36 relative overflow-hidden bg-gray-100">
                         {thumbnail.image ? (
                           <Image
                             src={thumbnail.image}
@@ -352,70 +352,66 @@ const History = () => {
 
                       {/* Content - Right Side */}
                       <div className="flex-1 p-6">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            {/* Title and Status */}
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {thumbnail.title || `Thumbnail - ${thumbnail.project?.title || "Generated"}`}
-                              </h3>
-                              <Badge 
-                                variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
-                                className={`${
-                                  thumbnail.status === "COMPLETED" 
-                                    ? "bg-green-100 text-green-800 border-green-200" 
-                                    : "bg-gray-100 text-gray-800 border-gray-200"
-                                }`}
-                              >
-                                {thumbnail.status === "COMPLETED" ? "Success" : "Pending"}
-                              </Badge>
-                            </div>
-
-                            {/* Series/Category */}
-                            <p className="text-sm text-gray-600 mb-1">
+                        {/* Header with Title and Status */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 pr-4">
+                            <h3 className="text-xl font-bold text-gray-900 mb-1 line-clamp-2">
+                              {thumbnail.title || `Thumbnail - ${thumbnail.project?.title || "Generated"}`}
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-2">
                               {thumbnail.project?.title || "Tech Review Series"}
                             </p>
+                          </div>
+                          <Badge 
+                            variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
+                            className={`shrink-0 ${
+                              thumbnail.status === "COMPLETED" 
+                                ? "bg-green-100 text-green-800 border-green-200" 
+                                : "bg-gray-100 text-gray-800 border-gray-200"
+                            }`}
+                          >
+                            {thumbnail.status === "COMPLETED" ? "Success" : "Pending"}
+                          </Badge>
+                        </div>
 
-                            {/* ID */}
-                            <p className="text-sm text-gray-500 mb-3">
+                        {/* Metadata Row */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-6 text-sm text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              <span suppressHydrationWarning>{getTimeAgo(new Date(thumbnail.createdAt))}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Files className="h-4 w-4" />
+                              <span>1 Variant</span>
+                            </div>
+                            <div className="text-xs text-gray-400">
                               ID: {thumbnail.id.slice(-12).toUpperCase()}
-                            </p>
-
-                            {/* Date and Variants */}
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                <span suppressHydrationWarning>{getTimeAgo(new Date(thumbnail.createdAt))}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Files className="h-4 w-4" />
-                                <span>1 Variant</span>
-                              </div>
                             </div>
                           </div>
+                        </div>
 
-                          {/* Action Buttons */}
-                          <div className="flex items-center gap-2 ml-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-                              onClick={() => handleViewThumbnail(thumbnail)}
-                            >
-                              <Eye className="h-4 w-4" />
-                              View
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-                              onClick={() => handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`)}
-                              disabled={!thumbnail.image}
-                            >
-                              <Download className="h-4 w-4" />
-                              Download
-                            </Button>
-                          </div>
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                            onClick={() => handleViewThumbnail(thumbnail)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                            onClick={() => handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`)}
+                            disabled={!thumbnail.image}
+                          >
+                            <Download className="h-4 w-4" />
+                            Download
+                          </Button>
                         </div>
                       </div>
                     </div>
