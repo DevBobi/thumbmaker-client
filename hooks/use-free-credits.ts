@@ -1,15 +1,17 @@
 import { useState } from "react";
+import { useAuthFetch } from "./use-auth-fetch";
 
 export function useFreeCredits() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const { authFetch } = useAuthFetch();
 
   const handleGetFreeCredits = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      const response = await fetch("/api/add-payment-method", {
+      const response = await authFetch("/stripe/add-payment-method", {
         method: "POST",
       });
 

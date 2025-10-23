@@ -325,24 +325,28 @@ const History = () => {
                     key={thumbnail.id}
                     className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
                   >
-                    <div className="flex">
+                    <div className="flex min-h-[144px]">
                       {/* Thumbnail Image - Left Side */}
-                      <div className="w-56 h-36 relative overflow-hidden bg-gray-100 flex items-center justify-center">
+                      <div className="w-56 flex-shrink-0 relative overflow-hidden bg-gray-100">
                         {thumbnail.image ? (
-                          <Image
-                            src={thumbnail.image}
-                            alt={thumbnail.title || "Thumbnail preview"}
-                            fill
-                            className="object-contain"
-                            unoptimized
-                            onError={(e) => {
-                              console.error('❌ Image failed to load:', thumbnail.image);
-                              console.error('❌ Error:', e);
-                            }}
-                            onLoad={() => {
-                              console.log('✅ Image loaded successfully:', thumbnail.image);
-                            }}
-                          />
+                          <div className="w-full h-full flex items-center justify-center p-2">
+                            <Image
+                              src={thumbnail.image}
+                              alt={thumbnail.title || "Thumbnail preview"}
+                              width={0}
+                              height={0}
+                              sizes="100vw"
+                              className="w-auto h-auto max-w-full max-h-full object-contain"
+                              unoptimized
+                              onError={(e) => {
+                                console.error('❌ Image failed to load:', thumbnail.image);
+                                console.error('❌ Error:', e);
+                              }}
+                              onLoad={() => {
+                                console.log('✅ Image loaded successfully:', thumbnail.image);
+                              }}
+                            />
+                          </div>
                         ) : (
                           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                             <span className="text-gray-400 text-sm">No Image</span>
