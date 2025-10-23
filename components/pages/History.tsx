@@ -325,9 +325,9 @@ const History = () => {
                     key={thumbnail.id}
                     className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
                   >
-                    <div className="flex">
+                    <div className="flex min-h-[144px]">
                       {/* Thumbnail Image - Left Side */}
-                      <div className="w-56 h-36 relative overflow-hidden bg-gray-100 flex items-center justify-center">
+                      <div className="w-56 h-full relative overflow-hidden bg-gray-100 flex items-center justify-center">
                         {thumbnail.image ? (
                           <Image
                             src={thumbnail.image}
