@@ -111,12 +111,12 @@ const UserTemplateGallery: React.FC<UserTemplateGalleryProps> = ({
               )}
             </div>
 
-            <div className="aspect-[4/3] relative">
+            <div className="aspect-video relative">
               <Image
                 src={template.image}
                 alt={`Template ${template.id}`}
                 fill
-                className="object-cover"
+                className="object-contain bg-muted"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
             </div>

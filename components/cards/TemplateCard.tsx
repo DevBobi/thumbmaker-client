@@ -48,13 +48,13 @@ export const TemplateCard = ({
         zoomMargin={40}
         classDialog="custom-zoom"
       >
-        <div className="relative w-full aspect-[4/3]">
+        <div className="relative w-full aspect-video">
           <Image
             src={template.image}
             alt={`${template.brand || 'Template'} thumbnail template - ${template.category} category`}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover"
+            className="object-contain bg-muted"
             priority={false}
           />
         </div>
