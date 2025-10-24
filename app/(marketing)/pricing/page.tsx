@@ -1,6 +1,8 @@
 import Pricing from "@/components/pages/Pricing";
 import { serverAuthFetch } from "@/lib/server-auth-fetch";
 
+export const dynamic = "force-dynamic";
+
 export default async function PricingPage() {
   let currentPlan = null;
 

@@ -2,6 +2,8 @@ import Dashboard from "@/components/pages/Dashboard";
 import { serverAuthFetch } from "@/lib/server-auth-fetch";
 import { Project } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   let projects: Project[] = [];
 
