@@ -138,7 +138,7 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter className="px-3 pb-6 mt-auto border-t border-gray-200 dark:border-gray-800 pt-4">
         <div className="space-y-3">
-          {!subscription.isActive && (
+        {!subscription.isActive && subscription.credits === 0 && (
             <div className="bg-gradient-to-br from-accent/50 to-muted dark:from-accent/30 dark:to-muted/50 p-4 rounded-lg border border-border shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1 rounded-md bg-primary/10 dark:bg-primary/20">
