@@ -19,7 +19,13 @@ export function AllProvider({ children }: { children: React.ReactNode }) {
       defaultTheme="light"
       disableTransitionOnChange
     >
-      <ClerkProvider>
+      <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/dashboard"
+      >
         <QueryClientProvider client={queryClient}>
           <ProductProvider>
             <AdProvider>
