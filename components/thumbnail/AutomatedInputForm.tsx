@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { uploadToStorage } from "@/actions/upload";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import LogoUpload from "@/components/products/LogoUpload";
 
 const formSchema = z
   .object({
@@ -40,13 +41,19 @@ const formSchema = z
     }
   );
 
-const AutomatedInputForm = () => {
+interface AutomatedInputFormProps {
+  defaultTab?: "text" | "youtube" | "document";
+}
+
+const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) => {
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(
     null
   );
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState("text");
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [logo, setLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const { authFetch } = useAuthFetch();
@@ -92,11 +99,27 @@ const AutomatedInputForm = () => {
           return;
         }
 
+        // Upload logo if provided
+        let imageUrl = null;
+        if (logo) {
+          const formData = new FormData();
+          formData.append("file", logo);
+          
+          const uploadResult = await uploadToStorage(formData);
+          
+          if (!uploadResult.success || !uploadResult.fileUrl) {
+            throw new Error(uploadResult.error || "Failed to upload image");
+          }
+          
+          imageUrl = uploadResult.fileUrl;
+        }
+
         const response = await authFetch("/api/projects/create-with-text", {
           method: "POST",
           body: JSON.stringify({
             title: values.videoTitle,
             content: values.scriptContent,
+            image: imageUrl,
           }),
         });
 
@@ -129,11 +152,27 @@ const AutomatedInputForm = () => {
           return;
         }
 
+        // Upload logo if provided
+        let imageUrl = null;
+        if (logo) {
+          const formData = new FormData();
+          formData.append("file", logo);
+          
+          const uploadResult = await uploadToStorage(formData);
+          
+          if (!uploadResult.success || !uploadResult.fileUrl) {
+            throw new Error(uploadResult.error || "Failed to upload image");
+          }
+          
+          imageUrl = uploadResult.fileUrl;
+        }
+
         const response = await authFetch("/api/projects/create-with-youtube", {
           method: "POST",
           body: JSON.stringify({
             title: values.videoTitle,
             youtubeLink: values.youtubeLink,
+            image: imageUrl,
           }),
         });
 
@@ -176,6 +215,21 @@ const AutomatedInputForm = () => {
           return;
         }
 
+        // Upload logo if provided
+        let imageUrl = null;
+        if (logo) {
+          const formData = new FormData();
+          formData.append("file", logo);
+          
+          const uploadResult = await uploadToStorage(formData);
+          
+          if (!uploadResult.success || !uploadResult.fileUrl) {
+            throw new Error(uploadResult.error || "Failed to upload image");
+          }
+          
+          imageUrl = uploadResult.fileUrl;
+        }
+
         const documentFormData = new FormData();
         documentFormData.append("file", documentFile);
 
@@ -191,6 +245,7 @@ const AutomatedInputForm = () => {
           body: JSON.stringify({
             title: values.videoTitle,
             document: documentUrl,
+            image: imageUrl,
           }),
         });
 
@@ -235,6 +290,25 @@ const AutomatedInputForm = () => {
           className="space-y-8"
         >
           <CardContent className="space-y-8">
+            {/* Logo Upload Field */}
+            <FormItem>
+              <FormLabel className="text-base font-medium">
+                Project Image (Optional)
+              </FormLabel>
+              <FormControl>
+                <LogoUpload
+                  logoPreview={logoPreview}
+                  setLogo={setLogo}
+                  setLogoPreview={setLogoPreview}
+                />
+              </FormControl>
+              {!logoPreview && (
+                <FormDescription className="text-xs italic text-center">
+                  Adding a logo helps personalize your project
+                </FormDescription>
+              )}
+            </FormItem>
+
             <FormField
               control={form.control}
               name="videoTitle"
@@ -253,7 +327,7 @@ const AutomatedInputForm = () => {
             />
 
             <Tabs
-              defaultValue="text"
+              value={activeTab}
               className="w-full"
               onValueChange={(value) => setActiveTab(value)}
             >

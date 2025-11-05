@@ -9,6 +9,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { FormSheet } from "@/components/ui/form-sheet";
 import { Input } from "@/components/ui/input";
@@ -16,11 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Image, Plus, X } from "lucide-react";
+import { Image, Plus, X, Sparkles, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Form validation schema
 const formSchema = z.object({
@@ -61,6 +63,15 @@ export function VideoProjectSheet({
   const [projectData, setProjectData] = useState<any>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // New states for creation methods
+  const [creationMethod, setCreationMethod] = useState<"manual" | "ai-enhanced" | "text" | "youtube" | "document">("manual");
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isEnhanced, setIsEnhanced] = useState(false);
+  const [briefDescription, setBriefDescription] = useState("");
+  const [textContent, setTextContent] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -124,7 +135,176 @@ export function VideoProjectSheet({
     }
   };
 
+  const handleEnhanceWithAI = async () => {
+    const title = form.getValues("videoTitle");
+    if (!title || !briefDescription) {
+      toast({
+        title: "Input required",
+        description: "Please provide both title and brief description.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const response = await authFetch("/api/projects/enhance-brief", {
+        method: "POST",
+        body: JSON.stringify({ title, briefDescription }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to enhance project");
+      }
+
+      const data = await response.json();
+      form.setValue("videoDescription", data.description || "");
+      form.setValue("targetAudience", data.targetAudience || "");
+      if (Array.isArray(data.highlights)) {
+        setHighlights(data.highlights);
+      }
+      setIsEnhanced(true);
+      toast({
+        title: "Enhanced successfully",
+        description: "AI has generated detailed content. Review and edit as needed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Enhancement failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleAutomatedCreation = async (method: "text" | "youtube" | "document") => {
+    const title = form.getValues("videoTitle");
+    if (!title) {
+      toast({
+        title: "Title required",
+        description: "Please enter a project title.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Upload logo if provided
+      let imageUrl = null;
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        const uploadResult = await uploadToStorage(formData);
+        if (!uploadResult.success || !uploadResult.fileUrl) {
+          throw new Error(uploadResult.error || "Failed to upload image");
+        }
+        imageUrl = uploadResult.fileUrl;
+      }
+
+      let endpoint = "";
+      let body: any = { title, image: imageUrl };
+
+      if (method === "text") {
+        if (!textContent || textContent.length < 100) {
+          toast({
+            title: "Content required",
+            description: "Please provide at least 100 characters of content.",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        endpoint = "/api/projects/create-with-text";
+        body.content = textContent;
+      } else if (method === "youtube") {
+        if (!youtubeLink) {
+          toast({
+            title: "YouTube link required",
+            description: "Please provide a YouTube video URL.",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        endpoint = "/api/projects/create-with-youtube";
+        body.youtubeLink = youtubeLink;
+      } else if (method === "document") {
+        if (!documentFile) {
+          toast({
+            title: "Document required",
+            description: "Please upload a document file.",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        const docFormData = new FormData();
+        docFormData.append("file", documentFile);
+        const docUpload = await uploadToStorage(docFormData);
+        if (!docUpload.success || !docUpload.fileUrl) {
+          throw new Error("Failed to upload document");
+        }
+        endpoint = "/api/projects/create-with-document";
+        body.document = docUpload.fileUrl;
+      }
+
+      const response = await authFetch(endpoint, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create project");
+      }
+
+      const data = await response.json();
+      toast({
+        title: "Project created",
+        description: "Your project has been created successfully.",
+      });
+
+      // Reset and close
+      form.reset();
+      setHighlights([""]);
+      setImageFile(null);
+      setImagePreview(null);
+      onOpenChange(false);
+
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      toast({
+        title: "Creation failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSave = async () => {
+    // Handle automated creation methods
+    if (currentMode === "create" && (creationMethod === "text" || creationMethod === "youtube" || creationMethod === "document")) {
+      await handleAutomatedCreation(creationMethod);
+      return;
+    }
+
+    // AI-enhanced needs to be enhanced first
+    if (currentMode === "create" && creationMethod === "ai-enhanced" && !isEnhanced) {
+      toast({
+        title: "Enhancement required",
+        description: "Please enhance with AI before creating the project.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Handle manual and edit modes
     const isValid = await form.trigger();
     if (!isValid) return;
 
@@ -137,7 +317,7 @@ export function VideoProjectSheet({
       // Upload image if a new file was selected
       if (imageFile) {
         const formData = new FormData();
-        formData.append('file', imageFile); // Note: server action expects 'file' key
+        formData.append('file', imageFile);
         
         const uploadResult = await uploadToStorage(formData);
         
@@ -156,10 +336,7 @@ export function VideoProjectSheet({
         image: imageUrl,
       };
 
-      const url =
-        mode === "edit"
-          ? `/api/projects/${projectId}`
-          : "/api/projects/create";
+      const url = mode === "edit" ? `/api/projects/${projectId}` : "/api/projects/create";
       const method = mode === "edit" ? "PUT" : "POST";
 
       const response = await authFetch(url, {
@@ -184,15 +361,15 @@ export function VideoProjectSheet({
       // Reset form and close sheet
       form.reset();
       setHighlights([""]);
+      setImageFile(null);
+      setImagePreview(null);
+      setBriefDescription("");
+      setIsEnhanced(false);
       onOpenChange(false);
 
-      // Call success callback or navigate
+      // Call success callback
       if (onSuccess) {
         onSuccess();
-      } else if (mode === "create") {
-        router.push(`/dashboard/video-projects`);
-      } else {
-        router.push("/dashboard/video-projects");
       }
     } catch (error) {
       console.error("Failed to save project:", error);
@@ -346,165 +523,400 @@ export function VideoProjectSheet({
             </Button>
           </div>
         </div>
-      ) : (
-        <Form {...form}>
-          <form className="space-y-6">
-          {/* Title Field */}
-          <FormField
-            control={form.control}
-            name="videoTitle"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-medium">
-                  Title
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g. 'How to Master SEO in 2024'" {...field} />
-                </FormControl>
-                <FormMessage           />
-          </FormItem>
-        )}
-      />
+      ) : currentMode === "create" ? (
+        // Create mode with tabs
+        <div className="space-y-4">
+          <Tabs value={creationMethod} onValueChange={(value: any) => setCreationMethod(value)}>
+            <TabsList className="grid w-full grid-cols-5 mb-4">
+              <TabsTrigger value="manual">Manual</TabsTrigger>
+              <TabsTrigger value="ai-enhanced">AI</TabsTrigger>
+              <TabsTrigger value="text">Text</TabsTrigger>
+              <TabsTrigger value="youtube">YouTube</TabsTrigger>
+              <TabsTrigger value="document">Doc</TabsTrigger>
+            </TabsList>
 
-      {/* Image Upload Field */}
-      <FormField
-        control={form.control}
-        name="image"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-base font-medium">
-              Project Image
-            </FormLabel>
-            <FormControl>
-              <div className="space-y-4">
-                {imagePreview && (
-                  <div className="relative">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="w-full h-48 object-cover rounded-lg border"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
-                    >
-                      ×
-                    </button>
-                  </div>
+            <TabsContent value="manual">
+              <p className="text-sm text-muted-foreground mb-4">Fill in all project details manually</p>
+            </TabsContent>
+            <TabsContent value="ai-enhanced">
+              <p className="text-sm text-muted-foreground mb-4">Provide a brief description and let AI expand it</p>
+            </TabsContent>
+            <TabsContent value="text">
+              <p className="text-sm text-muted-foreground mb-4">Paste your content and AI will analyze it</p>
+            </TabsContent>
+            <TabsContent value="youtube">
+              <p className="text-sm text-muted-foreground mb-4">Provide a YouTube link for automatic extraction</p>
+            </TabsContent>
+            <TabsContent value="document">
+              <p className="text-sm text-muted-foreground mb-4">Upload a document for AI analysis</p>
+            </TabsContent>
+          </Tabs>
+
+          {/* Method-specific content */}
+          {(creationMethod === "text" || creationMethod === "youtube" || creationMethod === "document") && (
+            <Form {...form}>
+              <FormField
+                control={form.control}
+                name="videoTitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter project title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label
-                    htmlFor="image-upload"
-                    className="flex-1 cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors"
-                  >
+              />
+            </Form>
+          )}
+          
+          {creationMethod === "ai-enhanced" && (
+            <div className="space-y-4">
+              <Form {...form}>
+                <FormField
+                  control={form.control}
+                  name="videoTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter project title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Form>
+              <div>
+                <label className="text-sm font-medium">Brief Description</label>
+                <Textarea
+                  placeholder="Provide a brief description (20+ characters)"
+                  value={briefDescription}
+                  onChange={(e) => setBriefDescription(e.target.value)}
+                  rows={3}
+                  className="mt-2"
+                  disabled={isEnhanced}
+                />
+              </div>
+              {!isEnhanced && (
+                <Button onClick={handleEnhanceWithAI} disabled={isEnhancing} className="w-full">
+                  {isEnhancing ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enhancing...</>
+                  ) : (
+                    <><Sparkles className="mr-2 h-4 w-4" /> Enhance with AI</>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {creationMethod === "text" && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Paste Your Content</label>
+                <Textarea
+                  placeholder="Paste your script or content here (100+ characters)"
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                  rows={6}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Project Image (Optional)</label>
+                <div className="mt-2">
+                  {imagePreview && (
+                    <div className="relative mb-2">
+                      <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
+                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="text-image-upload" />
+                  <label htmlFor="text-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
                     <div className="flex flex-col items-center gap-2">
-                      <Image className="h-8 w-8 text-gray-400" />
-                      <span className="text-sm text-gray-600">
-                        {imagePreview ? "Change Image" : "Upload Image"}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        PNG, JPG, GIF up to 10MB
-                      </span>
+                      <Image className="h-6 w-6 text-gray-400" />
+                      <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
+                      <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
                     </div>
                   </label>
                 </div>
               </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Description Field */}
-          <FormField
-            control={form.control}
-            name="videoDescription"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-medium">
-                  Description
-                </FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Provide a brief description of your content"
-                    rows={4}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Highlights Field */}
-          <FormItem>
-            <FormLabel className="text-base font-medium">
-              Key Highlights
-            </FormLabel>
-            <div className="space-y-2">
-              {highlights.map((highlight, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    placeholder={`Highlight ${index + 1}`}
-                    value={highlight}
-                    onChange={(e) => updateHighlight(index, e.target.value)}
-                    className="flex-1"
-                  />
-                  {highlights.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => removeHighlight(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addHighlight}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Highlight
-              </Button>
             </div>
-          </FormItem>
+          )}
 
-          {/* Target Audience Field */}
-          <FormField
-            control={form.control}
-            name="targetAudience"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-medium">
-                  Target Audience
-                </FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe your target audience for this content"
-                    rows={3}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </form>
-      </Form>
+          {creationMethod === "youtube" && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">YouTube Video URL</label>
+                <Input
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={youtubeLink}
+                  onChange={(e) => setYoutubeLink(e.target.value)}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Project Image (Optional)</label>
+                <div className="mt-2">
+                  {imagePreview && (
+                    <div className="relative mb-2">
+                      <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
+                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="youtube-image-upload" />
+                  <label htmlFor="youtube-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
+                    <div className="flex flex-col items-center gap-2">
+                      <Image className="h-6 w-6 text-gray-400" />
+                      <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
+                      <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {creationMethod === "document" && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Upload Document</label>
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
+                  className="mt-2"
+                />
+                {documentFile && <p className="text-sm text-muted-foreground mt-2">{documentFile.name}</p>}
+              </div>
+              <div>
+                <label className="text-sm font-medium">Project Image (Optional)</label>
+                <div className="mt-2">
+                  {imagePreview && (
+                    <div className="relative mb-2">
+                      <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
+                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="doc-image-upload" />
+                  <label htmlFor="doc-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
+                    <div className="flex flex-col items-center gap-2">
+                      <Image className="h-6 w-6 text-gray-400" />
+                      <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
+                      <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Common form fields shown for all methods (or after enhancement for AI method) */}
+          {(creationMethod === "manual" || creationMethod === "edit" || isEnhanced) && (
+            <Form {...form}>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="videoTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Project title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="image"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Image</FormLabel>
+                      <FormControl>
+                        <div className="space-y-4">
+                          {imagePreview && (
+                            <div className="relative">
+                              <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
+                              <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                            </div>
+                          )}
+                          <div>
+                            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
+                            <label htmlFor="image-upload" className="flex-1 cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
+                              <div className="flex flex-col items-center gap-2">
+                                <Image className="h-6 w-6 text-gray-400" />
+                                <span className="text-sm text-gray-600">{imagePreview ? "Change" : "Upload"}</span>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="videoDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Project description" rows={3} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormItem>
+                  <FormLabel>Key Highlights</FormLabel>
+                  <div className="space-y-2">
+                    {highlights.map((highlight, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          placeholder={`Highlight ${index + 1}`}
+                          value={highlight}
+                          onChange={(e) => updateHighlight(index, e.target.value)}
+                          className="flex-1"
+                        />
+                        {highlights.length > 1 && (
+                          <Button type="button" variant="outline" size="icon" onClick={() => removeHighlight(index)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" onClick={addHighlight} className="w-full">
+                      <Plus className="h-4 w-4 mr-2" /> Add Highlight
+                    </Button>
+                  </div>
+                </FormItem>
+
+                <FormField
+                  control={form.control}
+                  name="targetAudience"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Target Audience</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Describe your target audience" rows={2} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </Form>
+          )}
+        </div>
+      ) : (
+        // Edit mode
+        <Form {...form}>
+          <form className="space-y-6">
+            <FormField
+              control={form.control}
+              name="videoTitle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. 'How to Master SEO in 2024'" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project Image</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      {imagePreview && (
+                        <div className="relative">
+                          <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg border" />
+                          <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-4">
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
+                        <label htmlFor="image-upload" className="flex-1 cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                          <div className="flex flex-col items-center gap-2">
+                            <Image className="h-8 w-8 text-gray-400" />
+                            <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
+                            <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="videoDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Provide a brief description of your content" rows={4} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormItem>
+              <FormLabel>Key Highlights</FormLabel>
+              <div className="space-y-2">
+                {highlights.map((highlight, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      placeholder={`Highlight ${index + 1}`}
+                      value={highlight}
+                      onChange={(e) => updateHighlight(index, e.target.value)}
+                      className="flex-1"
+                    />
+                    {highlights.length > 1 && (
+                      <Button type="button" variant="outline" size="icon" onClick={() => removeHighlight(index)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={addHighlight} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" /> Add Highlight
+                </Button>
+              </div>
+            </FormItem>
+
+            <FormField
+              control={form.control}
+              name="targetAudience"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Target Audience</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Describe your target audience for this content" rows={3} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
       )}
     </FormSheet>
   );

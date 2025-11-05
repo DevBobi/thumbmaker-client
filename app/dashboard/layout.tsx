@@ -2,6 +2,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
 import Navbar from "@/components/Navbar";
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { serverAuthFetch } from "@/lib/server-auth-fetch";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -21,13 +22,27 @@ export async function AppLayout({ children }: LayoutProps) {
     user = null;
   }
 
-  // For now, use default subscription data to avoid API errors
-  // TODO: Implement proper API calls once server is fully configured
-  const subscription = {
+  // Fetch real subscription data from API
+  let subscription = {
     isActive: false,
-    credits: 10,
-    gotFreeCredits: true
+    credits: 0,
+    gotFreeCredits: false
   };
+
+  try {
+    const subscriptionResponse = await serverAuthFetch("/api/user/subscription");
+    if (subscriptionResponse.ok) {
+      const subscriptionData = await subscriptionResponse.json();
+      subscription = {
+        isActive: subscriptionData.isActive || false,
+        credits: subscriptionData.credits || 0,
+        gotFreeCredits: subscriptionData.gotFreeCredits || false
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching subscription data:", error);
+    // Keep default values if API call fails
+  }
 
   return (
     <SidebarProvider>

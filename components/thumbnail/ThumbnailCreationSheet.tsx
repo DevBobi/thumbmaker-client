@@ -270,10 +270,23 @@ export default function ThumbnailCreationSheet({
 
       const uploadedAssets = await Promise.all(uploadPromises);
 
+      // Collect all media files: project image + uploaded assets
+      const allMediaFiles: string[] = [];
+      
+      // Add project image first if it exists (this will be the base/primary image)
+      if (selectedProject.image) {
+        allMediaFiles.push(selectedProject.image);
+      }
+      
+      // Add any manually uploaded assets
+      uploadedAssets.forEach((asset) => {
+        allMediaFiles.push(asset.url);
+      });
+
       // Prepare request body based on generation method
       const requestBody: any = {
         projectId: selectedProject.id,
-        mediaFiles: uploadedAssets.map((asset) => asset.url),
+        mediaFiles: allMediaFiles, // Now includes project image + uploaded assets
         channelStyle,
         thumbnailGoal,
         additionalInstructions,
@@ -336,16 +349,23 @@ export default function ThumbnailCreationSheet({
 
       console.log(`✅ Request ${requestId} completed successfully, redirecting...`);
       
-      // Close the sheet and navigate
-      onClose();
+      // Keep loading state and navigate
+      // Don't set isGenerating to false - let it stay in loading state
+      
+      // Navigate immediately (router.push is non-blocking)
       router.push(`/dashboard/generated-thumbnails/${data.id}`);
+      
+      // Close sheet after a brief delay to allow navigation to start
+      setTimeout(() => {
+        onClose();
+        setIsGenerating(false); // Reset state after closing
+      }, 300);
     } catch (error) {
       console.error("Error generating thumbnail:", error);
       alert(error instanceof Error ? error.message : "Failed to generate thumbnail. Please try again.");
       
       // Reset flags on error so user can try again
       setHasSubmitted(false);
-    } finally {
       setIsGenerating(false);
     }
   };
@@ -414,6 +434,11 @@ export default function ThumbnailCreationSheet({
                   <p className="text-xs text-muted-foreground">
                     {selectedProject.title}
                   </p>
+                  {selectedProject.image && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
+                      ✓ Project image will be used as base
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
                     Target: {selectedProject.targetAudience}
                   </p>
@@ -518,11 +543,17 @@ export default function ThumbnailCreationSheet({
               <div className="flex flex-col items-center">
                 <Upload className="h-12 w-12 text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">
-                  Click to upload thumbnail assets
+                  Click to upload additional assets (optional)
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   JPG, PNG, SVG formats accepted (max 4 files)
                 </p>
+                {selectedProject?.image && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    ℹ️ Project image will be used automatically
+                  </p>
+                )}
+              </div>
                 <Input
                   type="file"
                   className="hidden"
@@ -574,7 +605,6 @@ export default function ThumbnailCreationSheet({
                   </div>
                 </div>
               )}
-            </div>
           </CardContent>
         </Card>
 
