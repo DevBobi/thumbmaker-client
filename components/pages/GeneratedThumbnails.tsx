@@ -82,6 +82,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
   const [error, setError] = useState(false);
   const [setStatus, setSetStatus] = useState<string>("");
   const socketRef = useRef<Socket | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchThumbnails = async () => {
@@ -189,15 +190,49 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
       console.error('🔌 WebSocket connection error:', error);
     });
 
+    // Add a general error handler
+    socketRef.current.on('error', (error) => {
+      console.error('🔌 WebSocket error:', error);
+    });
+
     // Listen for thumbnail events
-    socketRef.current.on('thumbnail:completed', (data) => {
+    socketRef.current.on('thumbnail:completed', async (data) => {
       console.log('🎉 Thumbnail completed via WebSocket:', data);
       if (data.setId === id) {
-        setThumbnails(data.thumbnails || []);
-        setSetStatus('COMPLETED');
-        setIsProcessing(false);
-        setIsLoading(false);
-        setError(false);
+        // Fetch the latest data to ensure we have the complete thumbnail set
+        try {
+          const response = await authFetch(`/api/thumbnails/${id}`);
+          if (response.ok) {
+            const latestData = await response.json();
+            console.log('📊 Latest data after completion:', latestData);
+            
+            if (latestData.thumbnails) {
+              setThumbnails(latestData.thumbnails);
+            }
+            setSetStatus('COMPLETED');
+            setIsProcessing(false);
+            setIsLoading(false);
+            setError(false);
+            // Clear polling since we got the update via WebSocket
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching latest data after completion:', error);
+          // Fallback to WebSocket data
+          setThumbnails(data.thumbnails || []);
+          setSetStatus('COMPLETED');
+          setIsProcessing(false);
+          setIsLoading(false);
+          setError(false);
+          // Clear polling since we got the update via WebSocket
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+        }
       }
     });
 
@@ -207,6 +242,12 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
         setError(true);
         setIsProcessing(false);
         setIsLoading(false);
+        setSetStatus('FAILED');
+        // Clear polling since we got the update via WebSocket
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
       }
     });
 
@@ -215,21 +256,66 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
       if (data.setId === id) {
         setIsProcessing(true);
         setIsLoading(false);
+        setError(false);
+        setSetStatus('PROCESSING');
       }
     });
 
-    // Initial fetch only (no more aggressive polling)
+    // Initial fetch
     fetchThumbnails();
 
-    // Cleanup WebSocket on unmount
+    // Fallback polling in case WebSocket events are missed
+    pollIntervalRef.current = setInterval(async () => {
+      console.log('🔄 Fallback polling for status update...');
+      try {
+        const response = await authFetch(`/api/thumbnails/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          const status = (data.status || "").toString().toUpperCase();
+          
+          if (status === "COMPLETED" && data.thumbnails && data.thumbnails.length > 0) {
+            console.log('✅ Status changed to COMPLETED via polling');
+            setThumbnails(data.thumbnails);
+            setSetStatus('COMPLETED');
+            setIsProcessing(false);
+            setIsLoading(false);
+            setError(false);
+            // Clear polling once completed
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+          } else if (status === "FAILED") {
+            console.log('❌ Status changed to FAILED via polling');
+            setError(true);
+            setIsProcessing(false);
+            setIsLoading(false);
+            setSetStatus('FAILED');
+            // Clear polling once failed
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error during fallback polling:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    // Cleanup WebSocket and polling on unmount
     return () => {
       if (socketRef.current) {
         console.log('🔌 Disconnecting WebSocket');
         socketRef.current.disconnect();
         socketRef.current = null;
       }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     };
-  }, [id]);
+  }, [id]); // Removed authFetch to prevent infinite loop
 
   const handleDownload = (imageUrl: string, title: string) => {
     const link = document.createElement("a");

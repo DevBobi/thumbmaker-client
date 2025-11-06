@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdTemplate } from "@/contexts/AdContext";
 import PresetTemplateGallery from "@/components/templates/PresetTemplateGallery";
@@ -10,12 +11,16 @@ import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { TemplatePagination } from "@/components/templates/TemplatePagination";
 import { filterOptions } from "@/constants/filters";
 import Breadcrumb from "@/components/Breadcrumb";
+import { useToast } from "@/hooks/use-toast";
 
 // Constants
 const TEMPLATES_PER_PAGE = 12; // Match TemplateSelector
 
 const AllTemplates = () => {
   const { authFetch } = useAuthFetch();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const templateRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("preset-templates");
   const [sortBy, setSortBy] = useState<
@@ -24,6 +29,7 @@ const AllTemplates = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [limit] = useState(TEMPLATES_PER_PAGE);
+  const [highlightTemplateId, setHighlightTemplateId] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
     category: null as string | null,
@@ -34,6 +40,39 @@ const AllTemplates = () => {
 
   // State to track loaded templates
   const [loadedTemplates, setLoadedTemplates] = useState<AdTemplate[]>([]);
+
+  // Handle query parameter for template highlighting
+  useEffect(() => {
+    const templateId = searchParams.get("template");
+    if (templateId) {
+      setHighlightTemplateId(templateId);
+      setActiveTab("preset-templates");
+      
+      // Show toast notification
+      toast({
+        title: "Template Highlighted",
+        description: `Showing Template ${templateId}`,
+      });
+
+      // Scroll after a short delay to ensure the page is loaded
+      setTimeout(() => {
+        const element = document.getElementById(`template-${templateId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 500);
+
+      // Clear highlight after 3 seconds
+      setTimeout(() => {
+        setHighlightTemplateId(null);
+      }, 3000);
+
+      // Clear the query parameter from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete("template");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams, toast]);
 
   // Build query parameters
   const buildQueryParams = () => {
@@ -253,18 +292,20 @@ const AllTemplates = () => {
   };
 
   return (
-    <div className="mx-auto space-y-6 relative">
+    <div className="space-y-6">
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Thumbnail Templates", href: "/dashboard/all-templates" },
+          { label: "Templates", href: "/dashboard/templates" },
         ]}
       />
-      <div>
-        <h1 className="text-3xl font-bold">Thumbnail Templates</h1>
-        <p className="text-muted-foreground mt-1">
-          Browse our preset templates or create your own custom templates
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Thumbnail Templates</h1>
+          <p className="text-muted-foreground mt-1">
+            Browse our preset templates or create your own custom templates
+          </p>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -307,6 +348,7 @@ const AllTemplates = () => {
                   templates={sortedTemplates}
                   searchTerm={searchTerm}
                   onUseTemplate={handleUseTemplate}
+                  highlightTemplateId={highlightTemplateId}
                 />
               </TabsContent>
 

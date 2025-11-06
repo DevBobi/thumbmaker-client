@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { uploadToStorage } from "@/actions/upload";
 
 // Form validation schema
 const formSchema = z.object({
@@ -63,11 +64,27 @@ const ManualEntryForm = () => {
     setIsGenerating(true);
 
     try {
+      // Upload logo if provided
+      let imageUrl = null;
+      if (logo) {
+        const formData = new FormData();
+        formData.append("file", logo);
+        
+        const uploadResult = await uploadToStorage(formData);
+        
+        if (!uploadResult.success || !uploadResult.fileUrl) {
+          throw new Error(uploadResult.error || "Failed to upload image");
+        }
+        
+        imageUrl = uploadResult.fileUrl;
+      }
+
       const projectData = {
         title: values.name,
         description: values.overview,
         highlights: values.features.split("\n").filter((f: string) => f.trim()),
         targetAudience: values.targetAudience,
+        image: imageUrl,
       };
 
       const response = await authFetch("/api/projects/create", {

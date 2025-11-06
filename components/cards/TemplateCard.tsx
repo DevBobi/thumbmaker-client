@@ -9,6 +9,7 @@ interface TemplateCardProps {
   isSelected?: boolean;
   onSelect?: (template: AdTemplate) => void;
   type?: "select" | "normal";
+  isHighlighted?: boolean;
 }
 
 export const TemplateCard = ({
@@ -16,12 +17,13 @@ export const TemplateCard = ({
   isSelected = false,
   onSelect,
   type = "normal",
+  isHighlighted = false,
 }: TemplateCardProps) => {
   return (
     <div
       key={template.id}
       className={`relative border rounded-md overflow-hidden cursor-pointer group transition-all ${
-        isSelected ? "ring-2 ring-brand-500" : "hover:shadow-md"
+        isSelected ? "ring-2 ring-brand-500" : isHighlighted ? "ring-4 ring-brand-500 shadow-xl border-brand-500" : "hover:shadow-md"
       }`}
     >
       {type === "select" && (

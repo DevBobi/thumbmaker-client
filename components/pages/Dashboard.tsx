@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Plus, Image, Video, Zap, FolderOpen, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
@@ -8,47 +9,43 @@ import { GuaranteePopup } from "@/components/GuaranteePopup";
 import { Project } from "@/types";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { Card, CardContent } from "@/components/ui/card";
-import { VideoProjectSheet } from "@/components/video-projects/VideoProjectSheet";
+import { VideoProjectSheet } from "@/components/projects/VideoProjectSheet";
 
-interface DashboardProps {
-  projects?: Project[];
-}
-
-const Dashboard = ({ projects: initialProjects }: DashboardProps) => {
-  const [projects, setProjects] = useState<Project[]>(initialProjects || []);
-  const [isLoading, setIsLoading] = useState(!initialProjects);
+const Dashboard = () => {
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const { authFetch } = useAuthFetch();
 
-  const fetchProjects = useCallback(async () => {
-    try {
-      const response = await authFetch("/api/projects");
-      
-      if (response.ok) {
-        const data = await response.json();
-        setProjects(data);
-      } else {
-        console.error("Failed to fetch projects:", response.statusText);
-      }
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-    } finally {
-      setIsLoading(false);
+  // Fetch projects using React Query
+  const fetchProjects = async (): Promise<Project[]> => {
+    const response = await authFetch("/api/projects");
+    if (!response.ok) {
+      throw new Error("Failed to fetch projects");
     }
-  }, [authFetch]);
+    return response.json();
+  };
+
+  const {
+    data: projects = [],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  });
 
   const handleEditProject = (projectId: string) => {
     setEditingProjectId(projectId);
     setIsEditSheetOpen(true);
   };
 
-  useEffect(() => {
-    if (!initialProjects) {
-      fetchProjects();
-    }
-  }, [initialProjects, fetchProjects]);
+  // Sort projects by last updated date (newest first)
+  const sortedProjects = [...projects].sort((a, b) => {
+    const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return dateB - dateA; // Descending order (newest first)
+  });
 
   return (
     <div className="space-y-8">
@@ -62,7 +59,7 @@ const Dashboard = ({ projects: initialProjects }: DashboardProps) => {
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="gap-2" asChild>
-            <Link href="/dashboard/video-projects">
+            <Link href="/dashboard/projects">
               <Video className="h-4 w-4" />
               All Projects
             </Link>
@@ -81,50 +78,50 @@ const Dashboard = ({ projects: initialProjects }: DashboardProps) => {
       {/* Quick Actions */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Link href="/dashboard/create-youtube-thumbnail">
-          <Card className="hover:shadow-md transition-all cursor-pointer group">
-            <CardContent className="p-6">
+          <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
+            <CardContent className="p-5">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
                   {/* eslint-disable-next-line jsx-a11y/alt-text */}
                   <Image className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Create Thumbnail</h3>
-                  <p className="text-xs text-muted-foreground">Generate AI-powered thumbnails</p>
+                  <h3 className="font-semibold text-base mb-1">Create Thumbnail</h3>
+                  <p className="text-xs text-gray-600">Generate AI-powered thumbnails</p>
                 </div>
-                <Zap className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <Zap className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
               </div>
             </CardContent>
           </Card>
         </Link>
 
-        <Card className="hover:shadow-md transition-all cursor-pointer group" onClick={() => setIsCreateSheetOpen(true)}>
-          <CardContent className="p-6">
+        <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => setIsCreateSheetOpen(true)}>
+          <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
                 <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">New Project</h3>
-                <p className="text-xs text-muted-foreground">Add a video project</p>
+                <h3 className="font-semibold text-base mb-1">New Project</h3>
+                <p className="text-xs text-gray-600">Add a video project</p>
               </div>
-              <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              <Plus className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
             </div>
           </CardContent>
         </Card>
 
         <Link href="/dashboard/templates">
-          <Card className="hover:shadow-md transition-all cursor-pointer group">
-            <CardContent className="p-6">
+          <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
+            <CardContent className="p-5">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
                   <LayoutTemplate className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Browse Templates</h3>
-                  <p className="text-xs text-muted-foreground">Explore pre-made designs</p>
+                  <h3 className="font-semibold text-base mb-1">Browse Templates</h3>
+                  <p className="text-xs text-gray-600">Explore pre-made designs</p>
                 </div>
-                <Sparkles className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <Sparkles className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
       </div>
             </CardContent>
           </Card>
@@ -156,22 +153,22 @@ const Dashboard = ({ projects: initialProjects }: DashboardProps) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {projects && projects.length > 0 ? (
+          {sortedProjects && sortedProjects.length > 0 ? (
               <>
-                {projects.slice(0, 6).map((project: Project) => (
+                {sortedProjects.slice(0, 6).map((project: Project) => (
               <ProductCard key={project.id} project={project} onEdit={handleEditProject} />
                 ))}
-                {projects.length > 6 && (
+                {sortedProjects.length > 6 && (
                   <Card className="border-dashed border-2 hover:border-primary/50 hover:bg-accent/5 transition-all">
                     <CardContent className="p-6 h-full flex items-center justify-center">
-                      <Link href="/dashboard/video-projects" className="flex flex-col items-center gap-3 text-center w-full">
+                      <Link href="/dashboard/projects" className="flex flex-col items-center gap-3 text-center w-full">
                         <div className="p-3 bg-muted rounded-full">
                           <FolderOpen className="h-6 w-6 text-muted-foreground" />
                         </div>
                         <div>
                           <p className="font-medium mb-1">View All Projects</p>
                           <p className="text-xs text-muted-foreground">
-                            {projects.length - 6} more project{projects.length - 6 !== 1 ? 's' : ''}
+                            {sortedProjects.length - 6} more project{sortedProjects.length - 6 !== 1 ? 's' : ''}
                           </p>
                         </div>
                       </Link>
@@ -219,7 +216,7 @@ const Dashboard = ({ projects: initialProjects }: DashboardProps) => {
         onOpenChange={setIsCreateSheetOpen}
         mode="create"
         onSuccess={() => {
-          fetchProjects(); // Refresh projects list
+          refetch(); // Refresh projects list
         }}
       />
 
@@ -229,7 +226,7 @@ const Dashboard = ({ projects: initialProjects }: DashboardProps) => {
         mode="view"
         projectId={editingProjectId || undefined}
         onSuccess={() => {
-          fetchProjects(); // Refresh projects list
+          refetch(); // Refresh projects list
           setEditingProjectId(null);
         }}
       />

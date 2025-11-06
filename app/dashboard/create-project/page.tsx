@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { VideoProjectSheet } from "@/components/video-projects/VideoProjectSheet";
+import { VideoProjectSheet } from "@/components/projects/VideoProjectSheet";
 
 export default function CreateVideoProjectPage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function CreateVideoProjectPage() {
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
-      router.push("/dashboard/video-projects");
+      router.push("/dashboard/projects");
     }
   };
 
@@ -25,8 +25,9 @@ export default function CreateVideoProjectPage() {
       onOpenChange={handleOpenChange}
       mode="create"
       onSuccess={() => {
-        router.push("/dashboard/video-projects");
+        router.push("/dashboard/projects");
       }}
     />
   );
 }
+

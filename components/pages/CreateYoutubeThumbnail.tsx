@@ -22,12 +22,14 @@ import { Project } from "@/types";
 import ThumbnailCreationSheet from "@/components/thumbnail/ThumbnailCreationSheet";
 import Link from "next/link";
 import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 
 type SelectionMode = "none" | "template" | "youtube";
 
 export default function CreateYoutubeThumbnail() {
   const { authFetch } = useAuthFetch();
+  const { toast } = useToast();
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("none");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedTemplates, setSelectedTemplates] = useState<any[]>([]);
@@ -69,9 +71,16 @@ export default function CreateYoutubeThumbnail() {
         ? `/api/templates/user?${params.toString()}`
         : `/api/templates/presets?${params.toString()}`;
       
+      console.log('🔍 Fetching templates from:', endpoint);
+      console.log('🔍 Search term:', searchTerm);
+      console.log('🔍 Template type:', templateType);
+      
       const response = await authFetch(endpoint);
+      console.log('📊 Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Response data:', data);
         
         // Handle different response structures
         const templatesArray = Array.isArray(data) ? data : (data.templates || []);
@@ -81,6 +90,9 @@ export default function CreateYoutubeThumbnail() {
           limit: TEMPLATES_PER_PAGE,
           pages: Math.ceil(templatesArray.length / TEMPLATES_PER_PAGE),
         };
+        
+        console.log('📊 Templates found:', templatesArray.length);
+        console.log('📊 Pagination:', pagination);
         
         setTemplates(templatesArray);
         setTotalPages(pagination.pages);
@@ -93,6 +105,8 @@ export default function CreateYoutubeThumbnail() {
       } else {
         // Edge case: Handle API errors
         console.error("Failed to fetch templates:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
         setTemplates([]);
         setTotalPages(1);
       }
@@ -127,7 +141,11 @@ export default function CreateYoutubeThumbnail() {
         return prev.filter(t => t.id !== template.id);
       } else {
         if (prev.length >= MAX_SELECTIONS) {
-          alert(`You can select up to ${MAX_SELECTIONS} templates`);
+          toast({
+            title: "Maximum templates reached",
+            description: `You can select up to ${MAX_SELECTIONS} templates at a time.`,
+            variant: "destructive",
+          });
           return prev;
         }
         return [...prev, template];
@@ -138,7 +156,11 @@ export default function CreateYoutubeThumbnail() {
   // YouTube links handlers with edge case management
   const addYoutubeLink = () => {
     if (youtubeLinks.length >= MAX_YOUTUBE_LINKS) {
-      alert(`You can only add up to ${MAX_YOUTUBE_LINKS} YouTube links`);
+      toast({
+        title: "Maximum links reached",
+        description: `You can only add up to ${MAX_YOUTUBE_LINKS} YouTube links.`,
+        variant: "destructive",
+      });
       return;
     }
     setYoutubeLinks([...youtubeLinks, ""]);
@@ -146,7 +168,11 @@ export default function CreateYoutubeThumbnail() {
 
   const removeYoutubeLink = (index: number) => {
     if (youtubeLinks.length <= 1) {
-      alert("You must have at least one YouTube link input");
+      toast({
+        title: "Cannot remove",
+        description: "You must have at least one YouTube link input.",
+        variant: "destructive",
+      });
       return;
     }
     setYoutubeLinks(youtubeLinks.filter((_, i) => i !== index));
@@ -191,16 +217,20 @@ export default function CreateYoutubeThumbnail() {
     }
   };
 
-  // Handle search
+  // Handle search with debouncing
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setTemplatePage(1); // Reset to first page when searching
   };
 
-  // Reset to page 1 when search term or template type changes
+  // Debounced search effect
   useEffect(() => {
     if (selectionMode === "template") {
-      fetchTemplates(1);
+      const timeoutId = setTimeout(() => {
+        fetchTemplates(1);
+      }, 300); // 300ms debounce
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [searchTerm, selectionMode, templateType]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -596,7 +626,7 @@ export default function CreateYoutubeThumbnail() {
             
             {/* Projects List - Fixed height with scroll */}
             <ScrollArea className="h-[500px]">
-              <div className="space-y-2 pl-1 pr-4">
+              <div className="space-y-2 pl-1 pr-4 py-2">
                 {projects.length > 0 ? (
                   projects.map((project) => (
                   <Card 
@@ -673,7 +703,7 @@ export default function CreateYoutubeThumbnail() {
                       Create your first video project to get started
                     </p>
                     <Button variant="default" size="sm" asChild>
-                      <Link href="/dashboard/create-video-project">
+                      <Link href="/dashboard/create-project">
                         <Plus className="h-4 w-4 mr-2" />
                         Create Project
                       </Link>
@@ -686,7 +716,7 @@ export default function CreateYoutubeThumbnail() {
             {/* New Project Button - Fixed at bottom */}
             {projects.length > 0 && (
             <Button variant="outline" size="sm" asChild className="flex-shrink-0">
-              <Link href="/dashboard/create-video-project">
+              <Link href="/dashboard/create-project">
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
               </Link>

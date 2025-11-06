@@ -76,7 +76,12 @@ const CreateTemplateThumbnail = ({
       });
 
       onSubmit(data);
-      onClose();
+      
+      // Keep loading state and close after brief delay for smooth transition
+      setTimeout(() => {
+        onClose();
+        setIsSubmitting(false);
+      }, 300);
     } catch (error) {
       console.error('Error creating thumbnail:', error);
       toast({
@@ -84,7 +89,6 @@ const CreateTemplateThumbnail = ({
         description: "Failed to create thumbnail. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -138,7 +142,12 @@ const CreateTemplateThumbnail = ({
       });
 
       onSubmit(data);
-      onClose();
+      
+      // Keep loading state and close after brief delay for smooth transition
+      setTimeout(() => {
+        onClose();
+        setIsSubmitting(false);
+      }, 300);
     } catch (error) {
       console.error('Error starting thumbnail generation:', error);
       toast({
@@ -146,7 +155,6 @@ const CreateTemplateThumbnail = ({
         description: "Failed to start thumbnail generation. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
