@@ -127,7 +127,7 @@ const ManualInputForm = ({ onSubmit, initialValues }: ManualInputFormProps) => {
       });
       
       // Navigate to all projects page
-      router.push("/dashboard/video-projects");
+      router.push("/dashboard/projects");
     } catch (error) {
       toast({
         title: "Error",

@@ -53,7 +53,7 @@ const navigationItems = [
   },
   {
     title: "Add Project",
-    path: "/dashboard/video-projects",
+    path: "/dashboard/projects",
     icon: Video,
   },
   {

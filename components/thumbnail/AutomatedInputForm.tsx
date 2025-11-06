@@ -50,7 +50,7 @@ const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) =>
     null
   );
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [activeTab, setActiveTab] = useState<"text" | "youtube" | "document">(defaultTab);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -138,7 +138,7 @@ const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) =>
             "Your project has been automatically generated from the provided information.",
         });
 
-        router.push(`/dashboard/create-video-project/${data.id}`);
+        router.push(`/dashboard/create-project/edit/${data.id}`);
         return;
       }
 
@@ -191,7 +191,7 @@ const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) =>
             "Your project has been automatically generated from the YouTube video.",
         });
 
-        router.push(`/dashboard/create-video-project/edit/${data.id}`);
+        router.push(`/dashboard/create-project/edit/${data.id}`);
         return;
       }
 
@@ -264,7 +264,7 @@ const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) =>
             "Your project has been automatically generated from the document.",
         });
 
-        router.push(`/dashboard/create-video-project/edit/${data.id}`);
+        router.push(`/dashboard/create-project/edit/${data.id}`);
         return;
       }
     } catch (error) {
@@ -329,7 +329,7 @@ const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) =>
             <Tabs
               value={activeTab}
               className="w-full"
-              onValueChange={(value) => setActiveTab(value)}
+              onValueChange={(value) => setActiveTab(value as "text" | "youtube" | "document")}
             >
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="text">Text Input</TabsTrigger>

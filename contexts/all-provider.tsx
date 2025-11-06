@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,9 +11,20 @@ import { AdProvider } from "@/contexts/AdContext";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "./ThemProvider";
 
-const queryClient = new QueryClient();
-
 export function AllProvider({ children }: { children: React.ReactNode }) {
+  // Create QueryClient inside component to ensure fresh instance per app mount
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60, // 1 minute
+            refetchOnWindowFocus: true,
+            retry: 1,
+          },
+        },
+      })
+  );
   return (
     <ThemeProvider
       attribute="class"

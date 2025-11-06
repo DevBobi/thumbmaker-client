@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,7 +17,8 @@ import Image from "next/image";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { getDaysAgo } from "@/lib/utils";
 import Breadcrumb from "@/components/Breadcrumb";
-import { VideoProjectSheet } from "@/components/video-projects/VideoProjectSheet";
+import { VideoProjectSheet } from "@/components/projects/VideoProjectSheet";
+import { useToast } from "@/hooks/use-toast";
 
 // Define the VideoProject type
 interface VideoProject {
@@ -32,6 +34,9 @@ interface VideoProject {
 const VideoProjects = () => {
   // Use React Query to fetch projects
   const { authFetch } = useAuthFetch();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"name" | "date">("date");
@@ -39,6 +44,50 @@ const VideoProjects = () => {
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [highlightProjectId, setHighlightProjectId] = useState<string | null>(null);
+
+  // Reset sheet state when component unmounts
+  useEffect(() => {
+    return () => {
+      setIsEditSheetOpen(false);
+      setEditingProjectId(null);
+      setHighlightProjectId(null);
+    };
+  }, []);
+
+  // Handle query parameter for editing
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      setEditingProjectId(editId);
+      setIsEditSheetOpen(true);
+      setHighlightProjectId(editId);
+      
+      // Show toast notification
+      toast({
+        title: "Project Opened",
+        description: "Showing project details",
+      });
+      
+      // Scroll to the highlighted project after a short delay
+      setTimeout(() => {
+        const element = document.getElementById(`project-${editId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 300);
+
+      // Clear highlight after 3 seconds
+      setTimeout(() => {
+        setHighlightProjectId(null);
+      }, 3000);
+      
+      // Clear the query parameter from URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete("edit");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams, toast]);
 
   const handleEditProject = (projectId: string) => {
     setEditingProjectId(projectId);
@@ -146,7 +195,7 @@ const VideoProjects = () => {
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard/video-projects" },
+          { label: "Projects", href: "/dashboard/projects" },
         ]}
       />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -243,7 +292,7 @@ const VideoProjects = () => {
             )}
             {!searchTerm && (
               <Button variant="brand" className="mt-4 gap-2" asChild>
-                <Link href="/dashboard/create-video-project">
+                <Link href="/dashboard/create-project">
                   <Plus className="h-4 w-4" />
                   New Project
                 </Link>
@@ -252,40 +301,44 @@ const VideoProjects = () => {
           </div>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedProjects.map((project) => {
             console.log("Rendering project:", project);
+            const isHighlighted = highlightProjectId === project.id;
             return (
             <div
               key={project.id}
+              id={`project-${project.id}`}
               onClick={() => handleEditProject(project.id)}
-              className="group cursor-pointer"
+              className={`group cursor-pointer ${isHighlighted ? "animate-pulse" : ""}`}
             >
-              <div className="border rounded-lg overflow-hidden transition-all hover:shadow-md">
-                <div className="aspect-video relative bg-accent/10">
+              <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden transition-all duration-300 ${
+                isHighlighted 
+                  ? "ring-4 ring-brand-500 shadow-xl border-brand-500" 
+                  : "shadow-sm hover:shadow-lg"
+              }`}>
+                <div className="aspect-video relative bg-muted">
                   <Image
                     src={project.image || "/logo/youtube.png"}
                     alt={project.title}
                     fill
-                    className="object-cover"
+                    className="object-contain"
                     onError={(e) => {
                       console.log("Image load error:", e);
                       e.currentTarget.src = "/logo/youtube.png";
                     }}
                   />
                 </div>
-                <div className="p-5">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg text-foreground group-hover:text-brand-600 transition-colors duration-200">
-                      {project.title}
-                    </h3>
-                  </div>
+                <div className="p-4">
+                  <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-brand-600 transition-colors">
+                    {project.title}
+                  </h3>
 
-                  <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
+                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                     {project.description}
                   </p>
 
-                  <div className="flex items-center text-xs text-muted-foreground">
+                  <div className="flex items-center text-xs text-gray-500">
                     {project.createdAt && getDaysAgo(project.createdAt)}
                   </div>
                 </div>
@@ -295,35 +348,44 @@ const VideoProjects = () => {
           })}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {sortedProjects.map((project) => (
+        <div className="flex flex-col gap-4">
+          {sortedProjects.map((project) => {
+            const isHighlighted = highlightProjectId === project.id;
+            return (
             <div
               key={project.id}
+              id={`project-${project.id}`}
               onClick={() => handleEditProject(project.id)}
-              className="group cursor-pointer"
+              className={`group cursor-pointer ${isHighlighted ? "animate-pulse" : ""}`}
             >
-              <div className="border rounded-lg overflow-hidden transition-all hover:shadow-md hover:bg-accent/5 p-4">
-                <div className="flex gap-4 flex-wrap sm:flex-nowrap">
-                  <div className="h-16 w-24 bg-accent/10 rounded-md flex-shrink-0 relative">
-                    <Image
-                      src={project.image || "/logo/youtube.png"}
-                      alt={project.title}
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        console.log("Image load error:", e);
-                        e.currentTarget.src = "/logo/youtube.png";
-                      }}
-                    />
+              <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden transition-all duration-300 ${
+                isHighlighted
+                  ? "ring-4 ring-brand-500 shadow-xl border-brand-500"
+                  : "shadow-sm hover:shadow-lg"
+              }`}>
+                <div className="flex items-center">
+                  <div className="w-64 flex-shrink-0 relative overflow-hidden p-2">
+                    <div className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden">
+                      <Image
+                        src={project.image || "/logo/youtube.png"}
+                        alt={project.title}
+                        fill
+                        className="object-contain"
+                        onError={(e) => {
+                          console.log("Image load error:", e);
+                          e.currentTarget.src = "/logo/youtube.png";
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg text-foreground group-hover:text-brand-600 transition-colors duration-200">
+                  <div className="flex-1 p-4 min-w-0">
+                    <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-brand-600 transition-colors">
                       {project.title}
                     </h3>
-                    <p className="text-muted-foreground text-sm line-clamp-2 mt-1">
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                       {project.description}
                     </p>
-                    <div className="flex items-center text-xs text-muted-foreground mt-2">
+                    <div className="flex items-center text-xs text-gray-500">
                       {project.createdAt
                         ? getDaysAgo(project.createdAt)
                         : "No date"}
@@ -332,7 +394,8 @@ const VideoProjects = () => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

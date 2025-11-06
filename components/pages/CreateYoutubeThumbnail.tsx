@@ -22,12 +22,14 @@ import { Project } from "@/types";
 import ThumbnailCreationSheet from "@/components/thumbnail/ThumbnailCreationSheet";
 import Link from "next/link";
 import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 
 type SelectionMode = "none" | "template" | "youtube";
 
 export default function CreateYoutubeThumbnail() {
   const { authFetch } = useAuthFetch();
+  const { toast } = useToast();
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("none");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedTemplates, setSelectedTemplates] = useState<any[]>([]);
@@ -139,7 +141,11 @@ export default function CreateYoutubeThumbnail() {
         return prev.filter(t => t.id !== template.id);
       } else {
         if (prev.length >= MAX_SELECTIONS) {
-          alert(`You can select up to ${MAX_SELECTIONS} templates`);
+          toast({
+            title: "Maximum templates reached",
+            description: `You can select up to ${MAX_SELECTIONS} templates at a time.`,
+            variant: "destructive",
+          });
           return prev;
         }
         return [...prev, template];
@@ -150,7 +156,11 @@ export default function CreateYoutubeThumbnail() {
   // YouTube links handlers with edge case management
   const addYoutubeLink = () => {
     if (youtubeLinks.length >= MAX_YOUTUBE_LINKS) {
-      alert(`You can only add up to ${MAX_YOUTUBE_LINKS} YouTube links`);
+      toast({
+        title: "Maximum links reached",
+        description: `You can only add up to ${MAX_YOUTUBE_LINKS} YouTube links.`,
+        variant: "destructive",
+      });
       return;
     }
     setYoutubeLinks([...youtubeLinks, ""]);
@@ -158,7 +168,11 @@ export default function CreateYoutubeThumbnail() {
 
   const removeYoutubeLink = (index: number) => {
     if (youtubeLinks.length <= 1) {
-      alert("You must have at least one YouTube link input");
+      toast({
+        title: "Cannot remove",
+        description: "You must have at least one YouTube link input.",
+        variant: "destructive",
+      });
       return;
     }
     setYoutubeLinks(youtubeLinks.filter((_, i) => i !== index));
@@ -689,7 +703,7 @@ export default function CreateYoutubeThumbnail() {
                       Create your first video project to get started
                     </p>
                     <Button variant="default" size="sm" asChild>
-                      <Link href="/dashboard/create-video-project">
+                      <Link href="/dashboard/create-project">
                         <Plus className="h-4 w-4 mr-2" />
                         Create Project
                       </Link>
@@ -702,7 +716,7 @@ export default function CreateYoutubeThumbnail() {
             {/* New Project Button - Fixed at bottom */}
             {projects.length > 0 && (
             <Button variant="outline" size="sm" asChild className="flex-shrink-0">
-              <Link href="/dashboard/create-video-project">
+              <Link href="/dashboard/create-project">
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
               </Link>

@@ -8,11 +8,13 @@ interface PresetTemplateGalleryProps {
   templates: AdTemplate[];
   searchTerm?: string;
   onUseTemplate?: (template: AdTemplate) => void;
+  highlightTemplateId?: string | null;
 }
 
 const PresetTemplateGallery: React.FC<PresetTemplateGalleryProps> = ({
   templates,
   searchTerm = "",
+  highlightTemplateId = null,
 }) => {
   if (templates.length === 0) {
     return (
@@ -46,7 +48,17 @@ const PresetTemplateGallery: React.FC<PresetTemplateGalleryProps> = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {templates.map((template) => (
-        <TemplateCard key={template.id} template={template} type="normal" />
+        <div 
+          key={template.id}
+          id={`template-${template.id}`}
+          className={highlightTemplateId === template.id ? "animate-pulse" : ""}
+        >
+          <TemplateCard 
+            template={template} 
+            type="normal"
+            isHighlighted={highlightTemplateId === template.id}
+          />
+        </div>
       ))}
     </div>
   );

@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { VideoProjectSheet } from "@/components/video-projects/VideoProjectSheet";
+import { VideoProjectSheet } from "@/components/projects/VideoProjectSheet";
 
 const EditVideoProject = () => {
   const router = useRouter();
@@ -36,11 +36,11 @@ const EditVideoProject = () => {
     }
   }, [id]);
 
-  // Handle sheet close - navigate back to video projects
+  // Handle sheet close - navigate back to projects
   const handleSheetClose = (open: boolean) => {
     setIsSheetOpen(open);
     if (!open) {
-      router.push("/dashboard/video-projects");
+      router.push("/dashboard/projects");
     }
   };
 
@@ -62,7 +62,7 @@ const EditVideoProject = () => {
             description: "The video project has been permanently removed.",
           });
           setIsSheetOpen(false);
-          router.push("/dashboard/video-projects");
+          router.push("/dashboard/projects");
         } else {
           toast({
             title: "Error",
@@ -95,7 +95,7 @@ const EditVideoProject = () => {
         projectId={id}
         mode="edit"
         onSuccess={() => {
-          router.push("/dashboard/video-projects");
+          router.push("/dashboard/projects");
         }}
       />
 

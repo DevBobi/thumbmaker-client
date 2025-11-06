@@ -9,16 +9,25 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { FormSheet } from "@/components/ui/form-sheet";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Image, Plus, X, Sparkles, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Image, Plus, X, Sparkles, Loader2, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -53,9 +62,9 @@ export function VideoProjectSheet({
   mode = "create",
   onSuccess,
 }: VideoProjectSheetProps) {
-  const router = useRouter();
   const { authFetch } = useAuthFetch();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [highlights, setHighlights] = useState<string[]>([""]);
@@ -72,6 +81,10 @@ export function VideoProjectSheet({
   const [textContent, setTextContent] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -94,6 +107,7 @@ export function VideoProjectSheet({
     if ((mode === "edit" || mode === "view") && projectId && open) {
       loadProjectData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, projectId, open]);
 
   const loadProjectData = async () => {
@@ -205,7 +219,7 @@ export function VideoProjectSheet({
       }
 
       let endpoint = "";
-      let body: any = { title, image: imageUrl };
+      const body: any = { title, image: imageUrl };
 
       if (method === "text") {
         if (!textContent || textContent.length < 100) {
@@ -265,6 +279,9 @@ export function VideoProjectSheet({
         title: "Project created",
         description: "Your project has been created successfully.",
       });
+
+      // Invalidate projects query to refetch data
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
 
       // Reset and close
       form.reset();
@@ -336,8 +353,8 @@ export function VideoProjectSheet({
         image: imageUrl,
       };
 
-      const url = mode === "edit" ? `/api/projects/${projectId}` : "/api/projects/create";
-      const method = mode === "edit" ? "PUT" : "POST";
+      const url = currentMode === "edit" ? `/api/projects/${projectId}` : "/api/projects/create";
+      const method = currentMode === "edit" ? "PUT" : "POST";
 
       const response = await authFetch(url, {
         method,
@@ -351,12 +368,15 @@ export function VideoProjectSheet({
       const data = await response.json();
 
       toast({
-        title: mode === "edit" ? "Project updated" : "Project created",
+        title: currentMode === "edit" ? "Project updated" : "Project created",
         description:
-          mode === "edit"
+          currentMode === "edit"
             ? `${values.videoTitle} has been updated.`
             : `${values.videoTitle} has been added to your projects.`,
       });
+
+      // Invalidate projects query to refetch data
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
 
       // Reset form and close sheet
       form.reset();
@@ -374,7 +394,7 @@ export function VideoProjectSheet({
     } catch (error) {
       console.error("Failed to save project:", error);
       toast({
-        title: `Error ${mode === "edit" ? "updating" : "creating"} project`,
+        title: `Error ${currentMode === "edit" ? "updating" : "creating"} project`,
         description:
           error instanceof Error
             ? error.message
@@ -403,6 +423,49 @@ export function VideoProjectSheet({
 
   const handleEdit = () => {
     setCurrentMode("edit");
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectId) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await authFetch(`/api/projects/${projectId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Project deleted",
+          description: "The project has been permanently removed.",
+        });
+        
+        // Invalidate projects query to refetch data
+        await queryClient.invalidateQueries({ queryKey: ["projects"] });
+        
+        setDeleteDialogOpen(false);
+        onOpenChange(false);
+        
+        // Call success callback to refresh the list
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        throw new Error("Failed to delete project");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -439,6 +502,7 @@ export function VideoProjectSheet({
   };
 
   return (
+    <>
     <FormSheet
       open={open}
       onOpenChange={onOpenChange}
@@ -518,8 +582,16 @@ export function VideoProjectSheet({
           </div>
           
           <div className="flex gap-2 pt-4 border-t">
-            <Button onClick={handleEdit} className="flex-1">
+            <Button onClick={handleEdit} className="flex-1" variant={"outline"}>
               Edit Project Information
+            </Button>
+            <Button 
+              onClick={handleDeleteClick} 
+              variant="destructive"
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
             </Button>
           </div>
         </div>
@@ -713,7 +785,7 @@ export function VideoProjectSheet({
           )}
 
           {/* Common form fields shown for all methods (or after enhancement for AI method) */}
-          {(creationMethod === "manual" || creationMethod === "edit" || isEnhanced) && (
+          {(creationMethod === "manual" || isEnhanced) && (
             <Form {...form}>
               <div className="space-y-4">
                 <FormField
@@ -919,6 +991,29 @@ export function VideoProjectSheet({
         </Form>
       )}
     </FormSheet>
+
+    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the
+            project and remove it from our servers.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirmDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

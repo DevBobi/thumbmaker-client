@@ -26,6 +26,7 @@ import { FormSheet } from "@/components/ui/form-sheet";
 import { uploadToStorage } from "@/actions/upload";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
 const channelStyles = [
@@ -106,6 +107,7 @@ export default function ThumbnailCreationSheet({
 }: ThumbnailCreationSheetProps) {
   const router = useRouter();
   const { authFetch } = useAuthFetch();
+  const { toast } = useToast();
   const [allSelectedTemplates, setAllSelectedTemplates] = useState<string[]>([]);
   const [inspirationUrl, setInspirationUrl] = useState("");
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
@@ -120,6 +122,10 @@ export default function ThumbnailCreationSheet({
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("youtube");
   const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    channelStyle?: boolean;
+    thumbnailGoal?: boolean;
+  }>({});
 
   // Use projects passed from parent
   const projects = availableProjects;
@@ -134,7 +140,10 @@ export default function ThumbnailCreationSheet({
   // Initialize with pre-selected templates or youtube links when sheet opens
   useEffect(() => {
     if (isOpen && preSelectedTemplates && preSelectedTemplates.length > 0) {
-      const preSelectedIds = preSelectedTemplates.map(t => t.id);
+      console.log("📋 Pre-selected templates:", preSelectedTemplates);
+      // Ensure template IDs are strings
+      const preSelectedIds = preSelectedTemplates.map(t => String(t.id));
+      console.log("📋 Converted template IDs:", preSelectedIds);
       setAllSelectedTemplates(preSelectedIds);
       // Set templates tab as active when there are pre-selected templates
       setActiveTab("templates");
@@ -209,7 +218,11 @@ export default function ThumbnailCreationSheet({
 
       // Validation
       if (!selectedProject) {
-        alert("Please select a project");
+        toast({
+          title: "Project required",
+          description: "Please select a project before generating thumbnails.",
+          variant: "destructive",
+        });
         setIsGenerating(false);
         setHasSubmitted(false);
         return;
@@ -220,34 +233,76 @@ export default function ThumbnailCreationSheet({
       const hasYoutubeLinks = allYoutubeLinks && allYoutubeLinks.length > 0;
       const hasInspirationUrl = inspirationUrl && inspirationUrl.trim().length > 0;
       
+      console.log("🔍 Validation check:");
+      console.log("  - Has templates:", hasTemplates, "Count:", allSelectedTemplates?.length);
+      console.log("  - Has YouTube links:", hasYoutubeLinks, "Count:", allYoutubeLinks?.length);
+      console.log("  - Has inspiration URL:", hasInspirationUrl, "URL:", inspirationUrl);
+      console.log("  - Active tab:", activeTab);
+      
       if (!hasTemplates && !hasYoutubeLinks && !hasInspirationUrl) {
-        alert("Please select at least one template or provide a YouTube link");
+        toast({
+          title: "Templates or links required",
+          description: "Please select at least one template or provide a YouTube link.",
+          variant: "destructive",
+        });
         setIsGenerating(false);
         setHasSubmitted(false);
+        
+        // Scroll to the appropriate tab
+        setTimeout(() => {
+          document.getElementById("generation-method-tabs")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
         return;
       }
 
       // Edge case: Check if we exceed maximum selections
       if (hasTemplates && allSelectedTemplates.length > maxSelections) {
-        alert(`You can only select up to ${maxSelections} templates`);
+        toast({
+          title: "Too many templates",
+          description: `You can only select up to ${maxSelections} templates at a time.`,
+          variant: "destructive",
+        });
         setIsGenerating(false);
         setHasSubmitted(false);
         return;
       }
 
       if (!channelStyle) {
-        alert("Please select a channel style");
+        setValidationErrors({ channelStyle: true });
+        toast({
+          title: "Channel style required",
+          description: "Please select a channel style to continue.",
+          variant: "destructive",
+        });
         setIsGenerating(false);
         setHasSubmitted(false);
+        
+        // Scroll to channel style field
+        setTimeout(() => {
+          document.getElementById("channel-style-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
         return;
       }
 
       if (!thumbnailGoal) {
-        alert("Please select a thumbnail goal");
+        setValidationErrors({ thumbnailGoal: true });
+        toast({
+          title: "Thumbnail goal required",
+          description: "Please select a thumbnail goal to continue.",
+          variant: "destructive",
+        });
         setIsGenerating(false);
         setHasSubmitted(false);
+        
+        // Scroll to thumbnail goal field
+        setTimeout(() => {
+          document.getElementById("thumbnail-goal-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
         return;
       }
+      
+      // Clear validation errors if all is good
+      setValidationErrors({});
 
       // Upload all media files first
       const uploadPromises = thumbnailAssets.map(async (asset) => {
@@ -280,7 +335,9 @@ export default function ThumbnailCreationSheet({
       
       // Add any manually uploaded assets
       uploadedAssets.forEach((asset) => {
-        allMediaFiles.push(asset.url);
+        if (asset.url) {
+          allMediaFiles.push(asset.url);
+        }
       });
 
       // Prepare request body based on generation method
@@ -296,16 +353,43 @@ export default function ThumbnailCreationSheet({
       // Handle different generation methods
       if (hasTemplates) {
         // Template-based generation
-        requestBody.templates = allSelectedTemplates;
+        console.log("📋 Has templates:", hasTemplates);
+        console.log("📋 All selected templates:", allSelectedTemplates);
+        console.log("📋 Template count:", allSelectedTemplates.length);
+        console.log("📋 Template IDs:", allSelectedTemplates);
+        
+        if (!allSelectedTemplates || allSelectedTemplates.length === 0) {
+          toast({
+            title: "No templates selected",
+            description: "Please select at least one template to generate thumbnails.",
+            variant: "destructive",
+          });
+          setIsGenerating(false);
+          setHasSubmitted(false);
+          return;
+        }
+        
+        // Convert template IDs to strings (API expects string IDs)
+        const templateIds = allSelectedTemplates.map(id => String(id));
+        
+        console.log("📋 Final template IDs being sent:", templateIds);
+        requestBody.templates = templateIds;
       } else if (hasYoutubeLinks || hasInspirationUrl) {
-        // YouTube-based generation - create a special "youtube" template
-        // For now, we'll use a placeholder template ID that the backend can recognize
-        requestBody.templates = ["youtube-inspiration"];
-        requestBody.youtubeLinks = allYoutubeLinks.length > 0 ? allYoutubeLinks : [inspirationUrl];
-        requestBody.inspirationUrl = inspirationUrl;
+        // YouTube-based generation - DON'T send templates field, backend handles this
+        console.log("🎥 Using YouTube/Inspiration URL generation");
+        console.log("🎥 YouTube links:", allYoutubeLinks);
+        console.log("🎥 Inspiration URL:", inspirationUrl);
+        
+        // Only send youtubeLinks or inspirationUrl, NOT templates
+        if (allYoutubeLinks.length > 0) {
+          requestBody.youtubeLinks = allYoutubeLinks;
+        }
+        if (inspirationUrl && inspirationUrl.trim()) {
+          requestBody.inspirationUrl = inspirationUrl;
+        }
       }
 
-      console.log("📤 Sending thumbnail generation request:", requestBody);
+      console.log("📤 Sending thumbnail generation request:", JSON.stringify(requestBody, null, 2));
 
       // Add a unique request ID to track this request
       const requestId = Date.now();
@@ -329,7 +413,9 @@ export default function ThumbnailCreationSheet({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error("❌ API Error:", errorData);
+        console.error("❌ API Error Response:", errorData);
+        console.error("❌ API Error Status:", response.status);
+        console.error("❌ Request that failed:", JSON.stringify(requestBody, null, 2));
         
         // Handle rate limiting
         if (response.status === 429) {
@@ -337,7 +423,9 @@ export default function ThumbnailCreationSheet({
           throw new Error(`Please wait ${retryAfter} seconds before creating another thumbnail.`);
         }
         
-        throw new Error(errorData.error || errorData.message || "Failed to generate thumbnail");
+        // More descriptive error message
+        const errorMessage = errorData.error || errorData.message || `Server error (${response.status})`;
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -362,7 +450,21 @@ export default function ThumbnailCreationSheet({
       }, 300);
     } catch (error) {
       console.error("Error generating thumbnail:", error);
-      alert(error instanceof Error ? error.message : "Failed to generate thumbnail. Please try again.");
+      
+      let errorMessage = error instanceof Error ? error.message : "Failed to generate thumbnail. Please try again.";
+      
+      // Add specific guidance based on the error
+      if (errorMessage.includes("template")) {
+        errorMessage += "\n\nTip: Make sure you have selected templates from the Templates tab.";
+      } else if (errorMessage.includes("project")) {
+        errorMessage += "\n\nTip: Make sure you have selected a project.";
+      }
+      
+      toast({
+        title: "Generation failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
       
       // Reset flags on error so user can try again
       setHasSubmitted(false);
@@ -609,16 +711,27 @@ export default function ThumbnailCreationSheet({
         </Card>
 
         {/* Channel Style */}
-        <Card>
+        <Card id="channel-style-card" className={validationErrors.channelStyle ? "ring-2 ring-destructive" : ""}>
           <CardHeader>
-            <CardTitle>Channel Style</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Channel Style
+              {validationErrors.channelStyle && (
+                <Badge variant="destructive" className="text-xs">Required</Badge>
+              )}
+            </CardTitle>
             <CardDescription>
               Select the style that best matches your channel
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={channelStyle} onValueChange={setChannelStyle}>
-              <SelectTrigger className="w-full text-left py-6">
+            <Select 
+              value={channelStyle} 
+              onValueChange={(value) => {
+                setChannelStyle(value);
+                setValidationErrors(prev => ({ ...prev, channelStyle: false }));
+              }}
+            >
+              <SelectTrigger className={`w-full text-left py-6 ${validationErrors.channelStyle ? "border-destructive" : ""}`}>
                 <SelectValue placeholder="Select channel style" />
               </SelectTrigger>
               <SelectContent>
@@ -638,16 +751,27 @@ export default function ThumbnailCreationSheet({
         </Card>
 
         {/* Primary Thumbnail Goal */}
-        <Card>
+        <Card id="thumbnail-goal-card" className={validationErrors.thumbnailGoal ? "ring-2 ring-destructive" : ""}>
           <CardHeader>
-            <CardTitle>Primary Thumbnail Goal</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Primary Thumbnail Goal
+              {validationErrors.thumbnailGoal && (
+                <Badge variant="destructive" className="text-xs">Required</Badge>
+              )}
+            </CardTitle>
             <CardDescription>
               What do you want to achieve with this thumbnail?
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={thumbnailGoal} onValueChange={setThumbnailGoal}>
-              <SelectTrigger className="w-full text-left py-6">
+            <Select 
+              value={thumbnailGoal} 
+              onValueChange={(value) => {
+                setThumbnailGoal(value);
+                setValidationErrors(prev => ({ ...prev, thumbnailGoal: false }));
+              }}
+            >
+              <SelectTrigger className={`w-full text-left py-6 ${validationErrors.thumbnailGoal ? "border-destructive" : ""}`}>
                 <SelectValue placeholder="Select thumbnail goal" />
               </SelectTrigger>
               <SelectContent>
@@ -667,7 +791,7 @@ export default function ThumbnailCreationSheet({
         </Card>
 
         {/* Generation Method Tabs */}
-        <Card>
+        <Card id="generation-method-tabs">
           <CardHeader>
             <CardTitle>Generation Method</CardTitle>
             <CardDescription>

@@ -8,12 +8,19 @@ import {
   Files,
   Eye,
   Download,
+  Video,
+  Palette,
+  ExternalLink,
+  Plus,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useDebounce } from "@/hooks/use-debounce";
 import Image from "next/image";
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -38,7 +45,12 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
 import Breadcrumb from "@/components/Breadcrumb";
+import Link from "next/link";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -60,6 +72,12 @@ const History = () => {
 
   // Debounce search term to avoid excessive API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // Reset state when component mounts/remounts
+  useEffect(() => {
+    setIsLoading(true);
+    setCampaigns([]);
+  }, []);
 
   // Fetch campaigns when page, search term or filter changes
   useEffect(() => {
@@ -172,24 +190,29 @@ const History = () => {
 
   // Skeleton loader for campaign cards
   const CampaignSkeleton = () => (
-    <div className="bg-white border border-gray-200 rounded-lg">
-      <div className="flex">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="flex items-center">
         {/* Thumbnail Image Skeleton */}
-        <Skeleton className="w-48 h-32 rounded-l-lg" />
+        <div className="w-64 p-2">
+          <Skeleton className="w-full aspect-video rounded-lg" />
+        </div>
         
         {/* Content Skeleton */}
-        <div className="flex-1 p-6">
-          <div className="flex justify-between items-start">
-            <div className="flex-1 space-y-3">
-              <Skeleton className="h-6 w-64" />
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-40" />
-            </div>
-            <div className="flex gap-2 ml-4">
-              <Skeleton className="h-9 w-20" />
-              <Skeleton className="h-9 w-24" />
-            </div>
+        <div className="flex-1 p-4 space-y-3">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-full max-w-md" />
+            <Skeleton className="h-3 w-full max-w-sm" />
+          </div>
+        </div>
+
+        {/* Action Buttons Skeleton */}
+        <div className="flex flex-col gap-2 p-4 border-l border-gray-200">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-24" />
         </div>
       </div>
     </div>
@@ -203,25 +226,40 @@ const History = () => {
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Campaign History", href: "/dashboard/history" },
+          { label: "History", href: "/dashboard/history" },
         ]}
       />
-      <div>
-        <h1 className="text-3xl font-bold">Thumbnail History</h1>
-        <p className="text-muted-foreground">
-          Browse and manage your generated thumbnails
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Thumbnail History</h1>
+          <p className="text-muted-foreground mt-1">
+            Browse and manage your generated thumbnails
+          </p>
+        </div>
       </div>
 
       {campaigns.length === 0 && !isLoading && !hasActiveFilters ? (
-        <div className="p-12 text-center bg-muted/30 rounded-lg border border-border">
-          <h3 className="text-xl font-medium text-muted-foreground">
-            No thumbnails yet
-          </h3>
-          <p className="text-sm text-muted-foreground mt-2">
-            Start creating thumbnails to see your history here
-          </p>
-        </div>
+        <Card className="border-dashed border-2">
+          <CardContent className="p-12 text-center">
+            <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
+              <div className="p-4 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-full">
+                <ImageIcon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">No thumbnails yet</h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Start creating thumbnails to see your history here
+                </p>
+                <Button size="lg" asChild>
+                  <Link href="/dashboard/create-youtube-thumbnail">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Thumbnail
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* Filter and search controls */}
@@ -306,117 +344,155 @@ const History = () => {
               ))}
             </div>
           ) : campaigns.length === 0 ? (
-            <div className="p-12 text-center bg-muted/30 rounded-lg border border-border">
-              <h3 className="text-xl font-medium text-muted-foreground">
-                No matching thumbnails
-              </h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                Try adjusting your search or filter criteria
-              </p>
-              <Button variant="outline" className="mt-4" onClick={resetFilters}>
-                Clear all filters
-              </Button>
-            </div>
+            <Card className="border-dashed border-2">
+              <CardContent className="p-12 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="bg-muted rounded-full p-3">
+                    <Search className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-medium text-lg">No matching thumbnails</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Try adjusting your search or filter criteria
+                  </p>
+                  <Button variant="outline" className="mt-2" onClick={resetFilters}>
+                    Clear all filters
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ) : (
             <>
               <div className="space-y-4">
                 {campaigns.map((thumbnail: any) => (
                   <div
                     key={thumbnail.id}
-                    className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
+                    className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
                   >
-                    <div className="flex min-h-[144px]">
+                    <div className="flex items-center">
                       {/* Thumbnail Image - Left Side */}
-                      <div className="w-56 flex-shrink-0 relative overflow-hidden bg-gray-100">
+                      <div className="w-64 flex-shrink-0 relative overflow-hidden p-2">
                         {thumbnail.image ? (
-                          <div className="w-full h-full flex items-center justify-center p-2">
-                            <Image
-                              src={thumbnail.image}
-                              alt={thumbnail.title || "Thumbnail preview"}
-                              width={0}
-                              height={0}
-                              sizes="100vw"
-                              className="w-auto h-auto max-w-full max-h-full object-contain"
-                              unoptimized
-                              onError={(e) => {
-                                console.error('❌ Image failed to load:', thumbnail.image);
-                                console.error('❌ Error:', e);
-                              }}
-                              onLoad={() => {
-                                console.log('✅ Image loaded successfully:', thumbnail.image);
-                              }}
-                            />
-                          </div>
+                          <Zoom
+                            zoomImg={{
+                              src: thumbnail.image,
+                              alt: thumbnail.title || "Thumbnail preview",
+                              width: 800,
+                              height: 600,
+                            }}
+                            zoomMargin={40}
+                            classDialog="custom-zoom"
+                          >
+                            <div className="relative w-full aspect-video">
+                              <Image
+                                src={thumbnail.image}
+                                alt={thumbnail.title || "Thumbnail preview"}
+                                fill
+                                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                className="object-contain bg-muted"
+                                priority={false}
+                                unoptimized
+                              />
+                            </div>
+                          </Zoom>
                         ) : (
-                          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                          <div className="w-full aspect-video bg-muted flex items-center justify-center">
                             <span className="text-gray-400 text-sm">No Image</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Content - Right Side */}
-                      <div className="flex-1 p-6">
-                        {/* Header with Title and Status */}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 pr-4">
-                            <h3 className="text-xl font-bold text-gray-900 mb-1 line-clamp-2">
+                      {/* Content - Middle */}
+                      <div className="flex-1 p-4 flex flex-col justify-between">
+                        {/* Header Section */}
+                        <div>
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <h3 className="text-lg font-bold text-gray-900 line-clamp-2 flex-1">
                               {thumbnail.title || `Thumbnail - ${thumbnail.project?.title || "Generated"}`}
                             </h3>
-                            <p className="text-sm text-gray-600 mb-2">
-                              {thumbnail.project?.title || "Tech Review Series"}
-                            </p>
+                            <Badge 
+                              variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
+                              className={`shrink-0 ${
+                                thumbnail.status === "COMPLETED" 
+                                  ? "bg-green-100 text-green-800 border-green-200" 
+                                  : "bg-gray-100 text-gray-800 border-gray-200"
+                              }`}
+                            >
+                              {thumbnail.status === "COMPLETED" ? "Success" : "Pending"}
+                            </Badge>
                           </div>
-                          <Badge 
-                            variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
-                            className={`shrink-0 ${
-                              thumbnail.status === "COMPLETED" 
-                                ? "bg-green-100 text-green-800 border-green-200" 
-                                : "bg-gray-100 text-gray-800 border-gray-200"
-                            }`}
-                          >
-                            {thumbnail.status === "COMPLETED" ? "Success" : "Pending"}
-                          </Badge>
-                        </div>
 
-                        {/* Metadata Row */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-6 text-sm text-gray-500">
+                          {/* Metadata */}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 mb-3">
                             <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
+                              <Calendar className="h-3.5 w-3.5" />
                               <span suppressHydrationWarning>{getTimeAgo(new Date(thumbnail.createdAt))}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Files className="h-4 w-4" />
+                              <Files className="h-3.5 w-3.5" />
                               <span>1 Variant</span>
                             </div>
-                            <div className="text-xs text-gray-400">
+                            <span className="text-gray-400">
                               ID: {thumbnail.id.slice(-12).toUpperCase()}
-                            </div>
+                            </span>
                           </div>
                         </div>
+                        
+                        {/* Project and Template Links */}
+                        {(thumbnail.projectId || thumbnail.templateId) && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {thumbnail.projectId && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/dashboard/projects?edit=${thumbnail.projectId}`);
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200 text-xs"
+                              >
+                                <Video className="h-3 w-3" />
+                                <span className="font-medium">Project:</span>
+                                <span className="font-mono">{thumbnail.projectId.slice(-8).toUpperCase()}</span>
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </button>
+                            )}
+                            {thumbnail.templateId && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/dashboard/templates?template=${thumbnail.templateId}`);
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-200 text-xs"
+                              >
+                                <Palette className="h-3 w-3" />
+                                <span className="font-medium">Template:</span>
+                                <span className="font-mono">{thumbnail.templateId.toString().padStart(2, '0')}</span>
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
-                            onClick={() => handleViewThumbnail(thumbnail)}
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
-                            onClick={() => handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`)}
-                            disabled={!thumbnail.image}
-                          >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </Button>
-                        </div>
+                      {/* Action Buttons - Right Side */}
+                      <div className="flex flex-col items-center justify-center gap-2 p-4 border-l border-gray-200">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1.5 text-xs h-8 px-3 w-full"
+                          onClick={() => handleViewThumbnail(thumbnail)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1.5 text-xs h-8 px-3 w-full"
+                          onClick={() => handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`)}
+                          disabled={!thumbnail.image}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -490,14 +566,29 @@ const History = () => {
             {selectedThumbnail && (
               <div className="space-y-6">
                 {/* Thumbnail Image */}
-                <div className="relative w-full aspect-video bg-gray-100 rounded-lg overflow-hidden border">
-                  <Image
-                    src={selectedThumbnail.image}
-                    alt={selectedThumbnail.title || "Thumbnail preview"}
-                    fill
-                    className="object-contain"
-                    unoptimized
-                  />
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden border">
+                  <Zoom
+                    zoomImg={{
+                      src: selectedThumbnail.image,
+                      alt: selectedThumbnail.title || "Thumbnail preview",
+                      width: 800,
+                      height: 600,
+                    }}
+                    zoomMargin={40}
+                    classDialog="custom-zoom"
+                  >
+                    <div className="relative w-full aspect-video">
+                      <Image
+                        src={selectedThumbnail.image}
+                        alt={selectedThumbnail.title || "Thumbnail preview"}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 60vw"
+                        className="object-contain bg-muted"
+                        priority={false}
+                        unoptimized
+                      />
+                    </div>
+                  </Zoom>
                 </div>
 
                 {/* Thumbnail Details */}
@@ -536,6 +627,50 @@ const History = () => {
                       {selectedThumbnail.project?.title || "No Project"}
                     </p>
                   </div>
+
+                  {/* Project ID Link */}
+                  {selectedThumbnail.projectId && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Project ID
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          router.push(`/dashboard/projects?edit=${selectedThumbnail.projectId}`);
+                          setSelectedThumbnail(null);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <Video className="h-4 w-4" />
+                        <span className="font-mono">{selectedThumbnail.projectId.slice(-8).toUpperCase()}</span>
+                        <ExternalLink className="h-3 w-3 ml-auto" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Template ID Link */}
+                  {selectedThumbnail.templateId && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Template ID
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          router.push(`/dashboard/templates?template=${selectedThumbnail.templateId}`);
+                          setSelectedThumbnail(null);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <Palette className="h-4 w-4" />
+                        <span className="font-mono">Template #{selectedThumbnail.templateId.toString().padStart(2, '0')}</span>
+                        <ExternalLink className="h-3 w-3 ml-auto" />
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">

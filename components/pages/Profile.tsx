@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { SecurityForm } from "@/components/profile/SecurityForm";
 import { Preferences } from "@/components/profile/Preferences";
+import { GenerationStats } from "@/components/profile/GenerationStats";
 import {
   Card,
   CardContent,
@@ -24,6 +25,21 @@ const Profile = () => {
           <Skeleton className="h-9 w-48 mb-2" />
           <Skeleton className="h-5 w-64" />
         </div>
+
+        {/* Stats Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-2 w-full max-w-md mb-6">
           <Skeleton className="h-10" />
@@ -118,6 +134,9 @@ const Profile = () => {
           Manage your account settings and preferences.
         </p>
       </div>
+
+      {/* Generation Statistics */}
+      <GenerationStats />
 
       <Tabs defaultValue="account" className="w-full">
         <TabsList className="grid grid-cols-2 w-full max-w-md mb-6">
