@@ -535,11 +535,11 @@ export function VideoProjectSheet({
             {projectData?.image && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Project Image</label>
-                <div className="mt-2">
+                <div className="mt-2 flex justify-center bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
                   <img 
                     src={projectData.image} 
                     alt={projectData.title || "Project image"} 
-                    className="w-full h-48 object-cover rounded-lg border"
+                    className="w-full max-h-64 object-contain rounded-lg"
                   />
                 </div>
               </div>
@@ -699,9 +699,9 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2">
-                      <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
-                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
+                      <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="text-image-upload" />
@@ -732,9 +732,9 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2">
-                      <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
-                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
+                      <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="youtube-image-upload" />
@@ -766,9 +766,9 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2">
-                      <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
-                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
+                      <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                      <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="doc-image-upload" />
@@ -811,9 +811,9 @@ export function VideoProjectSheet({
                       <FormControl>
                         <div className="space-y-4">
                           {imagePreview && (
-                            <div className="relative">
-                              <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
-                              <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                            <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
+                              <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                              <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                             </div>
                           )}
                           <div>
@@ -914,9 +914,9 @@ export function VideoProjectSheet({
                   <FormControl>
                     <div className="space-y-4">
                       {imagePreview && (
-                        <div className="relative">
-                          <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg border" />
-                          <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                        <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
+                          <img src={imagePreview} alt="Preview" className="w-full max-h-64 object-contain rounded-lg mx-auto" />
+                          <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                         </div>
                       )}
                       <div className="flex items-center gap-4">

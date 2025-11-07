@@ -13,43 +13,52 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 export function Features() {
-  const features = [
+  const steps = [
     {
-      icon: "AI",
-      title: "Instant video understanding with AI",
-      subtitle: "Smart Video Analysis",
-      description: "Simply paste your YouTube URL or upload video details. Our AI instantly analyzes and understands your content to create perfectly tailored thumbnails that capture attention.",
-      cta: "Add Your First Video",
-      ctaHref: "/dashboard",
+      step: "01",
+      icon: "🎬",
+      title: "Create Your Product",
+      subtitle: "Multiple ways to start",
+      description: "Get started your way - manually enter details, let AI analyze your YouTube video, extract from text, or upload existing files. Our flexible input system adapts to your workflow.",
       media: "/images/features/product-create.png",
+      methods: [
+        { icon: "📺", label: "YouTube URL" },
+        { icon: "✍️", label: "Manual Entry" },
+        { icon: "🤖", label: "AI Analysis" },
+        { icon: "📁", label: "File Upload" }
+      ]
     },
     {
+      step: "02",
       icon: "📚",
-      title: "Choose from 2600+ proven thumbnail templates",
-      subtitle: "Template Library",
-      description: "Filter and search through our library of templates used by top YouTubers. Find the perfect match for your video style, audience, and goals.",
+      title: "Choose Your Template",
+      subtitle: "2600+ proven designs",
+      description: "Browse our extensive library of high-converting thumbnail templates used by successful YouTubers. Filter by category, style, and performance metrics to find your perfect match.",
+      media: "/images/features/ad-templates.png",
       cta: "Explore Templates",
       ctaHref: "/dashboard",
-      media: "/images/features/ad-templates.png",
+      stats: [
+        { value: "2600+", label: "Templates" },
+        { value: "50+", label: "Categories" },
+        { value: "Top rated", label: "Quality" }
+      ]
     },
     {
+      step: "03",
       icon: "⚡",
-      title: "One-shot thumbnail generation",
-      subtitle: "AI Thumbnail Creation",
-      description: "Select your video project, add context, and choose dimensions. THUMBMAKER handles everything from text overlays to visuals, creating multiple high-converting thumbnail variations instantly.",
-      cta: "Create Your First Thumbnail",
-      ctaHref: "/dashboard",
+      title: "Generate & Customize",
+      subtitle: "AI-powered creation",
+      description: "Watch as AI instantly generates multiple thumbnail variations optimized for maximum engagement. Customize colors, text, and elements in real-time with our intuitive editor.",
       media: "/images/features/ad-generation.png",
-    },
-    {
-      icon: "📱",
-      title: "Flexible Thumbnail Formats",
-      subtitle: "Multi-Platform Support",
-      description: "Generate thumbnails optimized for YouTube with perfect 16:9 ratio. Also works for other platforms with portrait, landscape, or square formats.",
-      cta: "Try Different Formats",
+      cta: "Start Creating Now",
       ctaHref: "/dashboard",
-      media: "/images/features/ad-formats.png",
-    },
+      features: [
+        "Multiple variations",
+        "Real-time editing",
+        "Smart text overlays",
+        "Multi-platform export"
+      ]
+    }
   ];
 
   return (
@@ -67,198 +76,140 @@ export function Features() {
           priority
         />
       </div>
+
+      {/* Header Section */}
       <div className="mb-16 relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h3 className="text-sm mb-4 font-medium text-gray-300">Discover what you can do</h3>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl text-white leading-tight mb-2 font-bold">
-            Powerful AI thumbnail features
+          <h3 className="text-sm mb-4 font-semibold text-white/80 uppercase tracking-wider">How it works</h3>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl text-white leading-tight mb-4 font-bold drop-shadow-lg">
+            Three Simple Steps to
             <br />
-            for every creator
+            <span className="bg-gradient-to-r from-brand-400 to-red-400 bg-clip-text text-transparent drop-shadow-2xl">
+              Create Stunning Thumbnails
+            </span>
           </h1>
+          <p className="text-lg text-white font-medium max-w-3xl mx-auto drop-shadow-md">
+            From video input to viral thumbnail in minutes
+          </p>
         </div>
       </div>
+
+      {/* Steps Section */}
       <div className="space-y-8 relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* First row: 60% + 40% */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {steps.map((step, index) => (
           <motion.div
+            key={step.step}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="lg:col-span-3"
+            transition={{ duration: 0.5, delay: index * 0.1 }}
           >
-            <Card className="w-full h-full shadow-xl border border-gray-200 bg-white rounded-2xl transition-all duration-300 hover:shadow-2xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold text-sm">{features[0].icon}</span>
-                  </div>
-                  {features[0].subtitle && (
-                    <span className="text-sm text-gray-600 font-medium">{features[0].subtitle}</span>
-                  )}
-                </div>
-                <CardTitle className="text-xl font-bold text-gray-900 leading-tight">
-                  {features[0].title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <CardDescription className="text-gray-700 leading-relaxed">
-                  {features[0].description}
-                </CardDescription>
-                
-                {features[0].media && (
-                  <div className="rounded-lg overflow-hidden">
-                    <Image
-                      src={features[0].media}
-                      alt={features[0].title}
-                      width={400}
-                      height={200}
-                      className="object-cover w-full h-48"
-                    />
-                  </div>
-                )}
-                
-                {features[0].cta && (
-                  <Button asChild variant="default" className="w-full">
-                    <Link href={features[0].ctaHref}>{features[0].cta}</Link>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+            <Card className="w-full shadow-xl border border-gray-200 bg-white rounded-2xl transition-all duration-300 hover:shadow-2xl">
+              <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${
+                index % 2 === 1 ? 'lg:grid-flow-dense' : ''
+              }`}>
+                {/* Content Side */}
+                <div className={`p-8 sm:p-10 flex flex-col justify-center ${
+                  index % 2 === 1 ? 'lg:col-start-2' : ''
+                }`}>
+                  <CardHeader className="pb-4 px-0">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="relative">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-2xl">{step.icon}</span>
+                        </div>
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">{step.step}</span>
+                        </div>
+                      </div>
+                      {step.subtitle && (
+                        <span className="text-sm text-gray-500 font-medium">{step.subtitle}</span>
+                      )}
+                    </div>
+                    <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
+                      {step.title}
+                    </CardTitle>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-6 px-0">
+                    <CardDescription className="text-base text-gray-700 leading-relaxed">
+                      {step.description}
+                    </CardDescription>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <Card className="w-full h-full shadow-xl border border-gray-200 bg-white rounded-2xl transition-all duration-300 hover:shadow-2xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold text-sm">{features[1].icon}</span>
-                  </div>
-                  {features[1].subtitle && (
-                    <span className="text-sm text-gray-600 font-medium">{features[1].subtitle}</span>
-                  )}
-                </div>
-                <CardTitle className="text-xl font-bold text-gray-900 leading-tight">
-                  {features[1].title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <CardDescription className="text-gray-700 leading-relaxed">
-                  {features[1].description}
-                </CardDescription>
-                
-                {features[1].media && (
-                  <div className="rounded-lg overflow-hidden">
-                    <Image
-                      src={features[1].media}
-                      alt={features[1].title}
-                      width={400}
-                      height={200}
-                      className="object-cover w-full h-48"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+                    {/* Step-specific content */}
+                    {step.methods && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {step.methods.map((method, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                          >
+                            <span className="text-lg">{method.icon}</span>
+                            <span className="text-sm font-medium text-gray-700">{method.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-        {/* Second row: 30% + 60% */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="lg:col-span-2"
-          >
-            <Card className="w-full h-full shadow-xl border border-gray-200 bg-white rounded-2xl transition-all duration-300 hover:shadow-2xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold text-sm">{features[2].icon}</span>
-                  </div>
-                  {features[2].subtitle && (
-                    <span className="text-sm text-gray-600 font-medium">{features[2].subtitle}</span>
-                  )}
-                </div>
-                <CardTitle className="text-xl font-bold text-gray-900 leading-tight">
-                  {features[2].title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <CardDescription className="text-gray-700 leading-relaxed">
-                  {features[2].description}
-                </CardDescription>
-                
-                {features[2].media && (
-                  <div className="rounded-lg overflow-hidden">
-                    <Image
-                      src={features[2].media}
-                      alt={features[2].title}
-                      width={400}
-                      height={200}
-                      className="object-cover w-full h-48"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                    {step.stats && (
+                      <div className="grid grid-cols-3 gap-3">
+                        {step.stats.map((stat, i) => (
+                          <div
+                            key={i}
+                            className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100"
+                          >
+                            <div className="text-xl font-bold text-blue-600 mb-1">
+                              {stat.value}
+                            </div>
+                            <div className="text-xs text-gray-600 font-medium">{stat.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="lg:col-span-3"
-          >
-            <Card className="w-full h-full shadow-xl border border-gray-200 bg-white rounded-2xl transition-all duration-300 hover:shadow-2xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold text-sm">{features[3].icon}</span>
-                  </div>
-                  {features[3].subtitle && (
-                    <span className="text-sm text-gray-600 font-medium">{features[3].subtitle}</span>
+                    {step.features && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {step.features.map((feature, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-2"
+                          >
+                            <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-green-600 text-xs">✓</span>
+                            </div>
+                            <span className="text-sm text-gray-700">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {step.cta && (
+                      <Button asChild variant="default" className="w-full sm:w-auto mt-2">
+                        <Link href={step.ctaHref}>{step.cta}</Link>
+                      </Button>
+                    )}
+                  </CardContent>
+                </div>
+
+                {/* Media Side */}
+                <div className={`relative p-8 sm:p-10 flex items-center justify-center ${
+                  index % 2 === 1 ? 'lg:col-start-1 lg:row-start-1' : ''
+                }`}>
+                  {step.media && (
+                    <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden shadow-lg">
+                      <Image
+                        src={step.media}
+                        alt={step.title}
+                        fill
+                        className="object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                    </div>
                   )}
                 </div>
-                <CardTitle className="text-xl font-bold text-gray-900 leading-tight">
-                  {features[3].title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <CardDescription className="text-gray-700 leading-relaxed">
-                  {features[3].description}
-                </CardDescription>
-                
-                {features[3].media && (
-                  <div className="rounded-lg overflow-hidden">
-                    <Image
-                      src={features[3].media}
-                      alt={features[3].title}
-                      width={400}
-                      height={200}
-                      className="object-cover w-full h-48"
-                    />
-                  </div>
-                )}
-                
-                {features[3].cta && (
-                  <Button asChild variant="default" className="w-full">
-                    <Link href={features[3].ctaHref}>{features[3].cta}</Link>
-                  </Button>
-                )}
-              </CardContent>
+              </div>
             </Card>
           </motion.div>
-        </div>
+        ))}
       </div>
     </section>
   );

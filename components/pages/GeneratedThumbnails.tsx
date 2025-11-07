@@ -4,55 +4,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { useWebSocket } from "@/hooks/useWebSocket";
 import { Skeleton } from "@/components/ui/skeleton";
 import Breadcrumb from "@/components/Breadcrumb";
 import { GeneratedThumbnailCard } from "../cards/GeneratedThumbnailCard";
 import { io, Socket } from "socket.io-client";
-
-// Mock data for development
-const MOCK_THUMBNAILS = [
-  {
-    id: "1",
-    title: "Gaming Thumbnail 1",
-    description: "Epic gaming moment captured",
-    aspectRatio: "16:9",
-    image: "https://picsum.photos/1281/721",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    title: "Gaming Thumbnail 2",
-    description: "Intense battle scene",
-    aspectRatio: "16:9",
-    image: "https://picsum.photos/1280/721",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "3",
-    title: "Gaming Thumbnail 3",
-    description: "Victory celebration",
-    aspectRatio: "16:9",
-    image: "https://picsum.photos/1289/720",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "4",
-    title: "Gaming Thumbnail 4",
-    description: "Team strategy moment",
-    aspectRatio: "16:9",
-    image: "https://picsum.photos/1255/720",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "5",
-    title: "Gaming Thumbnail 5",
-    description: "Character showcase",
-    aspectRatio: "16:9",
-    image: "https://picsum.photos/1280/726",
-    createdAt: new Date().toISOString(),
-  },
-];
 
 interface GeneratedThumbnail {
   id: string;
@@ -64,13 +19,6 @@ interface GeneratedThumbnail {
   jobId?: string;
   status?: string;
   progress?: number;
-}
-
-interface ThumbnailSet {
-  id: string;
-  name: string;
-  status: string;
-  thumbnails: GeneratedThumbnail[];
 }
 
 const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
@@ -332,7 +280,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="mx-auto space-y-6">
         <Breadcrumb
           items={[
             { label: "Dashboard", href: "/dashboard" },
@@ -343,13 +291,26 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
           ]}
         />
 
-        <h1 className="text-2xl font-bold">Loading Your Thumbnails...</h1>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Loading Your Thumbnails</h1>
+            <div className="flex space-x-1">
+              <span className="animate-bounce [animation-delay:0ms]">.</span>
+              <span className="animate-bounce [animation-delay:150ms]">.</span>
+              <span className="animate-bounce [animation-delay:300ms]">.</span>
+            </div>
+          </div>
+          <p className="text-muted-foreground">
+            Fetching your generated thumbnails
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="overflow-hidden ">
-              <div className="p-0">
-                <Skeleton className="aspect-square w-full" />
-              </div>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="aspect-video w-full rounded-lg" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
             </div>
           ))}
         </div>
@@ -369,72 +330,109 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             },
           ]}
         />
-        <div className="flex items-center">
-          <h1 className="text-2xl font-bold mr-2">Generating Thumbnails</h1>
-          <div className="flex space-x-1">
-            <span className="animate-bounce delay-0">.</span>
-            <span className="animate-bounce delay-150">.</span>
-            <span className="animate-bounce delay-300">.</span>
+        
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Generating Thumbnails</h1>
+            <div className="flex space-x-1">
+              <span className="animate-bounce [animation-delay:0ms]">.</span>
+              <span className="animate-bounce [animation-delay:150ms]">.</span>
+              <span className="animate-bounce [animation-delay:300ms]">.</span>
+            </div>
+          </div>
+          <p className="text-muted-foreground">
+            Our AI is crafting your thumbnails. This may take a few moments...
+          </p>
+        </div>
+
+        {/* Progress indicator */}
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-center gap-3">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Generation in progress</p>
+            <p className="text-xs text-muted-foreground">
+              The workflow is complex and requires time. Thanks for your patience.
+            </p>
           </div>
         </div>
-        <p>
-          Thumbnails are being generated. The workflow is complex and requires
-          time. Thanks for your patience.
-        </p>
 
         <div className="space-y-8">
-          {Object.entries(
-            thumbnails.reduce(
-              (acc: Record<string, GeneratedThumbnail[]>, thumbnail) => {
-                const ratio = thumbnail.aspectRatio || "";
-                if (!acc[ratio]) acc[ratio] = [];
-                acc[ratio].push(thumbnail);
-                return acc;
-              },
-              {}
+          {thumbnails.length > 0 ? (
+            Object.entries(
+              thumbnails.reduce(
+                (acc: Record<string, GeneratedThumbnail[]>, thumbnail) => {
+                  const ratio = thumbnail.aspectRatio || "";
+                  if (!acc[ratio]) acc[ratio] = [];
+                  acc[ratio].push(thumbnail);
+                  return acc;
+                },
+                {}
+              )
             )
-          )
-            .sort(([ratioA], [ratioB]) => {
-              // Define the order of aspect ratios
-              const order: Record<string, number> = {
-                "1:1": 1,
-                "2:3": 2,
-                "3:2": 3,
-              };
-              return (order[ratioA] || 999) - (order[ratioB] || 999);
-            })
-            .map(([ratio, ratioThumbnails]) => (
-              <div key={ratio} className="space-y-4">
-                <h2 className="text-lg font-semibold">
-                  {ratio === "1:1" || ratio === "2:3" || ratio === "3:2"
-                    ? "Original"
-                    : `Thumbnails ${ratio}`}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {ratioThumbnails.map((thumbnail) => (
-                    <div key={thumbnail.id}>
-                      {thumbnail.status ? (
-                        <div className="flex flex-col space-y-3">
-                          <div className="overflow-hidden rounded-md">
-                            <Skeleton className="aspect-[4/5] w-full flex items-center justify-center">
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                            </Skeleton>
+              .sort(([ratioA], [ratioB]) => {
+                // Define the order of aspect ratios
+                const order: Record<string, number> = {
+                  "1:1": 1,
+                  "2:3": 2,
+                  "3:2": 3,
+                };
+                return (order[ratioA] || 999) - (order[ratioB] || 999);
+              })
+              .map(([ratio, ratioThumbnails]) => (
+                <div key={ratio} className="space-y-4">
+                  <h2 className="text-lg font-semibold">
+                    {ratio === "1:1" || ratio === "2:3" || ratio === "3:2"
+                      ? "Original"
+                      : `Thumbnails ${ratio}`}
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {ratioThumbnails.map((thumbnail) => (
+                      <div key={thumbnail.id}>
+                        {thumbnail.status ? (
+                          <div className="space-y-3">
+                            <div className="relative overflow-hidden rounded-lg bg-muted">
+                              <Skeleton className="aspect-video w-full" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                              </div>
+                            </div>
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
                           </div>
-                        </div>
-                      ) : (
-                        <GeneratedThumbnailCard
-                          download={() =>
-                            handleDownload(thumbnail.image, thumbnail.title)
-                          }
-                          key={thumbnail.id}
-                          ad={thumbnail}
-                        />
-                      )}
-                    </div>
-                  ))}
+                        ) : (
+                          <GeneratedThumbnailCard
+                            download={() =>
+                              handleDownload(thumbnail.image, thumbnail.title)
+                            }
+                            key={thumbnail.id}
+                            ad={thumbnail}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              ))
+          ) : (
+            // Show placeholder skeletons when no thumbnails are loaded yet
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Your thumbnails will appear here</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <div className="relative overflow-hidden rounded-lg bg-muted">
+                      <Skeleton className="aspect-video w-full" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
         </div>
       </div>
     );

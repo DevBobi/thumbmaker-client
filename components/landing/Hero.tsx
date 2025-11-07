@@ -34,12 +34,12 @@ export function Hero() {
 
   // Sample thumbnails for the carousel
   const thumbnails = [
-    "/ads/ad-1.jpg",
-    "/ads/ad-2.jpg", 
-    "/ads/ad-3.jpg",
-    "/ads/ad-4.jpg",
-    "/ads/ad-5.jpg",
-    "/ads/ad-6.jpg"
+    "/thumbnails/1.jpg",
+    "/thumbnails/2.jpg",
+    "/thumbnails/3.jpg",
+    "/thumbnails/4.jpg",
+    "/thumbnails/5.jpg",
+    "/thumbnails/6.jpg"
   ];
 
   return (
@@ -57,10 +57,10 @@ export function Hero() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 relative z-10"
       >
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[70vh] lg:min-h-[80vh]">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start lg:items-center min-h-[70vh] lg:min-h-[80vh]">
           {/* Left Content Section */}
           <motion.div
-            className="space-y-6 lg:space-y-8"
+            className="space-y-4 lg:space-y-5"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -78,7 +78,7 @@ export function Hero() {
             {/* Main Headline */}
             <motion.h1
               variants={itemVariants}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl lg:font-black font-bold text-gray-900 leading-tight"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl lg:font-black font-bold text-gray-900 leading-[1.1]"
             >
               Create High-Performing{" "}
               <span className="bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">YouTube Thumbnails</span>{" "}
@@ -88,7 +88,7 @@ export function Hero() {
             {/* Description */}
             <motion.p
               variants={itemVariants}
-              className="text-base sm:text-lg text-gray-600 max-w-xl leading-relaxed"
+              className="text-base sm:text-lg text-gray-600 max-w-xl leading-snug"
             >
               Generate context-aware, on-brand thumbnails automatically by combining your video content, brand assets, and proven templates.
             </motion.p>
@@ -96,7 +96,7 @@ export function Hero() {
             {/* Social Proof */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+              className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
             >
               <div className="flex -space-x-2">
                 {[
@@ -135,7 +135,7 @@ export function Hero() {
             {/* Trust Indicators */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-col sm:flex-row gap-2 sm:gap-4"
+              className="flex flex-col sm:flex-row gap-2 sm:gap-3"
             >
               <div className="flex items-center gap-2 text-xs sm:text-sm text-green-600">
                 <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -150,7 +150,7 @@ export function Hero() {
             {/* CTA Buttons */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4"
+              className="flex flex-col sm:flex-row gap-2 sm:gap-3"
             >
               {!isSignedIn ? (
                 <>
@@ -179,15 +179,15 @@ export function Hero() {
           {/* Right Thumbnails Section */}
           <motion.div
             variants={itemVariants}
-            className="relative mt-8 lg:mt-0"
+            className="relative mt-8 lg:mt-0 flex items-center justify-center h-full"
             initial="hidden"
             animate="visible"
           >
-            <div className="relative overflow-hidden space-y-3 lg:space-y-4">
+            <div className="relative overflow-hidden space-y-5 lg:space-y-6 w-full">
               {/* First row of thumbnails */}
               <Marquee
                 gradient={false}
-                speed={30}
+                speed={25}
                 pauseOnHover={true}
                 direction="left"
                 className="py-2"
@@ -195,19 +195,20 @@ export function Hero() {
                 {thumbnails.map((thumbnail, index) => (
                   <div
                     key={index}
-                    className="relative aspect-square w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-1 sm:mx-2 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+                    className="relative w-48 sm:w-60 lg:w-80 aspect-[16/9] mx-2 sm:mx-3 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20"
                   >
                     <Image
                       src={thumbnail}
                       alt={`Thumbnail example ${index + 1}`}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 192px"
+                      quality={95}
+                      sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 320px"
                     />
                     {index === 0 && (
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-red-600 rounded-full flex items-center justify-center">
-                          <div className="w-0 h-0 border-l-[6px] sm:border-l-[8px] border-l-white border-y-[4px] sm:border-y-[6px] border-y-transparent ml-1"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-colors">
+                          <div className="w-0 h-0 border-l-[8px] sm:border-l-[10px] border-l-white border-y-[6px] sm:border-y-[8px] border-y-transparent ml-1"></div>
                         </div>
                       </div>
                     )}
@@ -217,19 +218,20 @@ export function Hero() {
                 {thumbnails.map((thumbnail, index) => (
                   <div
                     key={`duplicate-${index}`}
-                    className="relative aspect-square w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-1 sm:mx-2 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+                    className="relative w-48 sm:w-60 lg:w-80 aspect-[16/9] mx-2 sm:mx-3 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20"
                   >
                     <Image
                       src={thumbnail}
                       alt={`Thumbnail example ${index + 1}`}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 192px"
+                      quality={95}
+                      sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 320px"
                     />
                     {index === 0 && (
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-red-600 rounded-full flex items-center justify-center">
-                          <div className="w-0 h-0 border-l-[6px] sm:border-l-[8px] border-l-white border-y-[4px] sm:border-y-[6px] border-y-transparent ml-1"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-colors">
+                          <div className="w-0 h-0 border-l-[8px] sm:border-l-[10px] border-l-white border-y-[6px] sm:border-y-[8px] border-y-transparent ml-1"></div>
                         </div>
                       </div>
                     )}
@@ -240,7 +242,7 @@ export function Hero() {
               {/* Second row of thumbnails */}
               <Marquee
                 gradient={false}
-                speed={25}
+                speed={20}
                 pauseOnHover={true}
                 direction="right"
                 className="py-2"
@@ -248,19 +250,20 @@ export function Hero() {
                 {thumbnails.map((thumbnail, index) => (
                   <div
                     key={`row2-${index}`}
-                    className="relative aspect-square w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-1 sm:mx-2 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+                    className="relative w-48 sm:w-60 lg:w-80 aspect-[16/9] mx-2 sm:mx-3 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20"
                   >
                     <Image
                       src={thumbnail}
                       alt={`Thumbnail example ${index + 1}`}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 192px"
+                      quality={95}
+                      sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 320px"
                     />
                     {index === 2 && (
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-red-600 rounded-full flex items-center justify-center">
-                          <div className="w-0 h-0 border-l-[6px] sm:border-l-[8px] border-l-white border-y-[4px] sm:border-y-[6px] border-y-transparent ml-1"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-colors">
+                          <div className="w-0 h-0 border-l-[8px] sm:border-l-[10px] border-l-white border-y-[6px] sm:border-y-[8px] border-y-transparent ml-1"></div>
                         </div>
                       </div>
                     )}
@@ -270,19 +273,20 @@ export function Hero() {
                 {thumbnails.map((thumbnail, index) => (
                   <div
                     key={`row2-duplicate-${index}`}
-                    className="relative aspect-square w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-1 sm:mx-2 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+                    className="relative w-48 sm:w-60 lg:w-80 aspect-[16/9] mx-2 sm:mx-3 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20"
                   >
                     <Image
                       src={thumbnail}
                       alt={`Thumbnail example ${index + 1}`}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 192px"
+                      quality={95}
+                      sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 320px"
                     />
                     {index === 2 && (
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-red-600 rounded-full flex items-center justify-center">
-                          <div className="w-0 h-0 border-l-[6px] sm:border-l-[8px] border-l-white border-y-[4px] sm:border-y-[6px] border-y-transparent ml-1"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-colors">
+                          <div className="w-0 h-0 border-l-[8px] sm:border-l-[10px] border-l-white border-y-[6px] sm:border-y-[8px] border-y-transparent ml-1"></div>
                         </div>
                       </div>
                     )}
