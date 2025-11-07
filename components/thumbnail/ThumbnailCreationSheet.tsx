@@ -328,17 +328,30 @@ export default function ThumbnailCreationSheet({
       // Collect all media files: project image + uploaded assets
       const allMediaFiles: string[] = [];
       
-      // Add project image first if it exists (this will be the base/primary image)
+      // CRITICAL: Add project image first if it exists (this will be the base/primary image)
       if (selectedProject.image) {
         allMediaFiles.push(selectedProject.image);
+        console.log("✅ Project image added as primary asset:", selectedProject.image);
+      } else if (hasTemplates) {
+        // If using templates but no project image, warn the user
+        console.warn("⚠️ No project image found - template will be applied with uploaded assets only");
+        
+        // Show a toast notification
+        toast({
+          title: "No project image",
+          description: "Your project doesn't have an image. The template will be used as a base. Consider adding a project image for better results.",
+          variant: "default",
+        });
       }
       
-      // Add any manually uploaded assets
+      // Add any manually uploaded assets (these will be additional reference images)
       uploadedAssets.forEach((asset) => {
         if (asset.url) {
           allMediaFiles.push(asset.url);
         }
       });
+      
+      console.log(`📸 Total media files: ${allMediaFiles.length} (${selectedProject.image ? 'with' : 'without'} project image)`);
 
       // Prepare request body based on generation method
       const requestBody: any = {
@@ -483,32 +496,56 @@ export default function ThumbnailCreationSheet({
     >
       <div className="space-y-6">
         {/* Generation Method Indicator */}
-        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              preSelectedTemplates.length > 0 ? 'bg-primary/10' : 'bg-red-500/10'
-            }`}>
-              {preSelectedTemplates.length > 0 ? (
-                <LayoutTemplate className="h-5 w-5 text-primary" />
-              ) : (
-                <Youtube className="h-5 w-5 text-red-500" />
-              )}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                preSelectedTemplates.length > 0 ? 'bg-primary/10' : 'bg-red-500/10'
+              }`}>
+                {preSelectedTemplates.length > 0 ? (
+                  <LayoutTemplate className="h-5 w-5 text-primary" />
+                ) : (
+                  <Youtube className="h-5 w-5 text-red-500" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium">Generation Method</p>
+              <p className="text-xs text-muted-foreground">
+                {preSelectedTemplates.length > 0
+                  ? `Using ${preSelectedTemplates.length} template${preSelectedTemplates.length > 1 ? 's' : ''}`
+                  : allYoutubeLinks.length > 0 
+                    ? `Using ${allYoutubeLinks.length} YouTube link${allYoutubeLinks.length > 1 ? 's' : ''}`
+                    : 'No method selected'
+                }
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium">Generation Method</p>
-            <p className="text-xs text-muted-foreground">
-              {preSelectedTemplates.length > 0
-                ? `Using ${preSelectedTemplates.length} template${preSelectedTemplates.length > 1 ? 's' : ''}`
-                : allYoutubeLinks.length > 0 
-                  ? `Using ${allYoutubeLinks.length} YouTube link${allYoutubeLinks.length > 1 ? 's' : ''}`
-                  : 'No method selected'
-              }
-              </p>
-            </div>
+            <Badge variant={preSelectedTemplates.length > 0 ? "default" : "secondary"}>
+              {preSelectedTemplates.length > 0 ? "Template Mode" : "YouTube Mode"}
+            </Badge>
           </div>
-          <Badge variant={preSelectedTemplates.length > 0 ? "default" : "secondary"}>
-            {preSelectedTemplates.length > 0 ? "Template Mode" : "YouTube Mode"}
-          </Badge>
+          
+          {/* Clarification banner for template mode */}
+          {preSelectedTemplates.length > 0 && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5">
+                  <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
+                    How Template Mode Works
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Your <strong>project content</strong> will be styled using the <strong>template's design</strong>. 
+                    The final thumbnail will feature your project with the template's visual aesthetic applied.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Selected Project Information */}

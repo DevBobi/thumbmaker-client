@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -57,11 +58,13 @@ const ITEMS_PER_PAGE = 6;
 const History = () => {
   const router = useRouter();
   const { authFetch } = useAuthFetch();
+  const { toast } = useToast();
   const [campaigns, setCampaigns] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -142,13 +145,53 @@ const History = () => {
   };
 
   // Function to handle thumbnail download
-  const handleDownload = (imageUrl: string, thumbnailTitle: string) => {
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = `${thumbnailTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async (imageUrl: string, thumbnailTitle: string, thumbnailId?: string) => {
+    if (!imageUrl) {
+      toast({
+        title: "Download failed",
+        description: "Image URL is not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDownloading(thumbnailId || imageUrl);
+    
+    try {
+      // Fetch the image as a blob to handle CORS issues
+      const response = await fetch(imageUrl);
+      if (!response.ok) throw new Error("Failed to fetch image");
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Create and trigger download
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${thumbnailTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      
+      toast({
+        title: "Download successful",
+        description: "Thumbnail has been downloaded",
+      });
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast({
+        title: "Download failed",
+        description: "Opening image in new tab instead",
+        variant: "destructive",
+      });
+      // Fallback: try opening in new tab
+      window.open(imageUrl, "_blank");
+    } finally {
+      setIsDownloading(null);
+    }
   };
 
   // Function to get time ago string
@@ -487,11 +530,11 @@ const History = () => {
                           variant="outline"
                           size="sm"
                           className="flex items-center gap-1.5 text-xs h-8 px-3 w-full"
-                          onClick={() => handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`)}
-                          disabled={!thumbnail.image}
+                          onClick={() => handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`, thumbnail.id)}
+                          disabled={!thumbnail.image || isDownloading === thumbnail.id}
                         >
                           <Download className="h-3.5 w-3.5" />
-                          Download
+                          {isDownloading === thumbnail.id ? "Downloading..." : "Download"}
                         </Button>
                       </div>
                     </div>
@@ -693,16 +736,18 @@ const History = () => {
             <div className="px-6 py-4 border-t mt-auto">
               <div className="flex gap-3">
                 <Button
-                  onClick={() => handleDownload(selectedThumbnail.image, selectedThumbnail.title || `thumbnail-${selectedThumbnail.id.slice(-8)}`)}
+                  onClick={() => handleDownload(selectedThumbnail.image, selectedThumbnail.title || `thumbnail-${selectedThumbnail.id.slice(-8)}`, selectedThumbnail.id)}
                   className="flex-1 flex items-center justify-center gap-2"
+                  disabled={isDownloading === selectedThumbnail.id}
                 >
                   <Download className="h-4 w-4" />
-                  Download
+                  {isDownloading === selectedThumbnail.id ? "Downloading..." : "Download"}
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={() => setSelectedThumbnail(null)}
                   className="flex-1"
+                  disabled={isDownloading === selectedThumbnail.id}
                 >
                   Close
                 </Button>
