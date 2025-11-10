@@ -1,3 +1,8 @@
+/**
+ * @deprecated This file contains hardcoded filter options for AD templates.
+ * For YouTube thumbnail templates, use the dynamic filters from the API via useTemplateFilters hook.
+ * This is kept for backward compatibility with AD template functionality if needed.
+ */
 export const filterOptions = {
   brands: [
     {

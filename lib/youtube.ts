@@ -98,12 +98,40 @@ export const fetchThumbnailAsFile = async (
 };
 
 /**
+ * Fetches YouTube video metadata using oEmbed API
+ */
+export const fetchYouTubeMetadata = async (
+  videoId: string
+): Promise<{ title: string; channelName: string } | null> => {
+  try {
+    // Use YouTube's oEmbed API to get video metadata
+    const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+    
+    const response = await fetch(oEmbedUrl);
+    if (!response.ok) {
+      console.warn("Failed to fetch YouTube metadata");
+      return null;
+    }
+
+    const data = await response.json();
+    
+    return {
+      title: data.title || "",
+      channelName: data.author_name || "",
+    };
+  } catch (error) {
+    console.error("Error fetching YouTube metadata:", error);
+    return null;
+  }
+};
+
+/**
  * Main function to extract thumbnail from YouTube URL
- * Returns File object ready to be used in forms
+ * Returns File object ready to be used in forms along with metadata
  */
 export const extractYouTubeThumbnail = async (
   youtubeUrl: string
-): Promise<{ file: File; videoId: string } | null> => {
+): Promise<{ file: File; videoId: string; title?: string; channelName?: string } | null> => {
   try {
     // Extract video ID
     const videoId = extractVideoId(youtubeUrl);
@@ -117,13 +145,21 @@ export const extractYouTubeThumbnail = async (
       throw new Error("Could not fetch thumbnail");
     }
 
+    // Fetch video metadata
+    const metadata = await fetchYouTubeMetadata(videoId);
+
     // Convert to File object
     const file = await fetchThumbnailAsFile(
       thumbnailUrl,
       `yt-thumbnail-${videoId}.jpg`
     );
 
-    return { file, videoId };
+    return { 
+      file, 
+      videoId,
+      title: metadata?.title,
+      channelName: metadata?.channelName,
+    };
   } catch (error) {
     console.error("Error extracting YouTube thumbnail:", error);
     throw error;

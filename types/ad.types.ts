@@ -10,10 +10,10 @@ export type BrandTone =
 export type AdTemplate = {
   id: string;
   image: string;
-  category: string;
+  category?: string;
   brand: string;
   niche: string;
-  subNiche: string;
+  subNiche?: string;
   tags: string[];
   isCustom?: boolean;
 };

@@ -76,7 +76,7 @@ export function CTA() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex justify-center items-center gap-4 sm:gap-6 mt-12"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-12 max-w-5xl mx-auto"
           >
             {[
               { src: "/thumbnails/8.jpg", alt: "Gaming reaction thumbnail preview" },
@@ -89,7 +89,7 @@ export function CTA() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-                className="relative w-64 sm:w-72 lg:w-80 aspect-[16/9] rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group"
+                className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group"
               >
                 <Image
                   src={thumb.src}
@@ -97,7 +97,7 @@ export function CTA() {
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                   quality={95}
-                  sizes="(max-width: 640px) 256px, (max-width: 1024px) 288px, 320px"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </motion.div>

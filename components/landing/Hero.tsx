@@ -7,9 +7,11 @@ import { CheckCircle2, Star, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Marquee from "react-fast-marquee";
+import { useRouter } from "next/navigation";
 
 export function Hero() {
   const { isSignedIn } = useUser();
+  const router = useRouter();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -32,18 +34,41 @@ export function Hero() {
     },
   };
 
-  // Sample thumbnails for the carousel
-  const thumbnails = [
-    "/thumbnails/1.jpg",
-    "/thumbnails/2.jpg",
-    "/thumbnails/3.jpg",
-    "/thumbnails/4.jpg",
-    "/thumbnails/5.jpg",
-    "/thumbnails/6.jpg"
+  // Featured thumbnails mapped to actual templates
+  const thumbnailsWithTemplateIds = [
+    { image: "/thumbnails/1.jpg", templateId: "cmhss5bit00l1rpa0ljfxipmd", creator: "Our Rich Journey", title: "The Real Reason Americans Are Leaving Po..." },
+    { image: "/thumbnails/2.jpg", templateId: "cmhss5a2700j1rpa0rq0mfl0x", creator: "Ramit Sethi", title: "You Can Change Your Finances in 6 Months..." },
+    { image: "/thumbnails/3.jpg", templateId: "cmhss5ask00k1rpa0b4u5a66x", creator: "The Financial Diet", title: "How 'Sex & The City' Ruined Women's Rela..." },
+    { image: "/thumbnails/4.jpg", templateId: "cmhss59ux00irrpa0fic2e7s0", creator: "Meet Kevin", title: "Yikes: WSJ *Just* Exposed Covid Vaccines..." },
+    { image: "/thumbnails/5.jpg", templateId: "cmhss5a3n00j3rpa0h8jd45hv", creator: "Ramit Sethi", title: "These are the 2 Worst Banks in America (..." },
+    { image: "/thumbnails/6.jpg", templateId: "cmhss5a5500j5rpa03oo8redr", creator: "Ramit Sethi", title: "Money Expert Reacts to Finance TikToks..." },
+    { image: "/thumbnails/7.jpg", templateId: "cmhss5a9i00jbrpa0ebebyo7y", creator: "Ramit Sethi", title: "Why You Should Stop Listening To These F..." },
+    { image: "/thumbnails/8.jpg", templateId: "cmhss5au000k3rpa012qqqdw3", creator: "The Financial Diet", title: "An Honest Conversation On The Problem Wi..." },
+    { image: "/thumbnails/9.jpg", templateId: "cmhss5bk900l3rpa0io4tkmav", creator: "Our Rich Journey", title: "Why You Need to Leave America Before It'..." },
+    { image: "/thumbnails/10.jpg", templateId: "cmhss5avh00k5rpa0t3hqtc7k", creator: "The Financial Diet", title: "How The Wealthy Gaslight America..." },
+    { image: "/thumbnails/11.jpg", templateId: "cmhss5awx00k7rpa0h65of4r3", creator: "The Financial Diet", title: "5 \"Growing Up Poor\" Habits You May Not R..." },
+    { image: "/thumbnails/12.jpg", templateId: "cmhss5a6l00j7rpa0ixwolbv4", creator: "Ramit Sethi", title: "Renting vs Buying a Home: The Lie You've..." },
+    { image: "/thumbnails/13.jpg", templateId: "cmhss5a8200j9rpa05689h5rv", creator: "Ramit Sethi", title: "How to Become a Millionaire on a Low Sal..." },
+    { image: "/thumbnails/14.jpg", templateId: "cmhss5aye00k9rpa0k58b24tn", creator: "The Financial Diet", title: "The \"Growing Up Poor\" Tax..." },
+    { image: "/thumbnails/15.jpg", templateId: "cmhss5azw00kbrpa0w6dx4qsf", creator: "The Financial Diet", title: "How Gen Z Became The \"Buy Everything, Ow..." },
+    { image: "/thumbnails/16.jpg", templateId: "cmhss59wd00itrpa0siw4fkit", creator: "Meet Kevin", title: "Boxabl's $3 Billion Dollar Fraud | Elon ..." },
+    { image: "/thumbnails/17.jpg", templateId: "cmhss59xu00ivrpa0w7kxkz7s", creator: "Meet Kevin", title: "Tucker Carlson Interviews Putin [Full Su..." },
   ];
 
+  const handleThumbnailClick = (templateId: string) => {
+    if (!isSignedIn) {
+      // Store redirect path for after login
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('redirectAfterLogin', `/dashboard/templates?template=${templateId}`);
+      }
+      router.push('/sign-in');
+    } else {
+      router.push(`/dashboard/templates?template=${templateId}`);
+    }
+  };
+
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen pt-12 sm:pt-14 md:pt-16 overflow-x-hidden">
       {/* Hero overlay background */}
       <div className="absolute inset-0 z-0 bg-white">
         <Image
@@ -55,12 +80,11 @@ export function Hero() {
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 relative z-10"
-      >
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start lg:items-center min-h-[70vh] lg:min-h-[80vh]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-12 lg:py-16 xl:py-20 relative z-10 overflow-x-hidden">
+        <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 md:gap-12 lg:gap-16 items-start lg:items-center min-h-[calc(100vh-6rem)] sm:min-h-[calc(100vh-5rem)] lg:min-h-[75vh]">
           {/* Left Content Section */}
           <motion.div
-            className="space-y-4 lg:space-y-5"
+            className="space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-7 max-w-full overflow-hidden"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -68,27 +92,35 @@ export function Hero() {
             {/* AI-Powered Header */}
             <motion.div
               variants={itemVariants}
-              className="flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-700"
+              className="flex items-center gap-2 text-xs sm:text-sm md:text-base font-medium text-gray-700 flex-wrap"
             >
-              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-[#FF0000] transform rotate-45"></div>
-              <span>AI-Powered Thumbnail Generation</span>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF0000]" />
+              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 bg-[#FF0000] transform rotate-45 flex-shrink-0"></div>
+              <span className="whitespace-nowrap">AI-Powered Thumbnail Generation</span>
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-[#FF0000] flex-shrink-0" />
             </motion.div>
 
             {/* Main Headline */}
             <motion.h1
               variants={itemVariants}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl lg:font-black font-bold text-gray-900 leading-[1.1]"
+              className="font-bold lg:font-black text-gray-900 max-w-full"
+              style={{ 
+                lineHeight: '1.2',
+                wordWrap: 'break-word', 
+                overflowWrap: 'break-word' 
+              }}
             >
-              Create High-Performing{" "}
-              <span className="bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">YouTube Thumbnails</span>{" "}
-              in 60 Seconds!
+              <span className="block sm:inline text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl">Create High-Performing </span>
+              <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">
+                YouTube Thumbnails
+              </span>{" "}
+              <span className="block sm:inline mt-1 sm:mt-0 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl">in 60 Seconds!</span>
             </motion.h1>
 
             {/* Description */}
             <motion.p
               variants={itemVariants}
-              className="text-base sm:text-lg text-gray-600 max-w-xl leading-snug"
+              className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-gray-600 leading-relaxed max-w-full lg:max-w-2xl"
+              style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
             >
               Generate context-aware, on-brand thumbnails automatically by combining your video content, brand assets, and proven templates.
             </motion.p>
@@ -96,9 +128,9 @@ export function Hero() {
             {/* Social Proof */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
+              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 max-w-full"
             >
-              <div className="flex -space-x-2">
+              <div className="flex -space-x-2 sm:-space-x-3 flex-shrink-0">
                 {[
                   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces",
                   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces",
@@ -108,7 +140,7 @@ export function Hero() {
                 ].map((url, i) => (
                   <div
                     key={i}
-                    className="relative w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-white overflow-hidden"
+                    className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full border-2 sm:border-3 border-white overflow-hidden flex-shrink-0"
                   >
                     <Image
                       src={url}
@@ -118,15 +150,15 @@ export function Hero() {
                     />
                   </div>
                 ))}
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-semibold text-gray-600">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-gray-200 border-2 sm:border-3 border-white flex items-center justify-center text-[10px] sm:text-xs md:text-sm font-semibold text-gray-600 flex-shrink-0">
                   +2M
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
+                  <Star key={i} className="w-4 h-4 sm:w-5 sm:h-5 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                 ))}
-                <span className="text-xs sm:text-sm font-medium text-gray-700 ml-2">
+                <span className="text-xs sm:text-sm md:text-base font-medium text-gray-700 ml-1 sm:ml-2 whitespace-nowrap">
                   Trusted by creators
                 </span>
               </div>
@@ -135,29 +167,37 @@ export function Hero() {
             {/* Trust Indicators */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-col sm:flex-row gap-2 sm:gap-3"
+              className="flex flex-col sm:flex-row gap-2 sm:gap-4 md:gap-5 flex-wrap max-w-full"
             >
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-green-600">
-                <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>No credit card required</span>
+              <div className="flex items-center gap-2 text-xs sm:text-sm md:text-base text-green-600">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span className="whitespace-nowrap">No credit card required</span>
               </div>
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-green-600">
-                <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>10 free thumbnails</span>
+              <div className="flex items-center gap-2 text-xs sm:text-sm md:text-base text-green-600">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span className="whitespace-nowrap">10 free thumbnails</span>
               </div>
             </motion.div>
 
             {/* CTA Buttons */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-col sm:flex-row gap-2 sm:gap-3"
+              className="flex flex-row gap-2 sm:gap-3 md:gap-4 pt-2 sm:pt-3 flex-wrap"
             >
               {!isSignedIn ? (
                 <>
-                  <Button variant="brand" size="lg" className="w-full sm:w-auto" asChild>
+                  <Button 
+                    variant="brand" 
+                    className="flex-1 min-w-[130px] sm:flex-none sm:min-w-[140px] md:min-w-[160px] lg:min-w-[180px] h-11 sm:h-11 md:h-12 lg:h-13 xl:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg px-4 sm:px-6 md:px-8 lg:px-10 font-semibold" 
+                    asChild
+                  >
                     <Link href="/dashboard">Get Started</Link>
                   </Button>
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 min-w-[130px] sm:flex-none sm:min-w-[140px] md:min-w-[160px] lg:min-w-[180px] h-11 sm:h-11 md:h-12 lg:h-13 xl:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg px-4 sm:px-6 md:px-8 lg:px-10 font-semibold" 
+                    asChild
+                  >
                     <Link
                       target="_blank"
                       href="https://cal.com/jayships/30-min-meeting-krillion-ai"
@@ -167,11 +207,13 @@ export function Hero() {
                   </Button>
                 </>
               ) : (
-                <>
-                  <Button variant="brand" size="lg" className="w-full sm:w-auto" asChild>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </Button>
-                </>
+                <Button
+                  variant="brand"
+                  className="flex-1 min-w-[130px] sm:flex-none sm:min-w-[140px] md:min-w-[160px] lg:min-w-[180px] h-11 sm:h-11 md:h-12 lg:h-13 xl:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg px-4 sm:px-6 md:px-8 lg:px-10 font-semibold" 
+                  asChild
+                >
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
               )}
             </motion.div>
           </motion.div>
@@ -179,118 +221,74 @@ export function Hero() {
           {/* Right Thumbnails Section */}
           <motion.div
             variants={itemVariants}
-            className="relative mt-8 lg:mt-0 flex items-center justify-center h-full"
+            className="relative mt-8 sm:mt-10 lg:mt-0 flex items-center justify-center h-full order-first lg:order-last"
             initial="hidden"
             animate="visible"
           >
-            <div className="relative overflow-hidden space-y-5 lg:space-y-6 w-full">
+            <div className="relative overflow-hidden space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6 w-full max-w-full -mx-4 sm:mx-0">
               {/* First row of thumbnails */}
               <Marquee
                 gradient={false}
                 speed={25}
                 pauseOnHover={true}
                 direction="left"
-                className="py-2"
+                className="py-1 sm:py-1.5 md:py-2"
+                play={true}
+                loop={0}
               >
-                {thumbnails.map((thumbnail, index) => (
-                  <div
-                    key={index}
-                    className="relative w-48 sm:w-60 lg:w-80 aspect-[16/9] mx-2 sm:mx-3 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20"
-                  >
-                    <Image
-                      src={thumbnail}
-                      alt={`Thumbnail example ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      quality={95}
-                      sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 320px"
-                    />
-                    {index === 0 && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-center justify-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-colors">
-                          <div className="w-0 h-0 border-l-[8px] sm:border-l-[10px] border-l-white border-y-[6px] sm:border-y-[8px] border-y-transparent ml-1"></div>
+                {[...Array(8)].map((_, setIndex) => (
+                  thumbnailsWithTemplateIds.map((thumbnail, index) => (
+                    <div
+                      key={`set-${setIndex}-${index}`}
+                      onClick={() => handleThumbnailClick(thumbnail.templateId)}
+                      className="relative w-36 sm:w-44 md:w-52 lg:w-60 xl:w-72 2xl:w-80 aspect-[16/9] mx-1.5 sm:mx-2 md:mx-2.5 lg:mx-3 rounded-lg md:rounded-xl overflow-hidden shadow-lg md:shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20 cursor-pointer"
+                    >
+                      <Image
+                        src={thumbnail.image}
+                        alt={`${thumbnail.creator} - ${thumbnail.title}`}
+                        fill
+                        className="object-cover"
+                        quality={95}
+                        sizes="(max-width: 640px) 144px, (max-width: 768px) 176px, (max-width: 1024px) 208px, (max-width: 1280px) 240px, (max-width: 1536px) 288px, 320px"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-xs sm:text-sm font-semibold px-2 text-center">View Template</span>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {/* Duplicate thumbnails for seamless loop */}
-                {thumbnails.map((thumbnail, index) => (
-                  <div
-                    key={`duplicate-${index}`}
-                    className="relative w-48 sm:w-60 lg:w-80 aspect-[16/9] mx-2 sm:mx-3 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20"
-                  >
-                    <Image
-                      src={thumbnail}
-                      alt={`Thumbnail example ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      quality={95}
-                      sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 320px"
-                    />
-                    {index === 0 && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-center justify-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-colors">
-                          <div className="w-0 h-0 border-l-[8px] sm:border-l-[10px] border-l-white border-y-[6px] sm:border-y-[8px] border-y-transparent ml-1"></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ))
                 ))}
               </Marquee>
 
               {/* Second row of thumbnails */}
               <Marquee
                 gradient={false}
-                speed={20}
+                speed={22}
                 pauseOnHover={true}
                 direction="right"
-                className="py-2"
+                className="py-1 sm:py-1.5 md:py-2"
+                play={true}
+                loop={0}
               >
-                {thumbnails.map((thumbnail, index) => (
-                  <div
-                    key={`row2-${index}`}
-                    className="relative w-48 sm:w-60 lg:w-80 aspect-[16/9] mx-2 sm:mx-3 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20"
-                  >
-                    <Image
-                      src={thumbnail}
-                      alt={`Thumbnail example ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      quality={95}
-                      sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 320px"
-                    />
-                    {index === 2 && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-center justify-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-colors">
-                          <div className="w-0 h-0 border-l-[8px] sm:border-l-[10px] border-l-white border-y-[6px] sm:border-y-[8px] border-y-transparent ml-1"></div>
+                {[...Array(8)].map((_, setIndex) => (
+                  thumbnailsWithTemplateIds.map((thumbnail, index) => (
+                    <div
+                      key={`row2-set-${setIndex}-${index}`}
+                      onClick={() => handleThumbnailClick(thumbnail.templateId)}
+                      className="relative w-36 sm:w-44 md:w-52 lg:w-60 xl:w-72 2xl:w-80 aspect-[16/9] mx-1.5 sm:mx-2 md:mx-2.5 lg:mx-3 rounded-lg md:rounded-xl overflow-hidden shadow-lg md:shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20 cursor-pointer"
+                    >
+                      <Image
+                        src={thumbnail.image}
+                        alt={`${thumbnail.creator} - ${thumbnail.title}`}
+                        fill
+                        className="object-cover"
+                        quality={95}
+                        sizes="(max-width: 640px) 144px, (max-width: 768px) 176px, (max-width: 1024px) 208px, (max-width: 1280px) 240px, (max-width: 1536px) 288px, 320px"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-xs sm:text-sm font-semibold px-2 text-center">View Template</span>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {/* Duplicate thumbnails for seamless loop */}
-                {thumbnails.map((thumbnail, index) => (
-                  <div
-                    key={`row2-duplicate-${index}`}
-                    className="relative w-48 sm:w-60 lg:w-80 aspect-[16/9] mx-2 sm:mx-3 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border-2 border-white/20"
-                  >
-                    <Image
-                      src={thumbnail}
-                      alt={`Thumbnail example ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      quality={95}
-                      sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 320px"
-                    />
-                    {index === 2 && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-center justify-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-colors">
-                          <div className="w-0 h-0 border-l-[8px] sm:border-l-[10px] border-l-white border-y-[6px] sm:border-y-[8px] border-y-transparent ml-1"></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ))
                 ))}
               </Marquee>
             </div>
@@ -300,25 +298,25 @@ export function Hero() {
         {/* Trusted By Section */}
         <motion.div
           variants={itemVariants}
-          className="text-center mt-12 lg:mt-16"
+          className="text-center mt-8 sm:mt-12 md:mt-16 lg:mt-20 px-3 sm:px-4"
           initial="hidden"
           animate="visible"
         >
-          <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-4 sm:mb-6">
+          <p className="text-[10px] xs:text-xs sm:text-sm md:text-base font-semibold text-gray-700 mb-3 sm:mb-4 md:mb-6 lg:mb-8">
             TRUSTED BY 1,000+ CREATORS & AGENCIES
           </p>
-          <div className="flex justify-center items-center gap-8 sm:gap-12 lg:gap-16 flex-wrap">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 xs:gap-2.5 sm:gap-3 md:gap-4 lg:gap-6 xl:gap-8 max-w-6xl mx-auto">
             {[1, 2, 3, 4, 5, 6, 7].map((i) => (
               <div
                 key={i}
-                className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-white rounded-lg shadow-sm flex items-center justify-center"
+                className="w-full aspect-square bg-white rounded-md sm:rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-center p-2 xs:p-2.5 sm:p-3 md:p-4"
               >
                 <Image
                   src={`/logo/brand-logos/${i}.png`}
                   alt={`Brand ${i}`}
-                  width={48}
-                  height={48}
-                  className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 object-contain"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-contain"
                 />
               </div>
             ))}

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdTemplate } from "@/contexts/AdContext";
@@ -9,7 +9,7 @@ import EnhancedTemplateFilters from "@/components/templates/EnhancedTemplateFilt
 import { useQuery } from "@tanstack/react-query";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { TemplatePagination } from "@/components/templates/TemplatePagination";
-import { filterOptions } from "@/constants/filters";
+import { useTemplateFilters } from "@/hooks/use-template-filters";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,7 +20,6 @@ const AllTemplates = () => {
   const { authFetch } = useAuthFetch();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const templateRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("preset-templates");
   const [sortBy, setSortBy] = useState<
@@ -32,10 +31,8 @@ const AllTemplates = () => {
   const [highlightTemplateId, setHighlightTemplateId] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
-    category: null as string | null,
-    brand: null as string | null,
+    creator: null as string | null,
     niche: null as string | null,
-    subNiche: null as string | null,
   });
 
   // State to track loaded templates
@@ -74,6 +71,9 @@ const AllTemplates = () => {
     }
   }, [searchParams, toast]);
 
+  // Fetch filter options
+  const { data: filterOptions, isLoading: isLoadingFilters } = useTemplateFilters();
+
   // Build query parameters
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -81,10 +81,8 @@ const AllTemplates = () => {
     params.append("limit", limit.toString());
 
     if (searchTerm) params.append("search", searchTerm);
-    if (filters.category) params.append("category", filters.category);
-    if (filters.brand) params.append("brand", filters.brand);
+    if (filters.creator) params.append("creator", filters.creator);
     if (filters.niche) params.append("niche", filters.niche);
-    if (filters.subNiche) params.append("subNiche", filters.subNiche);
 
     return params.toString();
   };
@@ -182,10 +180,8 @@ const AllTemplates = () => {
 
   const handleClearFilters = () => {
     setFilters({
-      category: null,
-      brand: null,
+      creator: null,
       niche: null,
-      subNiche: null,
     });
     setSearchTerm("");
   };
@@ -323,10 +319,11 @@ const AllTemplates = () => {
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
-          categoryOptions={filterOptions.categories}
-          brandOptions={filterOptions.brands}
-          nicheOptions={filterOptions.niches}
-          subNicheOptions={filterOptions.subNiches}
+          creatorOptions={filterOptions?.creators || []}
+          nicheOptions={filterOptions?.niches || []}
+          isLoadingFilters={isLoadingFilters}
+          totalCount={pagination.total}
+          filteredCount={sortedTemplates.length}
         />
 
         <div className="mt-6" id="templates-results">

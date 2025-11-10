@@ -8,7 +8,7 @@ import { Pricing } from "@/components/landing/Pricing";
 
 export default function Home() {
   return (
-    <div className="bg-white">
+    <div className="bg-white overflow-x-hidden">
       <Hero />
       <Metrics />
       <ExploreGallery />

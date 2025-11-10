@@ -11,13 +11,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Sheet,
   SheetClose,
   SheetContent,
@@ -27,8 +20,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { filterOptions } from "@/constants/filters";
-import { AdTemplate, useAdContext } from "@/contexts/AdContext";
+import { AdTemplate } from "@/contexts/AdContext";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { toast } from "@/hooks/use-toast";
 import { extractYouTubeThumbnail } from "@/lib/youtube";
@@ -45,10 +37,8 @@ interface TemplateCreatorProps {
 }
 
 const formSchema = z.object({
-  brand: z.string().min(1, "Brand name is required"),
-  category: z.string().min(1, "Category is required"),
+  brand: z.string().min(1, "Creator name is required"),
   niche: z.string().min(1, "Niche is required"),
-  subNiche: z.string().optional(),
   image: z
     .instanceof(File, { message: "Template image is required" })
     .nullable()
@@ -65,12 +55,11 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
   onTemplateCreated,
 }) => {
   const { authFetch } = useAuthFetch();
-  const { createCustomTemplate } = useAdContext();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [templateImage, setTemplateImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("upload");
+  const [activeTab, setActiveTab] = useState<string>("youtube");
   const [youtubeUrl, setYoutubeUrl] = useState<string>("");
   const [isExtractingThumbnail, setIsExtractingThumbnail] = useState(false);
 
@@ -78,8 +67,6 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       brand: "",
-      category: "",
-      subNiche: "",
       niche: "",
       image: undefined,
     },
@@ -119,11 +106,40 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
         throw new Error("Failed to extract thumbnail");
       }
 
-      const { file } = result;
+      const { file, title, channelName } = result;
 
       // Set the file and preview
       setTemplateImage(file);
       form.setValue("image", file, { shouldValidate: true });
+
+      // Auto-fill creator name from channel
+      if (channelName) {
+        form.setValue("brand", channelName, { shouldValidate: true });
+      }
+
+      // Use AI to detect niche from title and channel
+      if (title && channelName) {
+        try {
+          const nicheResponse = await authFetch("/api/templates/detect-niche", {
+            method: "POST",
+            body: JSON.stringify({
+              title,
+              channelName,
+            }),
+          });
+
+          if (nicheResponse.ok) {
+            const nicheData = await nicheResponse.json();
+            if (nicheData.niche) {
+              form.setValue("niche", nicheData.niche, { shouldValidate: true });
+            }
+          }
+        } catch (error) {
+          console.error("Failed to detect niche with AI:", error);
+          // Fallback to default
+          form.setValue("niche", "Entertainment", { shouldValidate: true });
+        }
+      }
 
       // Create preview
       const reader = new FileReader();
@@ -134,7 +150,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
 
       toast({
         title: "Thumbnail extracted",
-        description: "YouTube thumbnail has been successfully extracted",
+        description: "Thumbnail and metadata extracted successfully",
       });
     } catch (error) {
       console.error("Error extracting YouTube thumbnail:", error);
@@ -210,8 +226,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
         method: "POST",
         body: JSON.stringify({
           image: fileUrl,
-          category: values.category,
-          subNiche: values.subNiche,
+          creator: values.brand,
           brand: values.brand,
           niche: values.niche,
         }),
@@ -228,11 +243,10 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
       const newTemplate = {
         id: data.id,
         image: data.image,
-        category: data.category,
-        subNiche: data.subNiche,
+        creator: data.creator,
         brand: data.brand,
         niche: data.niche,
-        tags: [data.category, data.brand, data.niche, data.subNiche],
+        tags: [data.brand, data.niche],
       };
 
       // Call the context function
@@ -273,7 +287,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
     setTemplateImage(null);
     setImagePreview(null);
     setYoutubeUrl("");
-    setActiveTab("upload");
+    setActiveTab("youtube");
     form.reset();
   };
 
@@ -305,6 +319,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
             <FormField
               control={form.control}
               name="image"
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               render={({ field: { onChange, value, ...rest } }) => (
                 <FormItem>
                   <FormLabel>
@@ -317,15 +332,89 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                       className="w-full"
                     >
                       <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="upload">
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Image
-                        </TabsTrigger>
                         <TabsTrigger value="youtube">
                           <Link2 className="h-4 w-4 mr-2" />
                           YouTube Link
                         </TabsTrigger>
+                        <TabsTrigger value="upload">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Image
+                        </TabsTrigger>
                       </TabsList>
+
+                      <TabsContent value="youtube" className="mt-4">
+                        <div className="space-y-4">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Paste YouTube video URL here..."
+                              value={youtubeUrl}
+                              onChange={(e) => setYoutubeUrl(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleExtractFromYouTube();
+                                }
+                              }}
+                              disabled={isExtractingThumbnail}
+                            />
+                            <Button
+                              type="button"
+                              onClick={handleExtractFromYouTube}
+                              disabled={isExtractingThumbnail || !youtubeUrl.trim()}
+                              className="shrink-0"
+                            >
+                              {isExtractingThumbnail ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Extracting...
+                                </>
+                              ) : (
+                                "Extract"
+                              )}
+                            </Button>
+                          </div>
+
+                          {imagePreview && (
+                            <div className="border-2 border-dashed rounded-md p-4">
+                              <img
+                                src={imagePreview}
+                                alt="Extracted thumbnail"
+                                className="max-h-72 mx-auto rounded-md object-contain"
+                              />
+                              <div className="flex items-center justify-between mt-3">
+                                <p className="text-sm text-green-600 font-medium">
+                                  ✓ Thumbnail and metadata extracted
+                                </p>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleDownloadThumbnail}
+                                  className="gap-2"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Download
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {!imagePreview && (
+                            <div className="border-2 border-dashed rounded-md p-6 text-center">
+                              <Link2 className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-muted-foreground">
+                                Enter a YouTube URL to extract thumbnail
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Supports youtube.com and youtu.be links
+                              </p>
+                              <p className="text-xs text-green-600 mt-2">
+                                Creator name and niche will be auto-filled
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
 
                       <TabsContent value="upload" className="mt-4">
                         <div className="space-y-2">
@@ -388,77 +477,6 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                           )}
                         </div>
                       </TabsContent>
-
-                      <TabsContent value="youtube" className="mt-4">
-                        <div className="space-y-4">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Paste YouTube video URL here..."
-                              value={youtubeUrl}
-                              onChange={(e) => setYoutubeUrl(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleExtractFromYouTube();
-                                }
-                              }}
-                              disabled={isExtractingThumbnail}
-                            />
-                            <Button
-                              type="button"
-                              onClick={handleExtractFromYouTube}
-                              disabled={isExtractingThumbnail || !youtubeUrl.trim()}
-                              className="shrink-0"
-                            >
-                              {isExtractingThumbnail ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Extracting...
-                                </>
-                              ) : (
-                                "Extract"
-                              )}
-                            </Button>
-                          </div>
-
-                          {imagePreview && (
-                            <div className="border-2 border-dashed rounded-md p-4">
-                              <img
-                                src={imagePreview}
-                                alt="Extracted thumbnail"
-                                className="max-h-72 mx-auto rounded-md object-contain"
-                              />
-                              <div className="flex items-center justify-between mt-3">
-                                <p className="text-sm text-muted-foreground">
-                                  Thumbnail extracted successfully
-                                </p>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleDownloadThumbnail}
-                                  className="gap-2"
-                                >
-                                  <Download className="h-4 w-4" />
-                                  Download
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-
-                          {!imagePreview && (
-                            <div className="border-2 border-dashed rounded-md p-6 text-center">
-                              <Link2 className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                              <p className="text-muted-foreground">
-                                Enter a YouTube URL to extract thumbnail
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Supports youtube.com and youtu.be links
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
                     </Tabs>
                   </FormControl>
                   <FormMessage />
@@ -466,55 +484,32 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
               )}
             />
 
-            {/* Brand Input */}
+            {/* Creator Input (Auto-filled from YouTube) */}
             <FormField
               control={form.control}
               name="brand"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Brand <span className="text-red-500">*</span>
+                    Creator <span className="text-red-500">*</span>
+                    {imagePreview && (
+                      <span className="ml-2 text-xs text-green-600 font-normal">
+                        ✓ Auto-filled (editable)
+                      </span>
+                    )}
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter brand name" {...field} />
+                    <Input 
+                      placeholder="Creator name (auto-filled from YouTube)" 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Type Selection */}
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Category <span className="text-red-500">*</span>
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filterOptions.categories.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Niche Selection */}
+            {/* Niche Selection (Auto-detected from YouTube) */}
             <FormField
               control={form.control}
               name="niche"
@@ -522,52 +517,18 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                 <FormItem>
                   <FormLabel>
                     Niche <span className="text-red-500">*</span>
+                    {imagePreview && field.value && (
+                      <span className="ml-2 text-xs text-green-600 font-normal">
+                        ✓ AI-detected (editable)
+                      </span>
+                    )}
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select niche" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filterOptions.niches.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="subNiche"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sub Niche</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select sub niche" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filterOptions.subNiches.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input 
+                      placeholder="Niche (auto-detected from video)" 
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
