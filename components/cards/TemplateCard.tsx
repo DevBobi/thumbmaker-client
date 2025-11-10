@@ -22,8 +22,12 @@ export const TemplateCard = ({
   return (
     <div
       key={template.id}
-      className={`relative border rounded-md overflow-hidden cursor-pointer group transition-all ${
-        isSelected ? "ring-2 ring-brand-500" : isHighlighted ? "ring-4 ring-brand-500 shadow-xl border-brand-500" : "hover:shadow-md"
+      className={`relative border rounded-lg overflow-hidden cursor-pointer group transition-all duration-200 bg-card ${
+        isSelected 
+          ? "ring-2 ring-primary shadow-lg" 
+          : isHighlighted 
+          ? "ring-4 ring-primary shadow-2xl border-primary" 
+          : "hover:shadow-lg hover:border-primary/50"
       }`}
     >
       {type === "select" && (
@@ -43,47 +47,51 @@ export const TemplateCard = ({
       <Zoom
         zoomImg={{
           src: template.image,
-          alt: `${template.brand || 'Template'} thumbnail template - ${template.category} category`,
+          alt: `${template.brand || 'Template'} - ${template.niche || 'Thumbnail template'}`,
           width: 800,
           height: 600,
         }}
         zoomMargin={40}
         classDialog="custom-zoom"
       >
-        <div className="relative w-full aspect-video">
+        <div className="relative w-full aspect-video bg-muted/50">
           <Image
             src={template.image}
-            alt={`${template.brand || 'Template'} thumbnail template - ${template.category} category`}
+            alt={`${template.brand || 'Template'} - ${template.niche || 'Thumbnail template'}`}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-contain bg-muted"
+            className="object-cover group-hover:scale-105 transition-transform duration-200"
             priority={false}
           />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" />
         </div>
       </Zoom>
-      <div className="p-2 bg-background">
-        <div>
-          <h3 className="font-medium text-sm truncate">{template.brand}</h3>
+      <div className="p-3 bg-background space-y-1.5">
+        {/* Brand Name */}
+        <h3 className="font-medium text-sm truncate text-foreground">
+          {template.brand || 'Unknown Brand'}
+        </h3>
 
-          <div className="flex items-center justify-between gap-1 mt-1">
-            <div>
-              <p className="text-[8px] text-muted-foreground truncate">Niche</p>
-              <div className="text-[9px] py-0.5">{template.niche}</div>
-            </div>
-            <div>
-              <p className="text-[8px] text-muted-foreground truncate">
-                Category
-              </p>
-              <div className="text-[9px] py-0.5">{template.category}</div>
-            </div>
-            <div>
-              <p className="text-[8px] text-muted-foreground truncate">
-                Sub Niche
-              </p>
-              <div className="text-[9px] py-0.5">{template.subNiche}</div>
-            </div>
+        {/* Niche */}
+        {template.niche && (
+          <p className="text-xs text-muted-foreground truncate">
+            {template.niche}
+          </p>
+        )}
+
+        {/* Tags */}
+        {template.tags && template.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {template.tags.slice(0, 3).map((tag, index) => (
+              <span 
+                key={index} 
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground"
+              >
+                {tag}
+              </span>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

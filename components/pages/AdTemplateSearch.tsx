@@ -60,10 +60,8 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
   const [loadedTemplates, setLoadedTemplates] = useState<AdTemplate[]>([]);
 
   const [filters, setFilters] = useState({
-    category: null as string | null,
-    brand: null as string | null,
+    creator: null as string | null,
     niche: null as string | null,
-    subNiche: null as string | null,
   });
 
   // Add a new state to track if we're loading more templates
@@ -80,10 +78,8 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
     params.append("limit", limit.toString());
 
     if (searchTerm) params.append("search", searchTerm);
-    if (filters.category) params.append("category", filters.category);
-    if (filters.brand) params.append("brand", filters.brand);
+    if (filters.creator) params.append("creator", filters.creator);
     if (filters.niche) params.append("niche", filters.niche);
-    if (filters.subNiche) params.append("subNiche", filters.subNiche);
 
     return params.toString();
   };
@@ -228,24 +224,24 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
 
   // Apply client-side sorting
   const sortedTemplates = [...loadedTemplates].sort((a, b) => {
-    let valueA, valueB;
+    let valueA: string, valueB: string;
 
     switch (sortBy) {
       case "category":
-        valueA = a.category;
-        valueB = b.category;
+        valueA = a.category || "";
+        valueB = b.category || "";
         break;
       case "brand":
-        valueA = a.brand;
-        valueB = b.brand;
+        valueA = a.brand || "";
+        valueB = b.brand || "";
         break;
       case "niche":
-        valueA = a.niche;
-        valueB = b.niche;
+        valueA = a.niche || "";
+        valueB = b.niche || "";
         break;
       default:
-        valueA = a.category;
-        valueB = b.category;
+        valueA = a.category || "";
+        valueB = b.category || "";
     }
 
     if (sortOrder === "asc") {
@@ -281,10 +277,8 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
 
   const handleClearFilters = () => {
     setFilters({
-      category: null,
-      brand: null,
+      creator: null,
       niche: null,
-      subNiche: null,
     });
     setSearchTerm("");
   };
@@ -542,10 +536,8 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
-          categoryOptions={filterOptions.categories}
-          brandOptions={filterOptions.brands}
+          creatorOptions={filterOptions.brands}
           nicheOptions={filterOptions.niches}
-          subNicheOptions={filterOptions.subNiches}
         />
 
         <div className="mt-6" id="templates-results">

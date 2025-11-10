@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Plus, Image, Video, Zap, FolderOpen, LayoutTemplate } from "lucide-react";
+import { Sparkles, Plus, Image, Video, Zap, FolderOpen, LayoutTemplate, PlayCircle } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/products/ProductCard";
 import { GuaranteePopup } from "@/components/GuaranteePopup";
@@ -10,11 +10,19 @@ import { Project } from "@/types";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { Card, CardContent } from "@/components/ui/card";
 import { VideoProjectSheet } from "@/components/projects/VideoProjectSheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Dashboard = () => {
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const { authFetch } = useAuthFetch();
 
   // Fetch projects using React Query
@@ -57,7 +65,15 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your YouTube thumbnails and projects</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => setIsTutorialOpen(true)}
+          >
+            <PlayCircle className="h-4 w-4" />
+            Watch Tutorial
+          </Button>
           <Button variant="outline" className="gap-2" asChild>
             <Link href="/dashboard/projects">
               <Video className="h-4 w-4" />
@@ -73,60 +89,6 @@ const Dashboard = () => {
           </Button>
         </div>
       </div>
-
-
-      {/* Quick Actions */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Link href="/dashboard/create-youtube-thumbnail">
-          <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  <Image className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-base mb-1">Create Thumbnail</h3>
-                  <p className="text-xs text-gray-600">Generate AI-powered thumbnails</p>
-                </div>
-                <Zap className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => setIsCreateSheetOpen(true)}>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
-                <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-base mb-1">New Project</h3>
-                <p className="text-xs text-gray-600">Add a video project</p>
-              </div>
-              <Plus className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Link href="/dashboard/templates">
-          <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
-                  <LayoutTemplate className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-base mb-1">Browse Templates</h3>
-                  <p className="text-xs text-gray-600">Explore pre-made designs</p>
-                </div>
-                <Sparkles className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
-      </div>
-            </CardContent>
-          </Card>
-        </Link>
-    </section>
 
 
       {/* Video Projects Section */}
@@ -210,6 +172,59 @@ const Dashboard = () => {
         )}
       </section>
 
+      {/* Quick Actions */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Link href="/dashboard/create-youtube-thumbnail">
+          <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-base mb-1">Create Thumbnail</h3>
+                  <p className="text-xs text-gray-600">Generate AI-powered thumbnails</p>
+                </div>
+                <Zap className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => setIsCreateSheetOpen(true)}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-base mb-1">New Project</h3>
+                <p className="text-xs text-gray-600">Add a video project</p>
+              </div>
+              <Plus className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Link href="/dashboard/templates">
+          <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                  <LayoutTemplate className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-base mb-1">Browse Templates</h3>
+                  <p className="text-xs text-gray-600">Explore pre-made designs</p>
+                </div>
+                <Sparkles className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </section>
+
       {/* Sheet Components */}
       <VideoProjectSheet
         open={isCreateSheetOpen}
@@ -230,6 +245,30 @@ const Dashboard = () => {
           setEditingProjectId(null);
         }}
       />
+
+      {/* Tutorial Video Dialog */}
+      <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
+        <DialogContent className="!max-w-none !w-[65vw] p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PlayCircle className="h-5 w-5 text-red-600" />
+              Getting Started Tutorial
+            </DialogTitle>
+            <DialogDescription>
+              Learn how to create amazing YouTube thumbnails with our platform
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <iframe
+              className="absolute top-0 left-0 w-full h-full rounded-lg"
+              src="https://www.youtube.com/embed/tcxPTCZ863A"
+              title="Tutorial Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

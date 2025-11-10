@@ -13,13 +13,6 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AdTemplate } from "@/contexts/AdContext";
 import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -35,7 +28,6 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadToStorage } from "@/actions/upload";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { filterOptions } from "@/constants/filters";
 
 interface TemplateEditorProps {
   template: AdTemplate;
@@ -45,9 +37,7 @@ interface TemplateEditorProps {
 }
 
 const formSchema = z.object({
-  brand: z.string().min(1, "Brand name is required"),
-  category: z.string().min(1, "Category is required"),
-  subNiche: z.string().optional(),
+  brand: z.string().min(1, "Creator name is required"),
   niche: z.string().min(1, "Niche is required"),
   image: z.any().optional(),
 });
@@ -72,8 +62,6 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       brand: template.brand,
-      category: template.category,
-      subNiche: template.subNiche,
       niche: template.niche,
     },
   });
@@ -112,8 +100,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
         method: "PUT",
         body: JSON.stringify({
           image: imageUrl,
-          category: values.category,
-          subNiche: values.subNiche,
+          creator: values.brand,
           brand: values.brand,
           niche: values.niche,
         }),
@@ -130,15 +117,11 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
       onSave({
         ...template,
         image: updatedTemplate.image,
-        category: updatedTemplate.category,
-        subNiche: updatedTemplate.subNiche,
         brand: updatedTemplate.brand,
         niche: updatedTemplate.niche,
         tags: [
-          updatedTemplate.category,
           updatedTemplate.brand,
           updatedTemplate.niche,
-          updatedTemplate.subNiche,
         ],
       });
 
@@ -168,8 +151,6 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
       setImagePreview(template.image);
       form.reset({
         brand: template.brand,
-        category: template.category,
-        subNiche: template.subNiche,
         niche: template.niche,
       });
       setTemplateImage(null);
@@ -252,55 +233,24 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
               )}
             />
 
-            {/* Type Selection */}
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Category <span className="text-red-500">*</span>
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filterOptions.categories.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Brand Input */}
+            {/* Creator Input */}
             <FormField
               control={form.control}
               name="brand"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Brand <span className="text-red-500">*</span>
+                    Creator <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter brand name" {...field} />
+                    <Input placeholder="Enter creator name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Niche Selection */}
+            {/* Niche Input */}
             <FormField
               control={form.control}
               name="niche"
@@ -309,51 +259,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                   <FormLabel>
                     Niche <span className="text-red-500">*</span>
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select niche" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filterOptions.niches.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="subNiche"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sub Niche</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select sub niche" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filterOptions.subNiches.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input placeholder="Enter niche (e.g., Finance, Gaming)" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

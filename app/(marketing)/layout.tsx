@@ -7,10 +7,10 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <div className="overflow-x-hidden" data-form-type="other">
       <Navbar />
       {children}
       <Footer />
-    </>
+    </div>
   );
 }

@@ -7,6 +7,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  /* Custom breakpoints */
+  --breakpoint-xs: 475px;
+
   /* YouTube Red theme colors */
   --color-brand-50: #fff1f1;
   --color-brand-100: #ffe1e1;

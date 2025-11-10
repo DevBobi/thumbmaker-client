@@ -121,37 +121,32 @@ const UserTemplateGallery: React.FC<UserTemplateGalleryProps> = ({
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
             </div>
 
-            <div className="p-3 bg-background">
-              <div>
-                <h3 className="font-medium text-sm truncate">
-                  {template.brand}
-                </h3>
+            <div className="p-3 bg-background space-y-1.5">
+              {/* Creator Name */}
+              <h3 className="font-medium text-sm truncate text-foreground">
+                {template.brand}
+              </h3>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
-                  <div>
-                    <p className="text-[9px] text-muted-foreground truncate">
-                      Niche
-                    </p>
-                    <div className="text-[10px] py-0.5 ">{template.niche}</div>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-muted-foreground truncate">
-                      Category
-                    </p>
-                    <div className="text-[10px] py-0.5 ">
-                      {template.category}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-muted-foreground truncate">
-                      Sub Niche
-                    </p>
-                    <div className="text-[10px] py-0.5 ">
-                      {template.subNiche}
-                    </div>
-                  </div>
+              {/* Niche */}
+              {template.niche && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {template.niche}
+                </p>
+              )}
+
+              {/* Tags */}
+              {template.tags && template.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {template.tags.slice(0, 3).map((tag, index) => (
+                    <span 
+                      key={index} 
+                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         ))}
