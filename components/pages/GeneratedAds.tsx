@@ -2,10 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Share2, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { Skeleton } from "@/components/ui/skeleton";
-import Image from "next/image";
 import { GeneratedAdCard } from "@/components/cards/GeneratedAdCard";
 import Breadcrumb from "@/components/Breadcrumb";
 
@@ -29,7 +28,6 @@ const GeneratedAdsPage = () => {
   const [ads, setAds] = useState<GeneratedAd[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingCount, setProcessingCount] = useState(0);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -65,7 +63,6 @@ const GeneratedAdsPage = () => {
           }));
 
         setAds([...formattedAds, ...pendingJobs]);
-        setProcessingCount(data.jobIds?.length || 0);
         setIsProcessing(pendingJobs.length > 0);
         setIsLoading(false);
       } catch (error) {

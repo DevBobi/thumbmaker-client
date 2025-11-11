@@ -31,12 +31,10 @@ const TemplateDeleteConfirm: React.FC<TemplateDeleteConfirmProps> = ({
   const [open, setOpen] = useState(false);
 
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      setError(null);
       
       const response = await authFetch(`/api/templates/${templateId}`, {
         method: "DELETE",
@@ -50,7 +48,6 @@ const TemplateDeleteConfirm: React.FC<TemplateDeleteConfirmProps> = ({
       onDelete(templateId);
       setOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
       console.error("Error deleting template:", err);
     } finally {
       setIsDeleting(false);

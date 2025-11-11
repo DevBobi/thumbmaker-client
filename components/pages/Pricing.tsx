@@ -12,15 +12,9 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
   const router = useRouter();
   const { authFetch } = useAuthFetch();
   const [loadingPlans, setLoadingPlans] = useState<Record<string, boolean>>({});
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubscribe = async (priceId: string, planName: string) => {
     setLoadingPlans((prev) => ({ ...prev, [planName]: true }));
-    setIsSuccess(false);
-    setIsError(false);
-    setErrorMessage("");
 
     try {
       const response = await authFetch("/api/stripe/create-checkout-session", {
@@ -32,13 +26,9 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
         const data = await response.json();
         window.location.href = data.url;
       } else {
-        setIsError(true);
-        setErrorMessage("Failed to create checkout session");
         setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
       }
-    } catch (error) {
-      setIsError(true);
-      setErrorMessage("Failed to create checkout session");
+    } catch {
       setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
     }
   };
@@ -48,9 +38,6 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
     planName: string
   ) => {
     setLoadingPlans((prev) => ({ ...prev, [planName]: true }));
-    setIsSuccess(false);
-    setIsError(false);
-    setErrorMessage("");
 
     try {
       const response = await authFetch(
@@ -65,13 +52,9 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
         const data = await response.json();
         router.push(data.url);
       } else {
-        setIsError(true);
-        setErrorMessage("Failed to upgrade or downgrade subscription");
         setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
       }
-    } catch (error) {
-      setIsError(true);
-      setErrorMessage("Failed to upgrade or downgrade subscription");
+    } catch {
       setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
     }
   };

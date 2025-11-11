@@ -9,7 +9,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 // UI Components
@@ -38,7 +37,6 @@ interface AdTemplateSearchProps {
 }
 
 const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
-  const router = useRouter();
   const { authFetch } = useAuthFetch();
   const {
     adCreationData,
@@ -56,7 +54,7 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
   );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(16); // Show more templates per page
+  const limit = 16; // Show more templates per page
   const [loadedTemplates, setLoadedTemplates] = useState<AdTemplate[]>([]);
 
   const [filters, setFilters] = useState({
@@ -127,7 +125,6 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
   // Fetch all templates for the selected templates section
   const {
     data: allTemplatesData,
-    isLoading: isLoadingAllTemplates,
     refetch: refetchAllTemplates,
   } = useQuery({
     queryKey: ["allTemplates"],
@@ -399,7 +396,7 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
   };
 
   // Add a function to handle template creation
-  const handleTemplateCreated = (newTemplate: AdTemplate) => {
+  const handleTemplateCreated = () => {
     // Refetch templates to include the newly created one
     if (activeTab === "preset-templates") {
       refetchPresetTemplates();

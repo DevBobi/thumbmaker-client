@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Mail, MessageSquare } from "lucide-react";
-import { Button } from "../ui/button";
 
 export function CustomPricingCard() {
   return (

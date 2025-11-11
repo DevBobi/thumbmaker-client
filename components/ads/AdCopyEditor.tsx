@@ -15,13 +15,11 @@ import { Pencil, Save } from "lucide-react";
 import React, { useState } from "react";
 
 interface AdCopyEditorProps {
-  templateId: string;
   copy: AdCopy;
   onSave: (updatedCopy: AdCopy) => void;
 }
 
 const AdCopyEditor: React.FC<AdCopyEditorProps> = ({
-  templateId,
   copy,
   onSave,
 }) => {

@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -44,10 +42,6 @@ const EditVideoProject = () => {
     }
   };
 
-  const handleDeleteClick = () => {
-    setDeleteDialogOpen(true);
-  };
-
   const handleConfirmDelete = async () => {
     if (id) {
       setIsDeleting(true);
@@ -70,7 +64,7 @@ const EditVideoProject = () => {
             variant: "destructive",
           });
         }
-      } catch (error) {
+      } catch {
         toast({
           title: "Error",
           description: "Failed to delete the video project. Please try again.",

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,7 +34,6 @@ interface VideoProject {
 const VideoProjects = () => {
   // Use React Query to fetch projects
   const { authFetch } = useAuthFetch();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");

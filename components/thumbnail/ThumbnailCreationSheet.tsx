@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TemplateSelector from "@/components/thumbnail/TemplateSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Upload, Loader2, Sparkles, Check, LayoutTemplate, Youtube, Video } from "lucide-react";
+import { X, Upload, Loader2, Sparkles, Check, LayoutTemplate, Youtube, Video, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -848,16 +848,21 @@ export default function ThumbnailCreationSheet({
                 {/* Display all YouTube links from the page */}
                 {allYoutubeLinks.length > 0 && (
                   <div className="space-y-3">
-                    <h3 className="text-lg font-medium">
-                      YouTube Links from Page ({allYoutubeLinks.length})
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">
+                        YouTube Links from Page ({allYoutubeLinks.length})
+                      </h3>
+                      <div className="text-sm text-brand-600 font-medium">
+                        Will generate {allYoutubeLinks.length} thumbnail{allYoutubeLinks.length !== 1 ? 's' : ''}
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       {allYoutubeLinks.map((link, index) => {
                         const videoId = link.match(
                           /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
                         )?.[1];
                         return (
-                          <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                          <div key={index} className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
                             <div className="flex-shrink-0">
                               {videoId ? (
                                 <img
@@ -879,24 +884,24 @@ export default function ThumbnailCreationSheet({
                                 {link}
                               </p>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setInspirationUrl(link);
-                                if (videoId) {
-                                  setInspirationPreview(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
-                                }
-                              }}
-                            >
-                              Use as Inspiration
-                            </Button>
+                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                              <CheckSquare className="h-5 w-5" />
+                              <span className="text-sm font-medium">Selected</span>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Click "Use as Inspiration" to set any of these videos as your inspiration source.
+                    <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-blue-900 dark:text-blue-100">
+                          <p className="font-medium mb-1">All videos will be used as inspiration</p>
+                          <p className="text-blue-700 dark:text-blue-300">
+                            Each YouTube video will generate a separate thumbnail inspired by its style and applied to your project content.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
