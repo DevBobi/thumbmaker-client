@@ -15,16 +15,13 @@ import Link from "next/link";
 import { BillingButton } from "@/components/BillingButton";
 import Breadcrumb from "@/components/Breadcrumb";
 import { pricingPlans } from "@/lib/plans";
-import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface BillingProps {}
 
 const Billing = ({}: BillingProps) => {
-  const router = useRouter();
   const { authFetch } = useAuthFetch();
-  const [isLoading, setIsLoading] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState<any>({
     credits: 0,
     isActive: false,
@@ -48,8 +45,6 @@ const Billing = ({}: BillingProps) => {
       }
     } catch (error) {
       console.error("Error fetching subscription:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 

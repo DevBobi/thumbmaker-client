@@ -3,11 +3,9 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AutomatedGeneration from "@/components/products/AutomatedGeneration";
 import ManualEntryForm from "@/components/products/ManualEntryForm";
-import { useRouter } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 
 const ProductCreate = () => {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("auto");
   const tabs = [
     {

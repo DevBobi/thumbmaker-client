@@ -3,7 +3,6 @@ import { Inter, Poppins } from "next/font/google";
 import "react-medium-image-zoom/dist/styles.css";
 import "./globals.css";
 import { AllProvider } from "@/contexts/all-provider";
-import Script from "next/script";
 
 const inter = Inter({
   subsets: ["latin"],

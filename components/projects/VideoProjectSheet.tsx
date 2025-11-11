@@ -17,7 +17,7 @@ import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Image, Plus, X, Sparkles, Loader2, Trash2 } from "lucide-react";
+import { Image, Plus, X, Sparkles, Loader2, Trash2, Video } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +32,7 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BulkVideoLinksDialog } from "@/components/dialogs/BulkVideoLinksDialog";
 
 // Form validation schema
 const formSchema = z.object({
@@ -85,6 +86,9 @@ export function VideoProjectSheet({
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Bulk video links dialog state
+  const [bulkVideoDialogOpen, setBulkVideoDialogOpen] = useState(false);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -581,18 +585,28 @@ export function VideoProjectSheet({
             </div>
           </div>
           
-          <div className="flex gap-2 pt-4 border-t">
-            <Button onClick={handleEdit} className="flex-1" variant={"outline"}>
-              Edit Project Information
-            </Button>
+          <div className="flex flex-col gap-2 pt-4 border-t">
             <Button 
-              onClick={handleDeleteClick} 
-              variant="destructive"
-              className="gap-2"
+              onClick={() => setBulkVideoDialogOpen(true)} 
+              className="w-full gap-2"
+              variant="brand"
             >
-              <Trash2 className="h-4 w-4" />
-              Delete
+              <Video className="h-4 w-4" />
+              Add YouTube Links & Generate Thumbnails
             </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleEdit} className="flex-1" variant={"outline"}>
+                Edit Project Information
+              </Button>
+              <Button 
+                onClick={handleDeleteClick} 
+                variant="destructive"
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            </div>
           </div>
         </div>
       ) : currentMode === "create" ? (
@@ -1013,6 +1027,19 @@ export function VideoProjectSheet({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <BulkVideoLinksDialog
+      open={bulkVideoDialogOpen}
+      onOpenChange={setBulkVideoDialogOpen}
+      projectId={projectId}
+      onSuccess={() => {
+        // Refresh thumbnails or navigate to thumbnails page
+        toast({
+          title: "Thumbnails generated",
+          description: "Your thumbnails have been generated successfully",
+        });
+      }}
+    />
     </>
   );
 }

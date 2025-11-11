@@ -262,7 +262,7 @@ export const CreateAdForm: React.FC<CreateAdFormProps> = ({ onNext }) => {
               <FormField
                 control={form.control}
                 name="product"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Product</FormLabel>
                     <FormControl>
@@ -319,7 +319,7 @@ export const CreateAdForm: React.FC<CreateAdFormProps> = ({ onNext }) => {
               <FormField
                 control={form.control}
                 name="aspectRatio"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormControl>
                       <AdDimensionSelector
@@ -355,7 +355,7 @@ export const CreateAdForm: React.FC<CreateAdFormProps> = ({ onNext }) => {
               <FormField
                 control={form.control}
                 name="brandTone"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Brand Tone</FormLabel>
                     <FormControl>
@@ -378,7 +378,7 @@ export const CreateAdForm: React.FC<CreateAdFormProps> = ({ onNext }) => {
               <FormField
                 control={form.control}
                 name="adGoal"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Primary Goal of the Ad Set</FormLabel>
                     <FormControl>
@@ -419,7 +419,7 @@ export const CreateAdForm: React.FC<CreateAdFormProps> = ({ onNext }) => {
               <FormField
                 control={form.control}
                 name="variationCount"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Number of Ad Variations</FormLabel>
                     <FormControl>

@@ -20,12 +20,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { AdTemplate } from "@/contexts/AdContext";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { toast } from "@/hooks/use-toast";
 import { extractYouTubeThumbnail } from "@/lib/youtube";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Upload, Link2, Loader2, Download } from "lucide-react";
+import { Plus, Upload, Link2, Loader2, Download, ListPlus } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -62,6 +63,17 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
   const [activeTab, setActiveTab] = useState<string>("youtube");
   const [youtubeUrl, setYoutubeUrl] = useState<string>("");
   const [isExtractingThumbnail, setIsExtractingThumbnail] = useState(false);
+  
+  // Bulk import state
+  const [bulkUrls, setBulkUrls] = useState<string>("");
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{
+    total: number;
+    current: number;
+    succeeded: number;
+    failed: number;
+    results: Array<{ url: string; status: 'success' | 'failed'; message: string }>;
+  } | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -200,6 +212,154 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
     }
   };
 
+  const handleBulkImport = async () => {
+    if (!bulkUrls.trim()) {
+      toast({
+        title: "No URLs provided",
+        description: "Please enter at least one YouTube URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Parse URLs from textarea (one per line)
+    const urls = bulkUrls
+      .split('\n')
+      .map(url => url.trim())
+      .filter(url => url.length > 0);
+
+    if (urls.length === 0) {
+      toast({
+        title: "No valid URLs",
+        description: "Please enter valid YouTube URLs",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBulkProcessing(true);
+    setBulkProgress({
+      total: urls.length,
+      current: 0,
+      succeeded: 0,
+      failed: 0,
+      results: [],
+    });
+
+    const results: Array<{ url: string; status: 'success' | 'failed'; message: string }> = [];
+    let succeeded = 0;
+    let failed = 0;
+
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      
+      try {
+        // Update progress
+        setBulkProgress(prev => prev ? { ...prev, current: i + 1 } : null);
+
+        // Extract thumbnail and metadata
+        const result = await extractYouTubeThumbnail(url);
+
+        if (!result) {
+          throw new Error("Failed to extract thumbnail");
+        }
+
+        const { file, title, channelName } = result;
+
+        // Upload to storage
+        const formData = new FormData();
+        formData.append("file", file);
+        const { fileUrl } = await uploadToStorage(formData);
+
+        // Detect niche with AI
+        let niche = "Entertainment";
+        if (title && channelName) {
+          try {
+            const nicheResponse = await authFetch("/api/templates/detect-niche", {
+              method: "POST",
+              body: JSON.stringify({ title, channelName }),
+            });
+
+            if (nicheResponse.ok) {
+              const nicheData = await nicheResponse.json();
+              if (nicheData.niche) {
+                niche = nicheData.niche;
+              }
+            }
+          } catch (error) {
+            console.error("Failed to detect niche:", error);
+          }
+        }
+
+        // Create template
+        const response = await authFetch("/api/templates/create", {
+          method: "POST",
+          body: JSON.stringify({
+            image: fileUrl,
+            creator: channelName || "Unknown Creator",
+            brand: channelName || "Unknown Creator",
+            niche: niche,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Template creation failed");
+        }
+
+        const data = await response.json();
+
+        // Call callback with new template
+        if (onTemplateCreated) {
+          const newTemplate = {
+            id: data.id,
+            image: data.image,
+            creator: data.creator,
+            brand: data.brand,
+            niche: data.niche,
+            tags: [data.brand, data.niche],
+          };
+          onTemplateCreated(newTemplate);
+        }
+
+        succeeded++;
+        results.push({
+          url,
+          status: 'success',
+          message: `Created template for ${channelName || 'video'}`,
+        });
+
+        // Update progress
+        setBulkProgress(prev => prev ? { ...prev, succeeded } : null);
+
+      } catch (error) {
+        failed++;
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        results.push({
+          url,
+          status: 'failed',
+          message: errorMessage,
+        });
+
+        // Update progress
+        setBulkProgress(prev => prev ? { ...prev, failed } : null);
+
+        console.error(`Failed to process ${url}:`, error);
+      }
+    }
+
+    // Update final progress
+    setBulkProgress(prev => prev ? { ...prev, results } : null);
+    setIsBulkProcessing(false);
+
+    // Show summary toast
+    toast({
+      title: "Bulk import completed",
+      description: `Successfully created ${succeeded} template(s). ${failed > 0 ? `Failed: ${failed}` : ''}`,
+      variant: failed > 0 ? "default" : "default",
+    });
+  };
+
   const handleCreateTemplate = async (values: FormValues) => {
     try {
       setIsLoading(true);
@@ -287,6 +447,8 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
     setTemplateImage(null);
     setImagePreview(null);
     setYoutubeUrl("");
+    setBulkUrls("");
+    setBulkProgress(null);
     setActiveTab("youtube");
     form.reset();
   };
@@ -331,10 +493,14 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                       onValueChange={setActiveTab}
                       className="w-full"
                     >
-                      <TabsList className="grid w-full grid-cols-2">
+                      <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="youtube">
                           <Link2 className="h-4 w-4 mr-2" />
-                          YouTube Link
+                          Single URL
+                        </TabsTrigger>
+                        <TabsTrigger value="bulk">
+                          <ListPlus className="h-4 w-4 mr-2" />
+                          Bulk Import
                         </TabsTrigger>
                         <TabsTrigger value="upload">
                           <Upload className="h-4 w-4 mr-2" />
@@ -416,6 +582,119 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                         </div>
                       </TabsContent>
 
+                      <TabsContent value="bulk" className="mt-4">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Textarea
+                              placeholder="Paste multiple YouTube URLs here (one per line)&#10;Example:&#10;https://www.youtube.com/watch?v=abc123&#10;https://youtu.be/def456&#10;https://www.youtube.com/watch?v=ghi789"
+                              value={bulkUrls}
+                              onChange={(e) => setBulkUrls(e.target.value)}
+                              disabled={isBulkProcessing}
+                              className="min-h-[150px] font-mono text-sm"
+                            />
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground">
+                                {bulkUrls.split('\n').filter(url => url.trim().length > 0).length} URL(s) detected
+                              </p>
+                              <Button
+                                type="button"
+                                onClick={handleBulkImport}
+                                disabled={isBulkProcessing || !bulkUrls.trim()}
+                              >
+                                {isBulkProcessing ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Processing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ListPlus className="h-4 w-4 mr-2" />
+                                    Import All
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Progress Display */}
+                          {bulkProgress && (
+                            <div className="border rounded-md p-4 space-y-3">
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="font-medium">
+                                    Progress: {bulkProgress.current} / {bulkProgress.total}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    {Math.round((bulkProgress.current / bulkProgress.total) * 100)}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                  <div
+                                    className="bg-blue-600 h-full transition-all duration-300"
+                                    style={{
+                                      width: `${(bulkProgress.current / bulkProgress.total) * 100}%`,
+                                    }}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-4 text-xs">
+                                  <span className="text-green-600 font-medium">
+                                    ✓ Succeeded: {bulkProgress.succeeded}
+                                  </span>
+                                  {bulkProgress.failed > 0 && (
+                                    <span className="text-red-600 font-medium">
+                                      ✗ Failed: {bulkProgress.failed}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Results List */}
+                              {bulkProgress.results.length > 0 && (
+                                <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                                  <p className="text-xs font-medium text-muted-foreground">Results:</p>
+                                  {bulkProgress.results.map((result, index) => (
+                                    <div
+                                      key={index}
+                                      className={`text-xs p-2 rounded ${
+                                        result.status === 'success'
+                                          ? 'bg-green-50 text-green-800 border border-green-200'
+                                          : 'bg-red-50 text-red-800 border border-red-200'
+                                      }`}
+                                    >
+                                      <div className="font-medium truncate">
+                                        {result.status === 'success' ? '✓' : '✗'} {result.message}
+                                      </div>
+                                      <div className="text-[10px] opacity-70 truncate mt-0.5">
+                                        {result.url}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Info Card */}
+                          {!bulkProgress && (
+                            <div className="border-2 border-dashed rounded-md p-6 text-center">
+                              <ListPlus className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-muted-foreground font-medium">
+                                Bulk Import YouTube Thumbnails
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Paste multiple YouTube URLs (one per line) to create templates in bulk
+                              </p>
+                              <div className="mt-3 space-y-1 text-xs text-left max-w-md mx-auto">
+                                <p className="text-green-600">✓ Auto-extracts thumbnails</p>
+                                <p className="text-green-600">✓ Auto-detects creator names</p>
+                                <p className="text-green-600">✓ AI-powered niche detection</p>
+                                <p className="text-green-600">✓ Creates templates automatically</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
                       <TabsContent value="upload" className="mt-4">
                         <div className="space-y-2">
                           <div
@@ -484,7 +763,8 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
               )}
             />
 
-            {/* Creator Input (Auto-filled from YouTube) */}
+            {/* Creator Input (Auto-filled from YouTube) - Hidden for bulk import */}
+            {activeTab !== "bulk" && (
             <FormField
               control={form.control}
               name="brand"
@@ -508,8 +788,10 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                 </FormItem>
               )}
             />
+            )}
 
-            {/* Niche Selection (Auto-detected from YouTube) */}
+            {/* Niche Selection (Auto-detected from YouTube) - Hidden for bulk import */}
+            {activeTab !== "bulk" && (
             <FormField
               control={form.control}
               name="niche"
@@ -533,8 +815,11 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                 </FormItem>
               )}
             />
+            )}
             </div>
 
+            {/* Footer - Hidden for bulk import (bulk import has its own button) */}
+            {activeTab !== "bulk" && (
             <SheetFooter className="flex-row gap-2">
               <SheetClose asChild>
                 <Button variant="outline" type="button" className="flex-1">
@@ -545,6 +830,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                 {isLoading ? "Creating..." : "Create Template"}
               </Button>
             </SheetFooter>
+            )}
           </form>
         </Form>
       </SheetContent>

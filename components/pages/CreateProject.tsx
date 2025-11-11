@@ -14,11 +14,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import Link from "next/link";
-import { useState } from "react";
 
 export default function CreateProject() {
   const { authFetch } = useAuthFetch();
-  const [defaultTab, setDefaultTab] = useState("text");
 
   const handleManualSubmit = async (data: any) => {
     const body = {
