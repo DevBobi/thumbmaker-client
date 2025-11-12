@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BillingButton } from "../BillingButton";
@@ -62,9 +61,7 @@ export function PricingCard({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className={`relative rounded-2xl bg-card p-8 shadow-lg ${
         plan.popular
           ? "border-2 border-primary scale-105"
@@ -143,6 +140,6 @@ export function PricingCard({
           </Button>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

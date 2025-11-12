@@ -40,7 +40,6 @@ interface VideoProjectEditFormProps {
 const VideoProjectEditForm = ({
   initialValues,
   onSubmit,
-  isSaving,
 }: VideoProjectEditFormProps) => {
   const [highlightCount, setHighlightCount] = useState(
     initialValues?.highlights?.length || 2

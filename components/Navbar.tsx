@@ -57,7 +57,7 @@ export default function Navbar() {
     };
 
     getCredits();
-  }, [pathname]);
+  }, [pathname, authFetch]);
 
   // Get sidebar state to check if it's open
   const { open } = useSidebar();

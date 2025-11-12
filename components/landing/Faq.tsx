@@ -6,7 +6,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { motion } from "framer-motion";
 
 const faqItems = [
   {
@@ -69,44 +68,32 @@ export function Faq() {
       </div>
 
       <div className="max-w-6xl mx-auto relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-12"
-        >
-          <h3 className="text-sm mb-4 font-medium text-gray-600">Got questions?</h3>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl text-gray-900 leading-tight mb-4 font-bold">
+        <div className="mb-12">
+          <h3 className="text-sm mb-4 font-medium text-muted-foreground">Got questions?</h3>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight mb-4 font-bold">
             Frequently Asked
             <br />{" "}
             <span className="bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">
               Questions
             </span>
           </h1>
-        </motion.div>
+        </div>
         <div className="mx-auto">
           <Accordion type="single" collapsible className="w-full space-y-4">
             {faqItems.map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
+              <div key={index}>
                 <AccordionItem
                   value={`item-${index}`}
-                  className="border border-gray-200 rounded-xl px-4 sm:px-6 py-2 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-sm hover:shadow-md"
+                  className="border border-border rounded-xl px-4 sm:px-6 py-2 bg-card hover:bg-accent hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md"
                 >
-                  <AccordionTrigger className="py-2 sm:py-4 cursor-pointer text-base sm:text-lg font-semibold hover:no-underline text-gray-900">
+                  <AccordionTrigger className="py-2 sm:py-4 cursor-pointer text-base sm:text-lg font-semibold hover:no-underline text-foreground">
                     {item.question}
                   </AccordionTrigger>
-                  <AccordionContent className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                  <AccordionContent className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                     {item.answer}
                   </AccordionContent>
                 </AccordionItem>
-              </motion.div>
+              </div>
             ))}
           </Accordion>
         </div>

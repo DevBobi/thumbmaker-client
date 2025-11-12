@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { useFreeCredits } from "@/hooks/use-free-credits";
 import { Check, Loader2 } from "lucide-react";
@@ -13,11 +12,8 @@ export function FreeCreditsCard() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-2xl p-8 border border-purple-500/20 shadow-lg"
-    >
+    <div className="relative bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-2xl p-8 border border-purple-500/20 shadow-lg">
+    
       <div className="absolute top-0 right-0 -mt-4 -mr-4">
         <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold">
           Special Offer
@@ -60,6 +56,6 @@ export function FreeCreditsCard() {
           )}
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }

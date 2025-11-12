@@ -8,7 +8,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { Trash2 } from "lucide-react";
 import React, { useState } from "react";
 
@@ -27,31 +26,11 @@ const TemplateDeleteConfirm: React.FC<TemplateDeleteConfirmProps> = ({
   trigger,
   className,
 }) => {
-  const { authFetch } = useAuthFetch();
   const [open, setOpen] = useState(false);
 
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-      
-      const response = await authFetch(`/api/templates/${templateId}`, {
-        method: "DELETE",
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete template");
-      }
-      
-      onDelete(templateId);
-      setOpen(false);
-    } catch (err) {
-      console.error("Error deleting template:", err);
-    } finally {
-      setIsDeleting(false);
-    }
+    setOpen(false);
+    onDelete(templateId);
   };
 
   return (
@@ -79,8 +58,8 @@ const TemplateDeleteConfirm: React.FC<TemplateDeleteConfirmProps> = ({
           <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="flex-1">
-            {isDeleting ? "Deleting..." : "Delete"}
+          <Button variant="destructive" onClick={handleDelete} className="flex-1">
+            Delete
           </Button>
         </SheetFooter>
       </SheetContent>

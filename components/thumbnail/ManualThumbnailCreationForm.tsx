@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
 import React, { useState } from "react";
+import Image from "next/image";
 
 interface ManualFormData {
   title: string;
@@ -72,10 +73,12 @@ const ManualThumbnailCreationForm = ({
         <div className="border rounded-lg p-4 justify-center items-center flex flex-col">
           {previewUrl ? (
             <div className="relative aspect-video w-full max-w-2xl rounded-lg overflow-hidden">
-              <img
+              <Image
                 src={previewUrl}
                 alt="Thumbnail preview"
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 896px"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                 <div className="text-white text-center p-4">

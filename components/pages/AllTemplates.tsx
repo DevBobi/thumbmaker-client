@@ -224,18 +224,32 @@ const AllTemplates = () => {
 
   const handleDeleteTemplate = async (templateId: string) => {
     try {
-      const response = await fetch(`/api/templates/${templateId}`, {
+      const response = await authFetch(`/api/templates/${templateId}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete template");
+        const errorData = await response.json().catch(() => ({ error: "Failed to delete template" }));
+        throw new Error(errorData.error || "Failed to delete template");
       }
 
+      // Show success toast
+      toast({
+        title: "Success",
+        description: "Template deleted successfully",
+      });
+
       // Refetch user templates after deletion
-      refetchUserTemplates();
+      await refetchUserTemplates();
     } catch (error) {
       console.error("Error deleting template:", error);
+      
+      // Show error toast
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete template",
+        variant: "destructive",
+      });
     }
   };
 
@@ -297,7 +311,7 @@ const AllTemplates = () => {
       />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Thumbnail Templates</h1>
+          <h1 className="text-3xl font-bold text-foreground">Thumbnail Templates</h1>
           <p className="text-muted-foreground mt-1">
             Browse our preset templates or create your own custom templates
           </p>

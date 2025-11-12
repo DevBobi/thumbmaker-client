@@ -52,7 +52,7 @@ export function Navbar() {
               <Link
                 href={item.href}
                 key={item.href}
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {item.label}
               </Link>
@@ -63,7 +63,7 @@ export function Navbar() {
         {/* Right: Auth Buttons (Desktop) */}
         <div className="hidden md:flex items-center gap-4">
           {isSignedIn ? (
-            <Button variant="brand" asChild>
+            <Button variant="default" asChild>
               <Link href="/dashboard">Dashboard</Link>
             </Button>
           ) : (
@@ -71,7 +71,7 @@ export function Navbar() {
               <Button variant="ghost" asChild>
                 <Link href="/sign-in">Sign In</Link>
               </Button>
-              <Button asChild>
+              <Button variant="default" asChild>
                 <Link href="/sign-up">Get Started</Link>
               </Button>
             </>
@@ -80,7 +80,7 @@ export function Navbar() {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
+          className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
@@ -102,7 +102,7 @@ export function Navbar() {
                 <Link
                   href={item.href}
                   key={item.href}
-                  className="text-base text-gray-600 hover:text-gray-900 transition-colors py-2"
+                  className="text-base text-muted-foreground hover:text-foreground transition-colors py-2"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.label}
@@ -113,7 +113,7 @@ export function Navbar() {
             {/* Mobile Auth Buttons */}
             <div className="flex flex-col gap-2 pt-4 border-t">
               {isSignedIn ? (
-                <Button variant="brand" className="w-full" asChild>
+                <Button variant="default" className="w-full" asChild>
                   <Link href="/dashboard">Dashboard</Link>
                 </Button>
               ) : (
@@ -121,7 +121,7 @@ export function Navbar() {
                   <Button variant="ghost" className="w-full" asChild>
                     <Link href="/sign-in">Sign In</Link>
                   </Button>
-                  <Button className="w-full" asChild>
+                  <Button variant="default" className="w-full" asChild>
                     <Link href="/sign-up">Get Started</Link>
                   </Button>
                 </>

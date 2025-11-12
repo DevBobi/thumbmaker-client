@@ -21,7 +21,7 @@ type ThumbnailRecord = {
   title: string;
   image: string;
   id: string;
-  tags: string;
+  tags: string[];
 };
 
 const thumbnails = thumbnailsData as ThumbnailRecord[];
@@ -62,7 +62,7 @@ export function ExploreGallery() {
       }
 
       const title = item.title?.toLowerCase() ?? "";
-      const tags = item.tags?.toLowerCase() ?? "";
+      const tags = item.tags?.join(" ").toLowerCase() ?? "";
 
       return normalizedTerms.every((term) => title.includes(term) || tags.includes(term));
     });
@@ -108,7 +108,7 @@ export function ExploreGallery() {
             <div className="w-full sm:max-w-xs">
               <p className="text-xs font-medium text-gray-700 mb-2">Creator</p>
               <Select value={selectedCreator} onValueChange={setSelectedCreator}>
-                <SelectTrigger className="bg-white border-2 border-gray-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-200 h-11">
+                <SelectTrigger className="bg-white border-2 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 h-11">
                   <SelectValue placeholder="Select creator" />
                 </SelectTrigger>
                 <SelectContent className="max-h-64">
@@ -128,7 +128,7 @@ export function ExploreGallery() {
                 value={tagQuery}
                 onChange={(event) => setTagQuery(event.target.value)}
                 placeholder="e.g. motivation, finance, vlog"
-                className="h-11 border-2 border-gray-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-200"
+                className="h-11 border-2 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
@@ -167,7 +167,7 @@ export function ExploreGallery() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-brand-600 transition-colors">
+                      <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
                         {item.title}
                       </h3>
                       <p className="text-xs text-gray-600">

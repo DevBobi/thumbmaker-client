@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { uploadToStorage } from "@/actions/upload";
 import { Button } from "@/components/ui/button";
 import {
@@ -541,12 +542,16 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                           </div>
 
                           {imagePreview && (
-                            <div className="border-2 border-dashed rounded-md p-4">
-                              <img
-                                src={imagePreview}
-                                alt="Extracted thumbnail"
-                                className="max-h-72 mx-auto rounded-md object-contain"
-                              />
+                            <div className="border-2 border-dashed rounded-md p-4 flex justify-center">
+                              <div className="relative w-full max-h-72" style={{ aspectRatio: '16/9' }}>
+                                <Image
+                                  src={imagePreview}
+                                  alt="Extracted thumbnail"
+                                  fill
+                                  className="rounded-md object-contain"
+                                  sizes="(max-width: 768px) 100vw, 600px"
+                                />
+                              </div>
                               <div className="flex items-center justify-between mt-3">
                                 <p className="text-sm text-green-600 font-medium">
                                   ✓ Thumbnail and metadata extracted
@@ -704,12 +709,16 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                             }
                           >
                             {imagePreview ? (
-                              <div className="w-full">
-                                <img
-                                  src={imagePreview}
-                                  alt="Template preview"
-                                  className="max-h-72 mx-auto rounded-md object-contain"
-                                />
+                              <div className="w-full flex justify-center">
+                                <div className="relative w-full max-h-72" style={{ aspectRatio: '16/9' }}>
+                                  <Image
+                                    src={imagePreview}
+                                    alt="Template preview"
+                                    fill
+                                    className="rounded-md object-contain"
+                                    sizes="(max-width: 768px) 100vw, 600px"
+                                  />
+                                </div>
                                 <p className="text-sm text-muted-foreground text-center mt-2">
                                   Click to change image
                                 </p>

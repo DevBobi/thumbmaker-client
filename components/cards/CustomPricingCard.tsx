@@ -1,14 +1,10 @@
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { Mail, MessageSquare } from "lucide-react";
 
 export function CustomPricingCard() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-2xl bg-gradient-to-br from-accent/50 to-muted dark:from-accent/30 dark:to-muted/50 p-8 shadow-lg border border-border"
-    >
+    <div className="relative rounded-2xl bg-gradient-to-br from-accent/50 to-muted dark:from-accent/30 dark:to-muted/50 p-8 shadow-lg border border-border">
+    
       <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
         <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium shadow-sm">
           Enterprise
@@ -81,6 +77,6 @@ export function CustomPricingCard() {
           Schedule a Call
         </Link>
       </Button> */}
-    </motion.div>
+    </div>
   );
 }

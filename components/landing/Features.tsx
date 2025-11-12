@@ -115,10 +115,10 @@ export function Features() {
                   <CardHeader className="pb-4 px-0">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="relative">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                           <span className="text-2xl">{step.icon}</span>
                         </div>
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                           <span className="text-white text-xs font-bold">{step.step}</span>
                         </div>
                       </div>
@@ -142,7 +142,7 @@ export function Features() {
                         {step.methods.map((method, i) => (
                           <div
                             key={i}
-                            className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                            className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-primary/30 hover:bg-primary/10 transition-colors"
                           >
                             <span className="text-lg">{method.icon}</span>
                             <span className="text-sm font-medium text-gray-700">{method.label}</span>
@@ -156,9 +156,9 @@ export function Features() {
                         {step.stats.map((stat, i) => (
                           <div
                             key={i}
-                            className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100"
+                            className="text-center p-3 bg-primary/10 rounded-lg border border-primary/20"
                           >
-                            <div className="text-xl font-bold text-blue-600 mb-1">
+                            <div className="text-xl font-bold text-primary mb-1">
                               {stat.value}
                             </div>
                             <div className="text-xs text-gray-600 font-medium">{stat.label}</div>

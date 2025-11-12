@@ -1,9 +1,10 @@
 import { useAuth } from "@clerk/nextjs";
+import { useCallback } from "react";
 
 export function useAuthFetch() {
   const { getToken } = useAuth();
 
-  const authFetch = async (
+  const authFetch = useCallback(async (
     path: string,
     options: RequestInit = {}
   ): Promise<Response> => {
@@ -19,9 +20,9 @@ export function useAuthFetch() {
       ...options,
       headers,
     });
-  };
+  }, [getToken]);
 
-  const authFetchWithFormData = async (
+  const authFetchWithFormData = useCallback(async (
     path: string,
     formData: FormData,
     options: RequestInit = {}
@@ -38,7 +39,7 @@ export function useAuthFetch() {
       headers,
       body: formData,
     });
-  };
+  }, [getToken]);
 
   return { authFetch, authFetchWithFormData };
 }

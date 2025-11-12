@@ -42,7 +42,7 @@ const formSchema = z.object({
 });
 
 const AutomatedGeneration = () => {
-  const { addProduct } = useProducts();
+  const { } = useProducts();
   const { authFetch } = useAuthFetch();
   const router = useRouter();
   const { toast } = useToast();
@@ -98,8 +98,6 @@ const AutomatedGeneration = () => {
           return;
         }
 
-        let fileUrl = null;
-
         if (logo) {
           const formData = new FormData();
           formData.append("file", logo as Blob);
@@ -110,7 +108,7 @@ const AutomatedGeneration = () => {
             throw new Error("Failed to upload logo");
           }
 
-          fileUrl = uploadResult.fileUrl;
+          // Logo uploaded successfully but not used in this flow
         }
 
         const response = await authFetch("/api/projects/create-with-text", {
@@ -150,8 +148,6 @@ const AutomatedGeneration = () => {
           return;
         }
 
-        let fileUrl = null;
-
         if (logo) {
           const formData = new FormData();
           formData.append("file", logo as Blob);
@@ -162,7 +158,7 @@ const AutomatedGeneration = () => {
             throw new Error("Failed to upload logo");
           }
 
-          fileUrl = uploadResult.fileUrl;
+          // Logo uploaded successfully but not used in this flow
         }
 
         const response = await authFetch("/api/projects/create-with-youtube", {
@@ -212,13 +208,11 @@ const AutomatedGeneration = () => {
           return;
         }
 
-        let logoUrl = null;
-
         if (logo) {
           const formData = new FormData();
           formData.append("file", logo as Blob);
 
-          const { success: logoSuccess, fileUrl } = await uploadToStorage(
+          const { success: logoSuccess } = await uploadToStorage(
             formData
           );
 
@@ -226,7 +220,7 @@ const AutomatedGeneration = () => {
             throw new Error("Failed to upload logo");
           }
 
-          logoUrl = fileUrl;
+          // Logo uploaded successfully but not used in this flow
         }
 
         const documentFormData = new FormData();

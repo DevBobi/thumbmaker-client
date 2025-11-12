@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -41,10 +42,13 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
       <div className="flex flex-col items-center justify-center gap-4">
         {logoPreview ? (
           <div className="relative w-32 h-32 mb-2">
-            <img
+            <NextImage
               src={logoPreview}
               alt="Logo preview"
+              width={128}
+              height={128}
               className="w-full h-full object-contain border rounded-md p-2"
+              unoptimized
             />
             <Button
               type="button"
@@ -64,6 +68,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
             className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed rounded-md cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           >
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image className="h-10 w-10 text-muted-foreground" />
             <span className="text-xs text-muted-foreground mt-2">
               Click to upload

@@ -1,12 +1,6 @@
 "use client";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
@@ -18,24 +12,23 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowUpDown,
   Check,
-  ChevronsUpDown,
   ExternalLink,
-  Plus,
   Search,
   X,
+  FilterX,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
-import CreateTemplateThumbnail from "./CreateTemplateThumbnail";
 
 // Types
 interface Template {
@@ -70,10 +63,9 @@ interface TemplateSelectorProps {
 }
 
 interface FilterState {
+  searchQuery: string;
   creator: string;
   tag: string;
-  searchQuery: string;
-  sortAlphabetically: boolean;
 }
 
 interface SelectedTemplateProps {
@@ -86,39 +78,17 @@ interface SelectedTemplateProps {
 // Constants
 const TEMPLATES_PER_PAGE = 12;
 
-const DUMMY_CREATORS = [
-  { value: "all", label: "All Creators" },
-  { value: "mkbhd", label: "MKBHD" },
-  { value: "casey", label: "Casey Neistat" },
-  { value: "peter", label: "Peter McKinnon" },
-  { value: "linus", label: "Linus Tech Tips" },
-  { value: "sara", label: "Sara Dietschy" },
-  { value: "ali", label: "Ali Abdaal" },
-  { value: "thomas", label: "Thomas Frank" },
-  { value: "matt", label: "Matt D'Avella" },
-];
-
-const DUMMY_TAGS = [
-  { value: "all", label: "All Tags" },
-  { value: "tech", label: "Technology" },
-  { value: "lifestyle", label: "Lifestyle" },
-  { value: "education", label: "Education" },
-  { value: "gaming", label: "Gaming" },
-  { value: "music", label: "Music" },
-  { value: "vlog", label: "Vlog" },
-  { value: "tutorial", label: "Tutorial" },
-  { value: "review", label: "Review" },
-];
-
 // Components
 const SelectedTemplate: React.FC<SelectedTemplateProps> = React.memo(
   ({ templateId, index, onRemove, template }) => (
     <div className="relative flex-shrink-0 w-full sm:w-64 md:w-48 group">
       <div className="aspect-video relative rounded-lg overflow-hidden border-2 border-violet-500">
-        <img
+        <Image
           src={template.image}
           alt={template.title}
-          className="object-cover w-full h-full"
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 100vw, (max-width: 768px) 256px, 192px"
         />
         <div className="absolute top-2 right-2 bg-violet-500 text-white rounded-full p-1">
           <div className="flex items-center gap-1">
@@ -158,10 +128,12 @@ const TemplateCard: React.FC<{
     onClick={onClick}
   >
     <div className="aspect-video relative">
-      <img
+      <Image
         src={template.image}
         alt={template.title}
-        className="object-cover w-full h-full"
+        fill
+        className="object-cover"
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
       />
       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
         <div className="text-white text-center p-4">
@@ -203,13 +175,11 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
   // State
   const [filters, setFilters] = useState<FilterState>({
+    searchQuery: "",
     creator: "all",
     tag: "all",
-    searchQuery: "",
-    sortAlphabetically: false,
   });
   const [templateType, setTemplateType] = useState<"preset" | "user">("preset");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Reset to page 1 when template type changes
@@ -218,7 +188,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   }, [templateType]);
 
   // Query for fetching templates with pagination
-  const { data, status, error, isFetching } = useQuery<
+  const { data, status, error } = useQuery<
     PaginatedResponse,
     Error
   >({
@@ -230,8 +200,8 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       });
 
       if (filters.searchQuery) params.append("search", filters.searchQuery);
-      if (filters.tag !== "all") params.append("tag", filters.tag);
       if (filters.creator !== "all") params.append("creator", filters.creator);
+      if (filters.tag !== "all") params.append("tag", filters.tag);
       if (templateType === "user") params.append("type", "user");
 
       // Use different endpoint based on template type
@@ -250,8 +220,25 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   });
 
   // Compute templates from current page
-  const templates = data?.templates || [];
+  const templates = React.useMemo(() => data?.templates || [], [data?.templates]);
   const totalPages = data?.pagination?.pages || 1;
+
+  // Extract unique creators and tags from all templates
+  const uniqueCreators = React.useMemo(() => {
+    const creators = new Set<string>();
+    templates.forEach(template => {
+      if (template.creator) creators.add(template.creator);
+    });
+    return Array.from(creators).sort();
+  }, [templates]);
+
+  const uniqueTags = React.useMemo(() => {
+    const tags = new Set<string>();
+    templates.forEach(template => {
+      template.tags?.forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags).sort();
+  }, [templates]);
 
   // Handlers
   const handleTemplateClick = useCallback(
@@ -279,13 +266,18 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     [onSelect]
   );
 
-  const handleCreateTemplate = useCallback((formData: unknown) => {
-    setIsCreateModalOpen(false);
-    console.log(formData);
-  }, []);
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const hasActiveFilters = filters.searchQuery || filters.creator !== "all" || filters.tag !== "all";
+
+  const clearFilters = () => {
+    setFilters({
+      searchQuery: "",
+      creator: "all",
+      tag: "all",
+    });
   };
 
   return (
@@ -347,155 +339,79 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
             Your Templates
           </Button>
         </div>
-        <Button
-          variant="brand"
-          className="w-full sm:w-auto sm:ml-auto"
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create a Template
-        </Button>
       </div>
 
       {/* Search and Filters */}
-      <div className="space-y-4">
-        <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search templates..."
-            value={filters.searchQuery}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))
-            }
-            className="pl-8"
-          />
-        </div>
+      <div className="space-y-3">
+        <div className="flex flex-col lg:flex-row gap-3">
+          {/* Search Bar */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search templates..."
+              value={filters.searchQuery}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))
+              }
+              className="pl-9 h-10"
+            />
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex items-center gap-4">
-          <Popover>
-            <PopoverTrigger asChild>
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3">
+            {/* Creator Filter */}
+            <Select
+              value={filters.creator}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, creator: value }))
+              }
+            >
+              <SelectTrigger className="w-full sm:w-[180px] h-10">
+                <SelectValue placeholder="All Creators" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Creators</SelectItem>
+                {uniqueCreators.map((creator) => (
+                  <SelectItem key={creator} value={creator}>
+                    {creator}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Tag Filter */}
+            <Select
+              value={filters.tag}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, tag: value }))
+              }
+            >
+              <SelectTrigger className="w-full sm:w-[180px] h-10">
+                <SelectValue placeholder="All Tags" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tags</SelectItem>
+                {uniqueTags.map((tag) => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
               <Button
-                variant="outline"
-                role="combobox"
-                className="w-full lg:w-[240px] justify-between"
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-10 px-3"
               >
-                {filters.creator === "all"
-                  ? "All Creators"
-                  : DUMMY_CREATORS.find(
-                      (creator) => creator.value === filters.creator
-                    )?.label}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                <FilterX className="h-4 w-4 mr-2" />
+                Clear
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full lg:w-[240px] p-0">
-              <Command>
-                <CommandInput
-                  placeholder="Search creators..."
-                  value={filters.creator}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, creator: value }))
-                  }
-                />
-                <CommandEmpty>No creator found.</CommandEmpty>
-                <CommandGroup className="max-h-[200px] overflow-y-auto">
-                  {DUMMY_CREATORS.map((creator) => (
-                    <CommandItem
-                      key={creator.value}
-                      value={creator.value}
-                      onSelect={(currentValue) => {
-                        setFilters((prev) => ({
-                          ...prev,
-                          creator:
-                            currentValue === filters.creator
-                              ? "all"
-                              : currentValue,
-                        }));
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          filters.creator === creator.value
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {creator.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                className="w-full lg:w-[240px] justify-between"
-              >
-                {filters.tag === "all"
-                  ? "All Tags"
-                  : DUMMY_TAGS.find((tag) => tag.value === filters.tag)?.label}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full lg:w-[240px] p-0">
-              <Command>
-                <CommandInput
-                  placeholder="Search tags..."
-                  value={filters.tag}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, tag: value }))
-                  }
-                />
-                <CommandEmpty>No tag found.</CommandEmpty>
-                <CommandGroup className="max-h-[200px] overflow-y-auto">
-                  {DUMMY_TAGS.map((tag) => (
-                    <CommandItem
-                      key={tag.value}
-                      value={tag.value}
-                      onSelect={(currentValue) => {
-                        setFilters((prev) => ({
-                          ...prev,
-                          tag:
-                            currentValue === filters.tag ? "all" : currentValue,
-                        }));
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          filters.tag === tag.value
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {tag.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() =>
-              setFilters((prev) => ({
-                ...prev,
-                sortAlphabetically: !prev.sortAlphabetically,
-              }))
-            }
-            className={cn(
-              "w-full sm:w-10 lg:ml-auto",
-              filters.sortAlphabetically && "bg-primary/10"
             )}
-          >
-            <ArrowUpDown className="h-4 w-4" />
-          </Button>
+          </div>
         </div>
       </div>
 
@@ -613,12 +529,6 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           )}
         </div>
       </div>
-
-      <CreateTemplateThumbnail
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateTemplate}
-      />
     </div>
   );
 };
