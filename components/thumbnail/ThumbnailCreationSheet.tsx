@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Image from "next/image";
 import TemplateSelector from "@/components/thumbnail/TemplateSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Upload, Loader2, Sparkles, Check, LayoutTemplate, Youtube, Video, CheckSquare } from "lucide-react";
+import { X, Upload, Loader2, Sparkles, Check, LayoutTemplate, Youtube, Video, CheckSquare, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -27,7 +28,6 @@ import { uploadToStorage } from "@/actions/upload";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
 
 const channelStyles = [
   {
@@ -93,6 +93,7 @@ interface ThumbnailCreationSheetProps {
   availableProjects?: any[]; // Pass projects from parent
   youtubeLinks?: string[];
   maxSelections?: number; // Make configurable
+  initialMode?: "template" | "youtube"; // Explicitly set the initial mode
 }
 
 export default function ThumbnailCreationSheet({
@@ -104,6 +105,7 @@ export default function ThumbnailCreationSheet({
   availableProjects = [],
   youtubeLinks = [],
   maxSelections = 5, // Default to match CreateYoutubeThumbnail page
+  initialMode = "youtube", // Default to YouTube mode
 }: ThumbnailCreationSheetProps) {
   const router = useRouter();
   const { authFetch } = useAuthFetch();
@@ -115,12 +117,10 @@ export default function ThumbnailCreationSheet({
   const [channelStyle, setChannelStyle] = useState<string>("");
   const [thumbnailGoal, setThumbnailGoal] = useState<string>("");
   const [additionalInstructions, setAdditionalInstructions] = useState("");
-  const [videoVariations, setVideoVariations] = useState(1);
   const [templateVariations, setTemplateVariations] = useState(1);
   const [thumbnailAssets, setThumbnailAssets] = useState<ThumbnailAsset[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("youtube");
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{
     channelStyle?: boolean;
@@ -139,37 +139,37 @@ export default function ThumbnailCreationSheet({
 
   // Initialize with pre-selected templates or youtube links when sheet opens
   useEffect(() => {
-    if (isOpen && preSelectedTemplates && preSelectedTemplates.length > 0) {
-      console.log("📋 Pre-selected templates:", preSelectedTemplates);
-      // Ensure template IDs are strings
-      const preSelectedIds = preSelectedTemplates.map(t => String(t.id));
-      console.log("📋 Converted template IDs:", preSelectedIds);
-      setAllSelectedTemplates(preSelectedIds);
-      // Set templates tab as active when there are pre-selected templates
-      setActiveTab("templates");
-    } else if (isOpen && youtubeLinks && youtubeLinks.length > 0) {
-      // Store all YouTube links
-      setAllYoutubeLinks(youtubeLinks);
-      // If YouTube links are provided, set the first one as inspiration URL
-      const firstLink = youtubeLinks[0];
-      setInspirationUrl(firstLink);
-      // Extract video ID and set preview
-      const videoId = firstLink.match(
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
-      )?.[1];
-      if (videoId) {
-        setInspirationPreview(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+    if (isOpen) {
+      if (preSelectedTemplates && preSelectedTemplates.length > 0) {
+        console.log("📋 Pre-selected templates:", preSelectedTemplates);
+        // Ensure template IDs are strings
+        const preSelectedIds = preSelectedTemplates.map(t => String(t.id));
+        console.log("📋 Converted template IDs:", preSelectedIds);
+        setAllSelectedTemplates(preSelectedIds);
       }
-      // Set youtube tab as active
-      setActiveTab("youtube");
-    } else if (!isOpen) {
+      
+      if (youtubeLinks && youtubeLinks.length > 0) {
+        // Store all YouTube links
+        setAllYoutubeLinks(youtubeLinks);
+        // If YouTube links are provided, set the first one as inspiration URL
+        const firstLink = youtubeLinks[0];
+        setInspirationUrl(firstLink);
+        // Extract video ID and set preview
+        const videoId = firstLink.match(
+          /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+        )?.[1];
+        if (videoId) {
+          setInspirationPreview(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+        }
+      }
+    } else {
+      // Reset state when sheet closes
       setAllSelectedTemplates([]);
       setInspirationUrl("");
       setInspirationPreview(null);
       setAllYoutubeLinks([]);
-      setActiveTab("youtube"); // Reset to default when sheet closes
     }
-  }, [isOpen, preSelectedTemplates, youtubeLinks]);
+  }, [isOpen, preSelectedTemplates, youtubeLinks, initialMode]);
 
   const handleInspirationUrlChange = (url: string) => {
     setInspirationUrl(url);
@@ -237,18 +237,22 @@ export default function ThumbnailCreationSheet({
       console.log("  - Has templates:", hasTemplates, "Count:", allSelectedTemplates?.length);
       console.log("  - Has YouTube links:", hasYoutubeLinks, "Count:", allYoutubeLinks?.length);
       console.log("  - Has inspiration URL:", hasInspirationUrl, "URL:", inspirationUrl);
-      console.log("  - Active tab:", activeTab);
+      console.log("  - Initial mode:", initialMode);
       
       if (!hasTemplates && !hasYoutubeLinks && !hasInspirationUrl) {
+        const errorMessage = initialMode === "template" 
+          ? "Please select at least one template to generate thumbnails."
+          : "Please provide at least one YouTube link for inspiration.";
+        
         toast({
-          title: "Templates or links required",
-          description: "Please select at least one template or provide a YouTube link.",
+          title: initialMode === "template" ? "Template required" : "YouTube link required",
+          description: errorMessage,
           variant: "destructive",
         });
         setIsGenerating(false);
         setHasSubmitted(false);
         
-        // Scroll to the appropriate tab
+        // Scroll to the generation method section
         setTimeout(() => {
           document.getElementById("generation-method-tabs")?.scrollIntoView({ behavior: "smooth", block: "center" });
         }, 100);
@@ -496,115 +500,181 @@ export default function ThumbnailCreationSheet({
     >
       <div className="space-y-6">
         {/* Generation Method Indicator */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                preSelectedTemplates.length > 0 ? 'bg-primary/10' : 'bg-red-500/10'
-              }`}>
-                {preSelectedTemplates.length > 0 ? (
-                  <LayoutTemplate className="h-5 w-5 text-primary" />
-                ) : (
-                  <Youtube className="h-5 w-5 text-red-500" />
-                )}
-              </div>
-              <div>
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              initialMode === 'template' ? 'bg-primary/10' : 'bg-red-500/10'
+            }`}>
+              {initialMode === 'template' ? (
+                <LayoutTemplate className="h-5 w-5 text-primary" />
+              ) : (
+                <Youtube className="h-5 w-5 text-red-500" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
                 <p className="text-sm font-medium">Generation Method</p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="inline-flex items-center justify-center">
+                      <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    {initialMode === 'template' ? (
+                      <p>
+                        Your <strong>project content</strong> will be styled using the <strong>template's design</strong>. 
+                        The final thumbnail will feature your project with the template's visual aesthetic applied.
+                      </p>
+                    ) : (
+                      <p>
+                        Thumbnails will be generated by analyzing the <strong>style and elements</strong> from your YouTube video links and applying them to your <strong>project content</strong>.
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <p className="text-xs text-muted-foreground">
-                {preSelectedTemplates.length > 0
-                  ? `Using ${preSelectedTemplates.length} template${preSelectedTemplates.length > 1 ? 's' : ''}`
-                  : allYoutubeLinks.length > 0 
-                    ? `Using ${allYoutubeLinks.length} YouTube link${allYoutubeLinks.length > 1 ? 's' : ''}`
-                    : 'No method selected'
+                {initialMode === 'template'
+                  ? 'Using template-based generation'
+                  : 'Using YouTube link inspiration'
                 }
-                </p>
-              </div>
+              </p>
             </div>
-            <Badge variant={preSelectedTemplates.length > 0 ? "default" : "secondary"}>
-              {preSelectedTemplates.length > 0 ? "Template Mode" : "YouTube Mode"}
-            </Badge>
           </div>
-          
-          {/* Clarification banner for template mode */}
-          {preSelectedTemplates.length > 0 && (
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-start gap-2">
-                <div className="mt-0.5">
-                  <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                    How Template Mode Works
-                  </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    Your <strong>project content</strong> will be styled using the <strong>template's design</strong>. 
-                    The final thumbnail will feature your project with the template's visual aesthetic applied.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          <Badge variant={initialMode === 'template' ? "default" : "secondary"}>
+            {initialMode === 'template' ? "Template Mode" : "YouTube Mode"}
+          </Badge>
         </div>
 
-        {/* Selected Project Information */}
-        {selectedProject && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-3">
-                {/* Project Image */}
-                <div className="relative w-12 h-8 flex-shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30">
-                  {selectedProject.image ? (
-                    <Image 
-                      src={selectedProject.image} 
-                      alt={selectedProject.title}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Video className="h-3 w-3 text-blue-600 dark:text-blue-400 opacity-50" />
+        {/* Project Selection - Required First */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5" />
+              Select Project
+              {!selectedProject && (
+                <Badge variant="destructive" className="text-xs">Required</Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              Choose which project to create thumbnails for
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {selectedProject ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-4">
+                    {/* Project Image */}
+                    <div className="relative w-28 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30">
+                      {selectedProject.image ? (
+                        <Image 
+                          src={selectedProject.image} 
+                          alt={selectedProject.title}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Video className="h-6 w-6 text-blue-600 dark:text-blue-400 opacity-50" />
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <div>
+                      <p className="text-sm font-medium">{selectedProject.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Target: {selectedProject.targetAudience}
+                      </p>
+                      {selectedProject.image && (
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
+                          ✓ Project image available
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowProjectSelector(!showProjectSelector)}
+                    className="h-8"
+                  >
+                    Change
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">Selected Project</p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedProject.title}
-                  </p>
-                  {selectedProject.image && (
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
-                      ✓ Project image will be used as base
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Target: {selectedProject.targetAudience}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">
-                    {selectedProject.highlights?.length || 0} highlights
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowProjectSelector(!showProjectSelector)}
-                  className="h-8"
-                >
-                  Change
-                </Button>
-              </div>
-            </div>
 
-            {/* Project Selector Dropdown */}
-            {showProjectSelector && (
-              <div className="border rounded-lg p-3 bg-background max-h-[300px] overflow-y-auto">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium">Choose a different project:</p>
+                {/* Project Selector Dropdown */}
+                {showProjectSelector && (
+                  <div className="border rounded-lg p-3 bg-background max-h-[300px] overflow-y-auto">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium">Choose a different project:</p>
+                      <Badge variant="secondary" className="text-xs">
+                        {projects.length} available
+                      </Badge>
+                    </div>
+                    {projects.length > 0 ? (
+                      <div className="space-y-2">
+                        {projects.map((project) => (
+                          <div
+                            key={project.id}
+                            className={`cursor-pointer p-3 rounded-lg border transition-all hover:shadow-md ${
+                              selectedProject?.id === project.id
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                            onClick={() => {
+                              if (onProjectChange) {
+                                onProjectChange(project);
+                              }
+                              setShowProjectSelector(false);
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-20 h-14 flex-shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30">
+                                {project.image ? (
+                                  <Image 
+                                    src={project.image} 
+                                    alt={project.title}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Video className="h-5 w-5 text-blue-600 dark:text-blue-400 opacity-50" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{project.title}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {project.targetAudience}
+                                </p>
+                              </div>
+                              {selectedProject?.id === project.id && (
+                                <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground">
+                          No projects available
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Create a project first to get started
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Show project list when no project selected */
+              <div className="border rounded-lg p-3 bg-background max-h-[400px] overflow-y-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium">Select a project:</p>
                   <Badge variant="secondary" className="text-xs">
                     {projects.length} available
                   </Badge>
@@ -614,20 +684,15 @@ export default function ThumbnailCreationSheet({
                     {projects.map((project) => (
                       <div
                         key={project.id}
-                        className={`cursor-pointer p-3 rounded-lg border transition-all hover:shadow-md ${
-                          selectedProject?.id === project.id
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
+                        className="cursor-pointer p-3 rounded-lg border transition-all hover:shadow-md hover:border-primary/50"
                         onClick={() => {
                           if (onProjectChange) {
                             onProjectChange(project);
                           }
-                          setShowProjectSelector(false);
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="relative w-10 h-7 flex-shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30">
+                          <div className="relative w-20 h-14 flex-shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30">
                             {project.image ? (
                               <Image 
                                 src={project.image} 
@@ -637,7 +702,7 @@ export default function ThumbnailCreationSheet({
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
-                                <Video className="h-3 w-3 text-blue-600 dark:text-blue-400 opacity-50" />
+                                <Video className="h-5 w-5 text-blue-600 dark:text-blue-400 opacity-50" />
                               </div>
                             )}
                           </div>
@@ -647,204 +712,32 @@ export default function ThumbnailCreationSheet({
                               {project.targetAudience}
                             </p>
                           </div>
-                          {selectedProject?.id === project.id && (
-                            <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="text-center py-8">
+                    <Video className="h-12 w-12 mx-auto text-muted-foreground mb-3 opacity-50" />
+                    <p className="text-sm text-muted-foreground mb-1">
                       No projects available
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground">
                       Create a project first to get started
                     </p>
                   </div>
                 )}
               </div>
             )}
-          </div>
-        )}
-
-        {/* Thumbnail Assets */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Thumbnail Assets</CardTitle>
-            <CardDescription>
-              Upload images to use in your thumbnail
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border-2 border-dashed rounded-lg p-6">
-              <div className="flex flex-col items-center">
-                <Upload className="h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">
-                  Click to upload additional assets (optional)
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  JPG, PNG, SVG formats accepted (max 4 files)
-                </p>
-                {selectedProject?.image && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    ℹ️ Project image will be used automatically
-                  </p>
-                )}
-              </div>
-                <Input
-                  type="file"
-                  className="hidden"
-                  multiple
-                  accept="image/jpeg,image/png,image/svg+xml"
-                  onChange={handleFileChange}
-                  id="thumbnail-assets"
-                  disabled={thumbnailAssets.length >= 4}
-                />
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() =>
-                    document.getElementById("thumbnail-assets")?.click()
-                  }
-                  disabled={thumbnailAssets.length >= 4}
-                >
-                  {thumbnailAssets.length >= 4
-                    ? "Maximum files reached"
-                    : "Upload Files"}
-                </Button>
-              </div>
-              {thumbnailAssets.length > 0 && (
-                <div>
-                  <p className="text-muted-foreground">
-                    {thumbnailAssets.length} files selected
-                  </p>
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {thumbnailAssets.map((asset, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-video rounded-lg overflow-hidden border group"
-                      >
-                        <div className="relative aspect-video">
-                          <img
-                            src={URL.createObjectURL(asset.file)}
-                            alt={asset.file.name}
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            onClick={() => handleRemoveFile(index)}
-                            className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                          >
-                            <X className="h-4 w-4 text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
           </CardContent>
         </Card>
 
-        {/* Channel Style */}
-        <Card id="channel-style-card" className={validationErrors.channelStyle ? "ring-2 ring-destructive" : ""}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Channel Style
-              {validationErrors.channelStyle && (
-                <Badge variant="destructive" className="text-xs">Required</Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              Select the style that best matches your channel
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Select 
-              value={channelStyle} 
-              onValueChange={(value) => {
-                setChannelStyle(value);
-                setValidationErrors(prev => ({ ...prev, channelStyle: false }));
-              }}
-            >
-              <SelectTrigger className={`w-full text-left py-6 ${validationErrors.channelStyle ? "border-destructive" : ""}`}>
-                <SelectValue placeholder="Select channel style" />
-              </SelectTrigger>
-              <SelectContent>
-                {channelStyles.map((style) => (
-                  <SelectItem key={style.value} value={style.value}>
-                    <div>
-                      <div className="font-medium">{style.label}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {style.description}
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        {/* Primary Thumbnail Goal */}
-        <Card id="thumbnail-goal-card" className={validationErrors.thumbnailGoal ? "ring-2 ring-destructive" : ""}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Primary Thumbnail Goal
-              {validationErrors.thumbnailGoal && (
-                <Badge variant="destructive" className="text-xs">Required</Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              What do you want to achieve with this thumbnail?
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Select 
-              value={thumbnailGoal} 
-              onValueChange={(value) => {
-                setThumbnailGoal(value);
-                setValidationErrors(prev => ({ ...prev, thumbnailGoal: false }));
-              }}
-            >
-              <SelectTrigger className={`w-full text-left py-6 ${validationErrors.thumbnailGoal ? "border-destructive" : ""}`}>
-                <SelectValue placeholder="Select thumbnail goal" />
-              </SelectTrigger>
-              <SelectContent>
-                {thumbnailGoals.map((goal) => (
-                  <SelectItem key={goal.value} value={goal.value}>
-                    <div>
-                      <div className="font-medium">{goal.label}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {goal.description}
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        {/* Generation Method Tabs */}
+        {/* Generation Method - Always visible, positioned after project selection */}
         <Card id="generation-method-tabs">
-          <CardHeader>
-            <CardTitle>Generation Method</CardTitle>
-            <CardDescription>
-              Choose how you want to generate your thumbnail
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="youtube">Use a YouTube Video</TabsTrigger>
-                <TabsTrigger value="templates">
-                  Choose from Templates
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="youtube" className="space-y-4">
+          <CardContent className="pt-6">
+            {/* YouTube Mode */}
+            {initialMode === "youtube" && (
+              <div className="space-y-4">
                 {/* Display all YouTube links from the page */}
                 {allYoutubeLinks.length > 0 && (
                   <div className="space-y-3">
@@ -865,9 +758,11 @@ export default function ThumbnailCreationSheet({
                           <div key={index} className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
                             <div className="flex-shrink-0">
                               {videoId ? (
-                                <img
+                                <Image
                                   src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
                                   alt={`Video ${index + 1}`}
+                                  width={64}
+                                  height={48}
                                   className="w-16 h-12 object-cover rounded"
                                 />
                               ) : (
@@ -940,10 +835,12 @@ export default function ThumbnailCreationSheet({
 
                   {inspirationPreview && (
                     <div className="relative aspect-video rounded-lg overflow-hidden border">
-                      <img
+                      <Image
                         src={inspirationPreview}
                         alt="Inspiration thumbnail preview"
-                        className="object-cover w-full h-full"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 600px"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="text-white text-center p-4">
@@ -953,62 +850,236 @@ export default function ThumbnailCreationSheet({
                     </div>
                   )}
                 </div>
-              </TabsContent>
+              </div>
+            )}
 
-              <TabsContent value="templates" className="space-y-4">
-                <div className="space-y-4">
-                  {/* Selected Templates Display */}
-                  {allSelectedTemplates.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">
-                          Selected Templates ({allSelectedTemplates.length})
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Total: {allSelectedTemplates.length * templateVariations} thumbnail{allSelectedTemplates.length * templateVariations > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Each template will generate {templateVariations} variation{templateVariations > 1 ? 's' : ''}
-                      </div>
+            {/* Template Mode */}
+            {initialMode === "template" && (
+              <div className="space-y-4">
+                {/* Template Selection */}
+                <TemplateSelector
+                  selectedTemplateIds={allSelectedTemplates}
+                  onSelect={setAllSelectedTemplates}
+                  maxSelections={maxSelections}
+                  preSelectedTemplates={preSelectedTemplates}
+                />
+                
+                {/* Variations and Summary */}
+                {allSelectedTemplates.length > 0 && (
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">
+                        {allSelectedTemplates.length} template{allSelectedTemplates.length > 1 ? 's' : ''} selected
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {templateVariations} variation{templateVariations > 1 ? 's' : ''} each = {allSelectedTemplates.length * templateVariations} total thumbnail{allSelectedTemplates.length * templateVariations > 1 ? 's' : ''}
+                      </p>
                     </div>
-                  )}
-                  
-                  {/* Template Selection */}
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-medium">Select Templates</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Choose templates to generate thumbnails. Your selections from the previous page are pre-selected.
-                    </p>
-                    <TemplateSelector
-                      selectedTemplateIds={allSelectedTemplates}
-                      onSelect={setAllSelectedTemplates}
-                      maxSelections={maxSelections}
-                      preSelectedTemplates={preSelectedTemplates}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">
-                      Variations per Template
-                    </h3>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Variations:</span>
                       {[1, 2, 3].map((num) => (
                         <Button
                           key={num}
-                          variant={
-                            templateVariations === num ? "default" : "outline"
-                          }
+                          variant={templateVariations === num ? "default" : "outline"}
+                          size="sm"
                           onClick={() => setTemplateVariations(num)}
+                          className="h-8 w-8 p-0"
                         >
                           {num}
                         </Button>
                       ))}
                     </div>
                   </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Thumbnail Assets */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Thumbnail Assets</CardTitle>
+            <CardDescription>
+              Upload images to use in your thumbnail
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border-2 border-dashed rounded-lg p-6">
+              <div className="flex flex-col items-center">
+                <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">
+                  Click to upload additional assets (optional)
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  JPG, PNG, SVG formats accepted (max 4 files)
+                </p>
+                {selectedProject?.image && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    ℹ️ Project image will be used automatically
+                  </p>
+                )}
+              </div>
+                <Input
+                  type="file"
+                  className="hidden"
+                  multiple
+                  accept="image/jpeg,image/png,image/svg+xml"
+                  onChange={handleFileChange}
+                  id="thumbnail-assets"
+                  disabled={thumbnailAssets.length >= 4}
+                />
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() =>
+                    document.getElementById("thumbnail-assets")?.click()
+                  }
+                  disabled={thumbnailAssets.length >= 4}
+                >
+                  {thumbnailAssets.length >= 4
+                    ? "Maximum files reached"
+                    : "Upload Files"}
+                </Button>
+              </div>
+              {thumbnailAssets.length > 0 && (
+                <div>
+                  <p className="text-muted-foreground">
+                    {thumbnailAssets.length} files selected
+                  </p>
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {thumbnailAssets.map((asset, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-video rounded-lg overflow-hidden border group"
+                      >
+                        <div className="relative aspect-video">
+                          <Image
+                            src={URL.createObjectURL(asset.file)}
+                            alt={asset.file.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                            sizes="(max-width: 768px) 100vw, 300px"
+                          />
+                          <button
+                            onClick={() => handleRemoveFile(index)}
+                            className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                          >
+                            <X className="h-4 w-4 text-white" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </TabsContent>
-            </Tabs>
+              )}
+          </CardContent>
+        </Card>
+
+        {/* Channel Style */}
+        <Card id="channel-style-card" className={validationErrors.channelStyle ? "ring-2 ring-destructive" : ""}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Channel Style
+              {validationErrors.channelStyle && (
+                <Badge variant="destructive" className="text-xs">Required</Badge>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="inline-flex items-center justify-center">
+                    <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  <p>
+                    Choose the visual style that aligns with your channel's branding and content type. 
+                    This helps tailor the thumbnail design to match your audience's expectations.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
+            <CardDescription>
+              Select the style that best matches your channel
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select 
+              value={channelStyle} 
+              onValueChange={(value) => {
+                setChannelStyle(value);
+                setValidationErrors(prev => ({ ...prev, channelStyle: false }));
+              }}
+            >
+              <SelectTrigger className={`w-full text-left py-6 ${validationErrors.channelStyle ? "border-destructive" : ""}`}>
+                <SelectValue placeholder="Select channel style" />
+              </SelectTrigger>
+              <SelectContent>
+                {channelStyles.map((style) => (
+                  <SelectItem key={style.value} value={style.value}>
+                    <div>
+                      <div className="font-medium">{style.label}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {style.description}
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Primary Thumbnail Goal */}
+        <Card id="thumbnail-goal-card" className={validationErrors.thumbnailGoal ? "ring-2 ring-destructive" : ""}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Primary Thumbnail Goal
+              {validationErrors.thumbnailGoal && (
+                <Badge variant="destructive" className="text-xs">Required</Badge>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="inline-flex items-center justify-center">
+                    <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  <p>
+                    Define the primary objective for your thumbnail. This influences the visual hierarchy, 
+                    emotional tone, and design elements to maximize your desired outcome.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
+            <CardDescription>
+              What do you want to achieve with this thumbnail?
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select 
+              value={thumbnailGoal} 
+              onValueChange={(value) => {
+                setThumbnailGoal(value);
+                setValidationErrors(prev => ({ ...prev, thumbnailGoal: false }));
+              }}
+            >
+              <SelectTrigger className={`w-full text-left py-6 ${validationErrors.thumbnailGoal ? "border-destructive" : ""}`}>
+                <SelectValue placeholder="Select thumbnail goal" />
+              </SelectTrigger>
+              <SelectContent>
+                {thumbnailGoals.map((goal) => (
+                  <SelectItem key={goal.value} value={goal.value}>
+                    <div>
+                      <div className="font-medium">{goal.label}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {goal.description}
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
 

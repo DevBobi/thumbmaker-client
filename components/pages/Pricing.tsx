@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
@@ -78,13 +77,8 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-8 max-w-7xl mx-auto">
-          {pricingPlans.map((plan, index) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.2 }}
-            >
+          {pricingPlans.map((plan) => (
+            <div key={plan.name}>
               <PricingCard
                 plan={plan}
                 isLoading={loadingPlans[plan.name] || false}
@@ -96,7 +90,7 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
                 stripeCustomerId={currentPlan.stripeCustomerId}
                 currentPlanCredits={currentPlanDetails?.credits || 0}
               />
-            </motion.div>
+            </div>
           ))}
           <CustomPricingCard />
         </div>

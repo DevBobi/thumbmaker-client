@@ -28,13 +28,13 @@ export function CTA() {
               <Sparkles className="w-4 h-4 text-brand-600" />
               <span className="text-sm font-medium text-brand-700">Join 50K+ Creators</span>
             </div>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl text-gray-900 leading-tight font-bold">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight font-bold">
               Create Viral Thumbnails with{" "}
               <span className="bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">
                 THUMBMAKER
               </span>
             </h2>
-            <p className="mx-auto max-w-[700px] text-gray-600 text-base sm:text-lg md:text-xl">
+            <p className="mx-auto max-w-[700px] text-muted-foreground text-base sm:text-lg md:text-xl">
               Join thousands of creators that have revolutionized their YouTube presence. Start
               creating high-converting thumbnails today.
             </p>
@@ -59,7 +59,8 @@ export function CTA() {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <Button
-              className="group rounded-full w-44 md:w-48 lg:w-52 gap-2 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 text-base sm:text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-brand-500 to-red-600 hover:from-brand-600 hover:to-red-700"
+              variant="default"
+              className="group rounded-full w-44 md:w-48 lg:w-52 gap-2 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 text-base sm:text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
               size="lg"
               asChild
             >

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChatThread } from "@/types/ad.types";
@@ -68,11 +69,13 @@ const ChatHistorySection = ({
                   onClick={() => onViewThread(thread.id)}
                 >
                   {/* Icon or thumbnail */}
-                  <div className="h-10 w-10 rounded-md border overflow-hidden flex-shrink-0">
-                    <img
+                  <div className="h-10 w-10 rounded-md border overflow-hidden flex-shrink-0 relative">
+                    <Image
                       src={adImageUrl}
                       alt="Ad thumbnail"
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="40px"
                     />
                   </div>
 

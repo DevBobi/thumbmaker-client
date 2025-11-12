@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Image as ImageIcon, AlertCircle } from "lucide-react";
 
@@ -77,10 +78,13 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     const url = URL.createObjectURL(file);
     return (
       <div key={index} className="relative group">
-        <img
+        <Image
           src={url}
           alt={`Preview ${index + 1}`}
+          width={96}
+          height={96}
           className="h-24 w-24 object-cover rounded-md"
+          unoptimized
           onLoad={() => URL.revokeObjectURL(url)}
         />
         <button

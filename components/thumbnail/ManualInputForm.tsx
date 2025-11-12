@@ -48,9 +48,6 @@ const ManualInputForm = ({ onSubmit, initialValues }: ManualInputFormProps) => {
     initialValues?.highlights?.length || 2
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [inspirationPreview, setInspirationPreview] = useState<string | null>(
-    null
-  );
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -119,7 +116,7 @@ const ManualInputForm = ({ onSubmit, initialValues }: ManualInputFormProps) => {
         image: imageUrl,
       };
       
-      const project = await onSubmit(dataWithImage);
+      await onSubmit(dataWithImage);
       
       toast({
         title: "Project created successfully",

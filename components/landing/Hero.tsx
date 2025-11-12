@@ -92,7 +92,7 @@ export function Hero() {
             {/* AI-Powered Header */}
             <motion.div
               variants={itemVariants}
-              className="flex items-center gap-2 text-xs sm:text-sm md:text-base font-medium text-gray-700 flex-wrap"
+              className="flex items-center gap-2 text-xs sm:text-sm md:text-base font-medium text-muted-foreground flex-wrap"
             >
               <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 bg-[#FF0000] transform rotate-45 flex-shrink-0"></div>
               <span className="whitespace-nowrap">AI-Powered Thumbnail Generation</span>
@@ -102,7 +102,7 @@ export function Hero() {
             {/* Main Headline */}
             <motion.h1
               variants={itemVariants}
-              className="font-bold lg:font-black text-gray-900 max-w-full"
+              className="font-bold lg:font-black text-foreground max-w-full"
               style={{ 
                 lineHeight: '1.2',
                 wordWrap: 'break-word', 
@@ -119,7 +119,7 @@ export function Hero() {
             {/* Description */}
             <motion.p
               variants={itemVariants}
-              className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-gray-600 leading-relaxed max-w-full lg:max-w-2xl"
+              className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-muted-foreground leading-relaxed max-w-full lg:max-w-2xl"
               style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
             >
               Generate context-aware, on-brand thumbnails automatically by combining your video content, brand assets, and proven templates.
@@ -150,7 +150,7 @@ export function Hero() {
                     />
                   </div>
                 ))}
-                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-gray-200 border-2 sm:border-3 border-white flex items-center justify-center text-[10px] sm:text-xs md:text-sm font-semibold text-gray-600 flex-shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-muted border-2 sm:border-3 border-white flex items-center justify-center text-[10px] sm:text-xs md:text-sm font-semibold text-muted-foreground flex-shrink-0">
                   +2M
                 </div>
               </div>
@@ -158,7 +158,7 @@ export function Hero() {
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Star key={i} className="w-4 h-4 sm:w-5 sm:h-5 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                 ))}
-                <span className="text-xs sm:text-sm md:text-base font-medium text-gray-700 ml-1 sm:ml-2 whitespace-nowrap">
+                <span className="text-xs sm:text-sm md:text-base font-medium text-muted-foreground ml-1 sm:ml-2 whitespace-nowrap">
                   Trusted by creators
                 </span>
               </div>
@@ -187,7 +187,7 @@ export function Hero() {
               {!isSignedIn ? (
                 <>
                   <Button 
-                    variant="brand" 
+                    variant="default"
                     className="flex-1 min-w-[130px] sm:flex-none sm:min-w-[140px] md:min-w-[160px] lg:min-w-[180px] h-11 sm:h-11 md:h-12 lg:h-13 xl:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg px-4 sm:px-6 md:px-8 lg:px-10 font-semibold" 
                     asChild
                   >
@@ -195,7 +195,7 @@ export function Hero() {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="flex-1 min-w-[130px] sm:flex-none sm:min-w-[140px] md:min-w-[160px] lg:min-w-[180px] h-11 sm:h-11 md:h-12 lg:h-13 xl:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg px-4 sm:px-6 md:px-8 lg:px-10 font-semibold" 
+                    className="border-primary text-primary hover:bg-primary/10 flex-1 min-w-[130px] sm:flex-none sm:min-w-[140px] md:min-w-[160px] lg:min-w-[180px] h-11 sm:h-11 md:h-12 lg:h-13 xl:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg px-4 sm:px-6 md:px-8 lg:px-10 font-semibold" 
                     asChild
                   >
                     <Link
@@ -208,7 +208,7 @@ export function Hero() {
                 </>
               ) : (
                 <Button
-                  variant="brand"
+                  variant="default"
                   className="flex-1 min-w-[130px] sm:flex-none sm:min-w-[140px] md:min-w-[160px] lg:min-w-[180px] h-11 sm:h-11 md:h-12 lg:h-13 xl:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg px-4 sm:px-6 md:px-8 lg:px-10 font-semibold" 
                   asChild
                 >
@@ -302,7 +302,7 @@ export function Hero() {
           initial="hidden"
           animate="visible"
         >
-          <p className="text-[10px] xs:text-xs sm:text-sm md:text-base font-semibold text-gray-700 mb-3 sm:mb-4 md:mb-6 lg:mb-8">
+          <p className="text-[10px] xs:text-xs sm:text-sm md:text-base font-semibold text-muted-foreground mb-3 sm:mb-4 md:mb-6 lg:mb-8">
             TRUSTED BY 1,000+ CREATORS & AGENCIES
           </p>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 xs:gap-2.5 sm:gap-3 md:gap-4 lg:gap-6 xl:gap-8 max-w-6xl mx-auto">

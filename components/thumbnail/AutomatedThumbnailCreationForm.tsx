@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -104,10 +105,12 @@ const AutomatedThumbnailCreationForm = ({
 
           {inspirationPreview && (
             <div className="mt-4 relative aspect-video rounded-lg overflow-hidden border max-w-2xl">
-              <img
+              <Image
                 src={inspirationPreview}
                 alt="Inspiration thumbnail preview"
-                className="object-cover w-full h-full"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 896px"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                 <div className="text-white text-center p-4">

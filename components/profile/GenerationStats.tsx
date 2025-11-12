@@ -40,7 +40,7 @@ export const GenerationStats = () => {
     },
   });
 
-  const thumbnails = thumbnailsData || [];
+  const thumbnails = useMemo(() => thumbnailsData || [], [thumbnailsData]);
 
   const isLoading = projectsLoading || thumbnailsLoading;
 

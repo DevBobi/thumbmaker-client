@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -32,11 +32,7 @@ const Billing = ({}: BillingProps) => {
     stripePriceId: null,
   });
 
-  useEffect(() => {
-    fetchSubscription();
-  }, []);
-
-  const fetchSubscription = async () => {
+  const fetchSubscription = useCallback(async () => {
     try {
       const response = await authFetch("/api/user/subscription");
       if (response.ok) {
@@ -46,7 +42,11 @@ const Billing = ({}: BillingProps) => {
     } catch (error) {
       console.error("Error fetching subscription:", error);
     }
-  };
+  }, [authFetch]);
+
+  useEffect(() => {
+    fetchSubscription();
+  }, [fetchSubscription]);
 
   const { credits, isActive, stripeCurrentPeriodEnd, stripeCustomerId, isCancelled, stripePriceId } = subscriptionData;
   const plan = pricingPlans.find((p) => p.priceId === stripePriceId);

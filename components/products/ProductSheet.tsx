@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { FormSheet } from "@/components/ui/form-sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -77,13 +77,7 @@ export function ProductSheet({
   });
 
   // Load product data if in edit mode
-  useEffect(() => {
-    if (mode === "edit" && productId && open) {
-      loadProductData();
-    }
-  }, [mode, productId, open]);
-
-  const loadProductData = async () => {
+  const loadProductData = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await authFetch(`/api/projects/${productId}`);
@@ -115,7 +109,13 @@ export function ProductSheet({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [authFetch, productId, form, toast]);
+
+  useEffect(() => {
+    if (mode === "edit" && productId && open) {
+      loadProductData();
+    }
+  }, [mode, productId, open, loadProductData]);
 
   const handleSave = async () => {
     const isValid = await form.trigger();
@@ -159,7 +159,7 @@ export function ProductSheet({
         throw new Error(`Error: ${response.status} - ${response.statusText}`);
       }
 
-      const data = await response.json();
+      await response.json();
 
       toast({
         title: mode === "edit" ? "Product updated" : "Product created",

@@ -1,159 +1,154 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Check, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { Check } from "lucide-react";
 import Link from "next/link";
 
 export function Pricing() {
   const plans = [
     {
-      name: "Starter",
-      price: "$9",
-      credits: 10,
-      description: "Perfect for small businesses and individuals",
+      name: "Basic",
+      price: "19",
+      credits: 40,
+      description: "Perfect for individuals and small creators",
       features: [
-        "10 thumbnail credits",
-        "Access to all templates",
-        "Basic support",
-        "Unlimited graphics uploads",
-        "16:9 YouTube format",
+        "40 YouTube thumbnails generated",
+        "2600+ Thumbnail Templates",
+        "Highest quality images",
+        "YouTube optimized dimensions",
+        "Access to the template library",
+        "Upload your own template",
       ],
       popular: false,
     },
     {
-      name: "Professional",
-      price: "$29",
-      credits: 50,
-      description: "Ideal for growing creators",
+      name: "Standard",
+      price: "49",
+      credits: 110,
+      description: "Best for growing YouTubers and channels",
       features: [
-        "50 thumbnail credits",
-        "Access to all templates",
-        "Priority support",
-        "Unlimited graphics uploads",
-        "Bulk thumbnail generation",
-        "Advanced customization",
+        "110 YouTube thumbnails generated",
+        "2600+ Thumbnail Templates",
+        "Highest quality images",
+        "YouTube optimized dimensions",
+        "Access to the template library",
+        "Upload your own template",
       ],
       popular: true,
     },
     {
-      name: "Enterprise",
-      price: "$99",
-      credits: 200,
-      description: "For large-scale operations",
+      name: "Custom",
+      price: null,
+      credits: null,
+      description: "Tailored to your specific needs",
       features: [
-        "200 thumbnail credits",
-        "Access to all templates",
-        "24/7 support",
-        "Unlimited graphics uploads",
-        "Bulk thumbnail generation",
-        "Custom templates",
-        "API access",
-        "White-label options",
+        "Custom credit packages",
+        "Priority support",
+        "Dedicated account manager",
       ],
       popular: false,
+      isCustom: true,
     },
   ];
 
   return (
     <section
       id="pricing"
-      className="relative w-full py-16 sm:py-24 bg-white overflow-hidden"
+      className="relative w-full py-16 sm:py-24 bg-gradient-to-b from-background to-background/80 overflow-hidden"
     >
-      {/* Decorative background */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-1/4 right-0 w-96 h-96 bg-brand-600 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 left-0 w-96 h-96 bg-red-500 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-12"
-        >
-          <h3 className="text-sm mb-4 font-medium text-gray-600">Simple pricing</h3>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl text-gray-900 leading-tight mb-4 font-bold">
-            Choose Your Plan
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-foreground mb-4">
+            Simple, Transparent Pricing
           </h2>
-          <p className="mx-auto max-w-2xl text-base sm:text-lg text-gray-600">
-            Each thumbnail costs 1 credit. Start free with 10 credits, no credit card required.
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Choose the perfect plan for your YouTube thumbnail needs. Create stunning thumbnails that get clicks.
           </p>
-        </motion.div>
+        </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-12">
-          {plans.map((plan, index) => (
-            <motion.div
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-8 max-w-7xl mx-auto">
+          {plans.map((plan) => (
+            <div
               key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="relative"
+              className={`relative rounded-2xl bg-card p-8 shadow-lg ${
+                plan.popular
+                  ? "border-2 border-primary scale-105"
+                  : "border border-border"
+              }`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                  <div className="bg-gradient-to-r from-brand-500 to-red-600 text-white text-xs font-semibold px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
-                    <Sparkles className="w-3 h-3" />
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium shadow-sm">
                     Most Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-foreground">{plan.name}</h3>
+
+                {/* Price Section */}
+                {plan.price ? (
+                  <div className="mt-4 flex items-baseline justify-center">
+                    <span className="text-5xl font-bold tracking-tight text-foreground">
+                      ${plan.price}
+                    </span>
+                    <span className="ml-1 text-xl text-muted-foreground">/month</span>
+                  </div>
+                ) : (
+                  <div className="mt-4 text-3xl font-bold text-foreground">
+                    Contact Us
+                  </div>
+                )}
+
+                {/* Description */}
+                <p className="mt-4 text-muted-foreground">{plan.description}</p>
+              </div>
+
+              {/* Credits Display */}
+              {plan.credits !== null && (
+                <div className="mt-8">
+                  <div className="flex items-center justify-center">
+                    <span className="text-xl font-semibold text-primary">
+                      {plan.credits.toLocaleString()} Credits
+                    </span>
                   </div>
                 </div>
               )}
-              <Card
-                className={`flex flex-col h-full transition-all duration-300 ${
-                  plan.popular
-                    ? "border-2 border-brand-500 shadow-xl scale-105"
-                    : "border border-gray-200 shadow-lg hover:shadow-xl"
-                }`}
-              >
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                  <CardDescription className="text-sm">{plan.description}</CardDescription>
-                  <div className="mt-6">
-                    <span className="text-5xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-600 text-lg ml-2">
-                      / {plan.credits} credits
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <ul className="space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="h-3 w-3 text-green-600" />
-                        </div>
-                        <span className="text-sm text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
+
+              {/* Features */}
+              <ul className="mt-8 space-y-4">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-center">
+                    <Check className="h-5 w-5 text-primary mr-3" />
+                    <span className="text-muted-foreground">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Button Section */}
+              <div className="mt-8">
+                {plan.isCustom ? (
                   <Button
-                    className={`w-full ${
-                      plan.popular
-                        ? "bg-gradient-to-r from-brand-500 to-red-600 hover:from-brand-600 hover:to-red-700"
-                        : ""
-                    }`}
-                    variant={plan.popular ? "default" : "outline"}
                     size="lg"
+                    variant="secondary"
+                    className="w-full cursor-pointer"
+                    asChild
+                  >
+                    <Link href="mailto:contact@trykrillion.com">Contact Us</Link>
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    variant={plan.popular ? "default" : "secondary"}
+                    className="w-full cursor-pointer"
                     asChild
                   >
                     <Link href="/sign-up">Get Started</Link>
                   </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       </div>

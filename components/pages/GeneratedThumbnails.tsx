@@ -263,7 +263,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
         pollIntervalRef.current = null;
       }
     };
-  }, [id]); // Removed authFetch to prevent infinite loop
+  }, [id, authFetch]);
 
   const handleDownload = (imageUrl: string, title: string) => {
     const link = document.createElement("a");
@@ -306,7 +306,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
+          {[...Array(1)].map((_, i) => (
             <div key={i} className="space-y-3">
               <Skeleton className="aspect-video w-full rounded-lg" />
               <Skeleton className="h-4 w-3/4" />
@@ -418,7 +418,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Your thumbnails will appear here</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(1)].map((_, i) => (
                   <div key={i} className="space-y-3">
                     <div className="relative overflow-hidden rounded-lg bg-muted">
                       <Skeleton className="aspect-video w-full" />
@@ -490,7 +490,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
 
       {thumbnails.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">
+          <p className="text-muted-foreground mb-4">
             No thumbnails have been generated yet.
           </p>
           <Button onClick={handleBack} variant="outline">

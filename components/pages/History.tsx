@@ -1,18 +1,21 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ChevronDown,
   Search,
   X,
   Calendar,
-  Files,
-  Eye,
   Download,
   Video,
   Palette,
   ExternalLink,
   Plus,
   Image as ImageIcon,
+  Trash2,
+  FolderOpen,
+  ChevronRight,
+  ArrowLeft,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -40,16 +43,19 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 
@@ -65,6 +71,9 @@ const History = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [thumbnailToDelete, setThumbnailToDelete] = useState<any>(null);
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -72,6 +81,8 @@ const History = () => {
     totalPages: 0,
   });
   const [selectedThumbnail, setSelectedThumbnail] = useState<any>(null);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'project'>('list'); // 'list' shows grouped projects, 'project' shows thumbnails in selected project
 
   // Debounce search term to avoid excessive API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -82,66 +93,122 @@ const History = () => {
     setCampaigns([]);
   }, []);
 
-  // Fetch campaigns when page, search term or filter changes
+  // Handle escape key to close lightbox and prevent body scroll
   useEffect(() => {
-    const fetchCampaigns = async () => {
-      setIsLoading(true);
-      try {
-        // Build the API URL with query parameters
-        const params = new URLSearchParams();
-        params.append("page", currentPage.toString());
-        params.append("limit", ITEMS_PER_PAGE.toString());
-
-        if (debouncedSearchTerm) {
-          params.append("search", debouncedSearchTerm);
-        }
-
-        if (filterBy !== "All") {
-          let timeFilter = "all";
-          if (filterBy === "Last 7 days") timeFilter = "last7days";
-          if (filterBy === "Last 30 days") timeFilter = "last30days";
-          params.append("timeFilter", timeFilter);
-        }
-
-        const apiUrl = `/api/thumbnails?${params.toString()}`;
-        
-        const response = await authFetch(apiUrl);
-        const data = await response.json();
-
-        if (response.ok) {
-          console.log('📊 Fetched campaigns data:', data.data);
-          console.log('📷 Sample image URLs:', data.data?.slice(0, 2).map((t: any) => ({ id: t.id, image: t.image })));
-          setCampaigns(data.data || []);
-          setPagination(
-            data.pagination || {
-              total: 0,
-              page: 1,
-              limit: 5,
-              totalPages: 0,
-            }
-          );
-        } else {
-          console.error("Failed to fetch thumbnails");
-        }
-      } catch (error) {
-        console.error("Error fetching thumbnails:", error);
-      } finally {
-        setIsLoading(false);
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedThumbnail) {
+        setSelectedThumbnail(null);
       }
     };
+    
+    if (selectedThumbnail) {
+      window.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedThumbnail]);
 
-    fetchCampaigns();
+  // Fetch campaigns function
+  const fetchCampaigns = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Build the API URL with query parameters
+      const params = new URLSearchParams();
+      params.append("page", currentPage.toString());
+      params.append("limit", ITEMS_PER_PAGE.toString());
+
+      if (debouncedSearchTerm) {
+        params.append("search", debouncedSearchTerm);
+      }
+
+      if (filterBy !== "All") {
+        let timeFilter = "all";
+        if (filterBy === "Last 7 days") timeFilter = "last7days";
+        if (filterBy === "Last 30 days") timeFilter = "last30days";
+        params.append("timeFilter", timeFilter);
+      }
+
+      const apiUrl = `/api/thumbnails?${params.toString()}`;
+      
+      const response = await authFetch(apiUrl);
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('📊 Fetched campaigns data:', data.data);
+        console.log('📷 Sample image URLs:', data.data?.slice(0, 2).map((t: any) => ({ id: t.id, image: t.image })));
+        setCampaigns(data.data || []);
+        setPagination(
+          data.pagination || {
+            total: 0,
+            page: 1,
+            limit: 5,
+            totalPages: 0,
+          }
+        );
+      } else {
+        console.error("Failed to fetch thumbnails");
+      }
+    } catch (error) {
+      console.error("Error fetching thumbnails:", error);
+    } finally {
+      setIsLoading(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, debouncedSearchTerm, filterBy]);
 
+  // Fetch campaigns when page, search term or filter changes
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
+
+  // Group thumbnails by project
+  const groupedProjects = useMemo(() => {
+    const projectMap = new Map();
+    
+    campaigns.forEach((thumbnail: any) => {
+      const projectId = thumbnail.projectId || 'ungrouped';
+      const projectTitle = thumbnail.project?.title || 'Ungrouped Thumbnails';
+      
+      if (!projectMap.has(projectId)) {
+        projectMap.set(projectId, {
+          id: projectId,
+          title: projectTitle,
+          thumbnails: [],
+          latestDate: thumbnail.createdAt,
+        });
+      }
+      
+      const project = projectMap.get(projectId);
+      project.thumbnails.push(thumbnail);
+      
+      // Update latest date if this thumbnail is newer
+      if (new Date(thumbnail.createdAt) > new Date(project.latestDate)) {
+        project.latestDate = thumbnail.createdAt;
+      }
+    });
+    
+    // Convert map to array and sort by latest date
+    return Array.from(projectMap.values()).sort((a, b) => 
+      new Date(b.latestDate).getTime() - new Date(a.latestDate).getTime()
+    );
+  }, [campaigns]);
+
+  const handleViewProject = (project: any) => {
+    setSelectedProject(project);
+    setViewMode('project');
+  };
+
+  const handleBackToList = () => {
+    setSelectedProject(null);
+    setViewMode('list');
+  };
+
   const handleViewThumbnail = (thumbnail: any) => {
-    // If it's a single thumbnail with an image, show it in a modal
-    if (thumbnail.image) {
-      setSelectedThumbnail(thumbnail);
-    } else {
-      // If it's part of a set, navigate to the set page
-      router.push(`/dashboard/generated-thumbnails/${thumbnail.id}`);
-    }
+    setSelectedThumbnail(thumbnail);
   };
 
   // Function to handle thumbnail download
@@ -194,6 +261,74 @@ const History = () => {
     }
   };
 
+  // Function to handle thumbnail delete
+  const handleDeleteClick = (thumbnail: any) => {
+    setThumbnailToDelete(thumbnail);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!thumbnailToDelete) return;
+
+    setIsDeleting(thumbnailToDelete.id);
+    
+    try {
+      const response = await authFetch(`/api/thumbnails/${thumbnailToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Thumbnail deleted",
+          description: "The thumbnail has been successfully deleted",
+        });
+        
+        // Close the detail sheet if this thumbnail was open
+        if (selectedThumbnail?.id === thumbnailToDelete.id) {
+          setSelectedThumbnail(null);
+        }
+        
+        // If deleting from project view, check if project becomes empty
+        if (selectedProject && viewMode === 'project') {
+          const updatedThumbnails = selectedProject.thumbnails.filter(
+            (t: any) => t.id !== thumbnailToDelete.id
+          );
+          
+          if (updatedThumbnails.length === 0) {
+            // Go back to list view if no more thumbnails
+            handleBackToList();
+          }
+        }
+        
+        // If we're on a page with only 1 item and it's not the first page, go back
+        if (campaigns.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        } else {
+          // Otherwise, refetch the current page
+          await fetchCampaigns();
+        }
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Delete failed",
+          description: data.message || "Failed to delete thumbnail",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Delete failed:", error);
+      toast({
+        title: "Delete failed",
+        description: "An error occurred while deleting the thumbnail",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(null);
+      setDeleteConfirmOpen(false);
+      setThumbnailToDelete(null);
+    }
+  };
+
   // Function to get time ago string
   const getTimeAgo = (date: Date): string => {
     const now = new Date();
@@ -231,31 +366,29 @@ const History = () => {
     setCurrentPage(1);
   };
 
-  // Skeleton loader for campaign cards
-  const CampaignSkeleton = () => (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div className="flex items-center">
-        {/* Thumbnail Image Skeleton */}
-        <div className="w-64 p-2">
-          <Skeleton className="w-full aspect-video rounded-lg" />
+  // Skeleton loader for project cards
+  const ProjectSkeleton = () => (
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden p-6">
+      <div className="flex items-start gap-6">
+        {/* Thumbnail Skeleton */}
+        <div className="flex-shrink-0">
+          <Skeleton className="w-48 h-28 rounded-lg" />
         </div>
         
         {/* Content Skeleton */}
-        <div className="flex-1 p-4 space-y-3">
+        <div className="flex-1 space-y-3">
           <div className="space-y-2">
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-4 w-1/3" />
           </div>
           <div className="space-y-2">
             <Skeleton className="h-3 w-full max-w-md" />
-            <Skeleton className="h-3 w-full max-w-sm" />
           </div>
         </div>
 
-        {/* Action Buttons Skeleton */}
-        <div className="flex flex-col gap-2 p-4 border-l border-gray-200">
-          <Skeleton className="h-8 w-20" />
-          <Skeleton className="h-8 w-24" />
+        {/* Action Button Skeleton */}
+        <div>
+          <Skeleton className="h-10 w-24" />
         </div>
       </div>
     </div>
@@ -267,21 +400,64 @@ const History = () => {
   return (
     <div className="space-y-6">
       <Breadcrumb
-        items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "History", href: "/dashboard/history" },
-        ]}
+        items={
+          viewMode === 'list'
+            ? [
+                { label: "Dashboard", href: "/dashboard" },
+                { label: "History", href: "/dashboard/history" },
+              ]
+            : [
+                { label: "Dashboard", href: "/dashboard" },
+                { label: "History", href: "/dashboard/history" },
+                { label: selectedProject?.title || "Project", href: "#" },
+              ]
+        }
       />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Thumbnail History</h1>
-          <p className="text-muted-foreground mt-1">
-            Browse and manage your generated thumbnails
-          </p>
+      
+      {/* Header with Back Button in Project View */}
+      {viewMode === 'project' ? (
+        <div className="flex items-start gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleBackToList}
+            className="flex-shrink-0 h-10 w-10 mt-1"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start gap-3 mb-2">
+              <FolderOpen className="h-8 w-8 text-primary flex-shrink-0 mt-0.5" />
+              <h1 className="text-3xl font-bold text-foreground leading-tight">{selectedProject?.title}</h1>
+            </div>
+            <p className="text-sm text-muted-foreground pl-[2.75rem]">
+              {selectedProject?.thumbnails.length} thumbnail{selectedProject?.thumbnails.length !== 1 ? 's' : ''} in this project
+            </p>
+          </div>
+          {selectedProject?.id !== 'ungrouped' && (
+            <Button
+              variant="outline"
+              className="gap-2 flex-shrink-0 mt-1"
+              onClick={() => router.push(`/dashboard/projects?edit=${selectedProject.id}`)}
+            >
+              <Video className="h-4 w-4" />
+              Open Project
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          )}
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Thumbnail History</h1>
+            <p className="text-muted-foreground mt-1">
+              Browse and manage your generated thumbnails
+            </p>
+          </div>
+        </div>
+      )}
 
-      {campaigns.length === 0 && !isLoading && !hasActiveFilters ? (
+      {viewMode === 'list' && campaigns.length === 0 && !isLoading && !hasActiveFilters ? (
         <Card className="border-dashed border-2">
           <CardContent className="p-12 text-center">
             <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
@@ -303,7 +479,7 @@ const History = () => {
             </div>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'list' ? (
         <>
           {/* Filter and search controls */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -383,10 +559,10 @@ const History = () => {
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2].map((i) => (
-                <CampaignSkeleton key={i} />
+                <ProjectSkeleton key={i} />
               ))}
             </div>
-          ) : campaigns.length === 0 ? (
+          ) : groupedProjects.length === 0 ? (
             <Card className="border-dashed border-2">
               <CardContent className="p-12 text-center">
                 <div className="flex flex-col items-center gap-4">
@@ -406,136 +582,107 @@ const History = () => {
           ) : (
             <>
               <div className="space-y-4">
-                {campaigns.map((thumbnail: any) => (
+                {groupedProjects.map((project: any) => (
                   <div
-                    key={thumbnail.id}
-                    className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
+                    key={project.id}
+                    className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer"
+                    onClick={() => handleViewProject(project)}
                   >
-                    <div className="flex items-center">
-                      {/* Thumbnail Image - Left Side */}
-                      <div className="w-64 flex-shrink-0 relative overflow-hidden p-2">
-                        {thumbnail.image ? (
-                          <Zoom
-                            zoomImg={{
-                              src: thumbnail.image,
-                              alt: thumbnail.title || "Thumbnail preview",
-                              width: 800,
-                              height: 600,
-                            }}
-                            zoomMargin={40}
-                            classDialog="custom-zoom"
-                          >
-                            <div className="relative w-full aspect-video">
-                              <Image
-                                src={thumbnail.image}
-                                alt={thumbnail.title || "Thumbnail preview"}
-                                fill
-                                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                                className="object-contain bg-muted"
-                                priority={false}
-                                unoptimized
-                              />
-                            </div>
-                          </Zoom>
-                        ) : (
-                          <div className="w-full aspect-video bg-muted flex items-center justify-center">
-                            <span className="text-gray-400 text-sm">No Image</span>
+                    <div className="p-6">
+                      <div className="flex items-start gap-6">
+                        {/* Thumbnail Preview - Left Side */}
+                        <div className="flex-shrink-0">
+                          <div className="relative w-48 h-28 rounded-lg overflow-hidden border-2 border-gray-200 group-hover:border-primary/50 transition-all">
+                            {project.thumbnails[0]?.image ? (
+                              <>
+                                <Image
+                                  src={project.thumbnails[0].image}
+                                  alt={project.thumbnails[0].title || "Thumbnail preview"}
+                                  fill
+                                  sizes="192px"
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                                {/* Multiple Thumbnails Badge */}
+                                {project.thumbnails.length > 1 && (
+                                  <div className="absolute bottom-2.5 right-2.5 bg-gradient-to-r from-blue-600 to-purple-600 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xl border-2 border-white/20">
+                                    <ImageIcon className="h-4 w-4 text-white" />
+                                    <span className="text-white font-bold text-base leading-none">
+                                      +{project.thumbnails.length - 1}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="w-full h-full bg-muted flex items-center justify-center">
+                                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Content - Middle */}
-                      <div className="flex-1 p-4 flex flex-col justify-between">
-                        {/* Header Section */}
-                        <div>
-                          <div className="flex items-start justify-between gap-3 mb-2">
-                            <h3 className="text-lg font-bold text-gray-900 line-clamp-2 flex-1">
-                              {thumbnail.title || `Thumbnail - ${thumbnail.project?.title || "Generated"}`}
-                            </h3>
-                            <Badge 
-                              variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
-                              className={`shrink-0 ${
-                                thumbnail.status === "COMPLETED" 
-                                  ? "bg-green-100 text-green-800 border-green-200" 
-                                  : "bg-gray-100 text-gray-800 border-gray-200"
-                              }`}
-                            >
-                              {thumbnail.status === "COMPLETED" ? "Success" : "Pending"}
-                            </Badge>
+                        {/* Content - Middle */}
+                        <div className="flex-1 min-w-0">
+                          {/* Header */}
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <FolderOpen className="h-5 w-5 text-primary flex-shrink-0" />
+                                <h3 className="text-lg font-bold text-foreground line-clamp-1">
+                                  {project.title}
+                                </h3>
+                              </div>
+                              {project.id !== 'ungrouped' && (
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  Project ID: {project.id.slice(-12).toUpperCase()}
+                                </p>
+                              )}
+                            </div>
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 mb-3">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span suppressHydrationWarning>{getTimeAgo(new Date(thumbnail.createdAt))}</span>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground mb-3">
+                            <div className="flex items-center gap-1.5">
+                              <ImageIcon className="h-4 w-4" />
+                              <span className="font-medium">{project.thumbnails.length} Thumbnail{project.thumbnails.length !== 1 ? 's' : ''}</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Files className="h-3.5 w-3.5" />
-                              <span>1 Variant</span>
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="h-4 w-4" />
+                              <span suppressHydrationWarning>Last updated {getTimeAgo(new Date(project.latestDate))}</span>
                             </div>
-                            <span className="text-gray-400">
-                              ID: {thumbnail.id.slice(-12).toUpperCase()}
-                            </span>
+                          </div>
+
+                          {/* Status Summary */}
+                          <div className="flex items-center gap-2">
+                            {project.thumbnails.filter((t: any) => t.status === 'COMPLETED').length === project.thumbnails.length ? (
+                              <Badge className="bg-green-100 text-green-800 border-green-200">
+                                All Complete
+                              </Badge>
+                            ) : (
+                              <>
+                                <Badge className="bg-green-100 text-green-800 border-green-200">
+                                  {project.thumbnails.filter((t: any) => t.status === 'COMPLETED').length} Complete
+                                </Badge>
+                                {project.thumbnails.filter((t: any) => t.status !== 'COMPLETED').length > 0 && (
+                                  <Badge variant="secondary">
+                                    {project.thumbnails.filter((t: any) => t.status !== 'COMPLETED').length} Pending
+                                  </Badge>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
-                        
-                        {/* Project and Template Links */}
-                        {(thumbnail.projectId || thumbnail.templateId) && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            {thumbnail.projectId && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/dashboard/projects?edit=${thumbnail.projectId}`);
-                                }}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200 text-xs"
-                              >
-                                <Video className="h-3 w-3" />
-                                <span className="font-medium">Project:</span>
-                                <span className="font-mono">{thumbnail.projectId.slice(-8).toUpperCase()}</span>
-                                <ExternalLink className="h-2.5 w-2.5" />
-                              </button>
-                            )}
-                            {thumbnail.templateId && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/dashboard/templates?template=${thumbnail.templateId}`);
-                                }}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-200 text-xs"
-                              >
-                                <Palette className="h-3 w-3" />
-                                <span className="font-medium">Template:</span>
-                                <span className="font-mono">{thumbnail.templateId.toString().padStart(2, '0')}</span>
-                                <ExternalLink className="h-2.5 w-2.5" />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Action Buttons - Right Side */}
-                      <div className="flex flex-col items-center justify-center gap-2 p-4 border-l border-gray-200">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1.5 text-xs h-8 px-3 w-full"
-                          onClick={() => handleViewThumbnail(thumbnail)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          View
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1.5 text-xs h-8 px-3 w-full"
-                          onClick={() => handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`, thumbnail.id)}
-                          disabled={!thumbnail.image || isDownloading === thumbnail.id}
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          {isDownloading === thumbnail.id ? "Downloading..." : "Download"}
-                        </Button>
+                        {/* Action Button - Right Side */}
+                        <div className="flex items-center">
+                          <Button
+                            variant="outline"
+                            className="gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                          >
+                            View All
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -591,171 +738,274 @@ const History = () => {
             </>
           )}
         </>
+      ) : (
+        /* Project View - Shows all thumbnails in selected project */
+        <div className="space-y-6">
+          {selectedProject && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {selectedProject.thumbnails.map((thumbnail: any) => (
+                <Card 
+                  key={thumbnail.id}
+                  className="group overflow-hidden border border-gray-200/60 hover:border-primary/40 transition-all duration-300 hover:shadow-xl bg-white rounded-2xl"
+                >
+                  <div className="relative">
+                    {/* Thumbnail Image Container */}
+                    <div 
+                      className="relative w-full aspect-video overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 cursor-pointer"
+                      onClick={() => handleViewThumbnail(thumbnail)}
+                    >
+                      {thumbnail.image ? (
+                        <>
+                          <Image
+                            src={thumbnail.image}
+                            alt={thumbnail.title || "Thumbnail preview"}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            unoptimized
+                          />
+                          {/* Overlay on hover */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/95 backdrop-blur-sm rounded-full p-3 shadow-xl">
+                              <Eye className="h-5 w-5 text-primary" />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      
+                      {/* Action Buttons Overlay - Top Right */}
+                      <div className="absolute top-2.5 right-2.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {/* Download Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`, thumbnail.id);
+                          }}
+                          disabled={!thumbnail.image || isDownloading === thumbnail.id}
+                          className="bg-white/95 hover:bg-white backdrop-blur-md p-2 rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                          title="Download"
+                        >
+                          <Download className="h-3.5 w-3.5 text-blue-600 group-hover/btn:scale-110 transition-transform" />
+                        </button>
+                        
+                        {/* Delete Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(thumbnail);
+                          }}
+                          disabled={isDeleting === thumbnail.id}
+                          className="bg-white/95 hover:bg-white backdrop-blur-md p-2 rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-600 group-hover/btn:scale-110 transition-transform" />
+                        </button>
+                      </div>
+                      
+                      {/* Status Badge Overlay - Top Left */}
+                      <div className="absolute top-2.5 left-2.5">
+                        <Badge 
+                          variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
+                          className={`shadow-md text-[10px] px-2 py-0.5 ${
+                            thumbnail.status === "COMPLETED" 
+                              ? "bg-green-500/95 text-white border-0 font-semibold backdrop-blur-sm" 
+                              : "bg-gray-500/95 text-white border-0 font-semibold backdrop-blur-sm"
+                          }`}
+                        >
+                          {thumbnail.status === "COMPLETED" ? "✓" : "⏳"}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {/* Thumbnail Info Section */}
+                    <div className="p-4">
+                      {/* Title */}
+                      <h4 className="font-semibold text-[15px] line-clamp-2 text-foreground leading-tight mb-3 min-h-[2.6rem]">
+                        {thumbnail.title || `Thumbnail ${thumbnail.id.slice(-8).toUpperCase()}`}
+                      </h4>
+
+                      {/* Metadata Cards */}
+                      <div className="space-y-2">
+                        {/* Date and ID Row */}
+                        <div className="flex items-stretch gap-2">
+                          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50/50 rounded-lg flex-1 min-h-[28px]">
+                            <Calendar className="h-3.5 w-3.5 text-blue-600 flex-shrink-0" />
+                            <span suppressHydrationWarning className="text-xs text-blue-900/80 font-medium truncate leading-none">{getTimeAgo(new Date(thumbnail.createdAt))}</span>
+                          </div>
+                          <div className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gray-100/80 rounded-lg min-h-[28px]">
+                            <span className="font-mono text-[11px] text-gray-700 font-semibold leading-none">#{thumbnail.id.slice(-6).toUpperCase()}</span>
+                          </div>
+                        </div>
+
+                        {/* Template Badge */}
+                        {thumbnail.templateId && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/dashboard/templates?template=${thumbnail.templateId}`);
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all duration-200 border border-purple-100 hover:border-purple-200 w-full group/template min-h-[32px]"
+                          >
+                            <Palette className="h-3.5 w-3.5 text-purple-600 flex-shrink-0" />
+                            <span className="text-xs font-semibold text-purple-700 flex-1 text-left leading-none">Template #{thumbnail.templateId.toString().padStart(2, '0')}</span>
+                            <ExternalLink className="h-3 w-3 text-purple-600 opacity-0 group-hover/template:opacity-100 transition-opacity flex-shrink-0" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Thumbnail View Sheet */}
-      <Sheet open={!!selectedThumbnail} onOpenChange={() => setSelectedThumbnail(null)}>
-        <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col">
-          <SheetHeader className="px-6 py-4 border-b">
-            <SheetTitle>
-              {selectedThumbnail?.title || `Thumbnail - ${selectedThumbnail?.project?.title || "Preview"}`}
-            </SheetTitle>
-            <SheetDescription>
-              View and download thumbnail details
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="flex-1 overflow-y-auto px-6 py-6">
-            {selectedThumbnail && (
-              <div className="space-y-6">
-                {/* Thumbnail Image */}
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden border">
-                  <Zoom
-                    zoomImg={{
-                      src: selectedThumbnail.image,
-                      alt: selectedThumbnail.title || "Thumbnail preview",
-                      width: 800,
-                      height: 600,
-                    }}
-                    zoomMargin={40}
-                    classDialog="custom-zoom"
-                  >
-                    <div className="relative w-full aspect-video">
-                      <Image
-                        src={selectedThumbnail.image}
-                        alt={selectedThumbnail.title || "Thumbnail preview"}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 60vw"
-                        className="object-contain bg-muted"
-                        priority={false}
-                        unoptimized
-                      />
-                    </div>
-                  </Zoom>
-                </div>
+      {/* Thumbnail Lightbox View */}
+      {selectedThumbnail && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedThumbnail(null)}
+        >
+          <div 
+            className="relative max-w-7xl w-full max-h-[90vh] flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedThumbnail(null)}
+              className="absolute top-4 right-4 z-10 bg-white/10 hover:bg-white/20 backdrop-blur-md p-3 rounded-full transition-all hover:scale-110 group"
+              title="Close (Esc)"
+            >
+              <X className="h-6 w-6 text-white" />
+            </button>
 
-                {/* Thumbnail Details */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Status
-                      </p>
-                      <Badge 
-                        variant={selectedThumbnail.status === "COMPLETED" ? "default" : "secondary"}
-                        className={`${
-                          selectedThumbnail.status === "COMPLETED" 
-                            ? "bg-green-100 text-green-800 border-green-200" 
-                            : "bg-gray-100 text-gray-800 border-gray-200"
-                        }`}
-                      >
-                        {selectedThumbnail.status === "COMPLETED" ? "Success" : "Pending"}
-                      </Badge>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Thumbnail ID
-                      </p>
-                      <p className="text-sm font-mono text-foreground">
-                        {selectedThumbnail.id.slice(-12).toUpperCase()}
-                      </p>
-                    </div>
-                  </div>
+            {/* Action Buttons */}
+            <div className="absolute top-4 left-4 z-10 flex gap-3">
+              <button
+                onClick={() => handleDownload(selectedThumbnail.image, selectedThumbnail.title || `thumbnail-${selectedThumbnail.id.slice(-8)}`, selectedThumbnail.id)}
+                disabled={!selectedThumbnail.image || isDownloading === selectedThumbnail.id}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-3 rounded-full transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group"
+                title="Download"
+              >
+                <Download className="h-5 w-5 text-white" />
+              </button>
+              <button
+                onClick={() => handleDeleteClick(selectedThumbnail)}
+                disabled={isDeleting === selectedThumbnail.id}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-3 rounded-full transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group"
+                title="Delete"
+              >
+                <Trash2 className="h-5 w-5 text-white" />
+              </button>
+            </div>
 
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Project
-                    </p>
-                    <p className="text-sm text-foreground">
-                      {selectedThumbnail.project?.title || "No Project"}
-                    </p>
-                  </div>
+            {/* Thumbnail Image */}
+            <div className="relative max-w-full max-h-full">
+              <Zoom
+                zoomImg={{
+                  src: selectedThumbnail.image,
+                  alt: selectedThumbnail.title || "Thumbnail preview",
+                  width: 1920,
+                  height: 1080,
+                }}
+                zoomMargin={40}
+                classDialog="custom-zoom"
+              >
+                <Image
+                  src={selectedThumbnail.image}
+                  alt={selectedThumbnail.title || "Thumbnail preview"}
+                  width={1280}
+                  height={720}
+                  className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+                  unoptimized
+                  priority
+                />
+              </Zoom>
+            </div>
 
-                  {/* Project ID Link */}
-                  {selectedThumbnail.projectId && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Project ID
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          router.push(`/dashboard/projects?edit=${selectedThumbnail.projectId}`);
-                          setSelectedThumbnail(null);
-                        }}
-                        className="w-full justify-start gap-2"
-                      >
-                        <Video className="h-4 w-4" />
-                        <span className="font-mono">{selectedThumbnail.projectId.slice(-8).toUpperCase()}</span>
-                        <ExternalLink className="h-3 w-3 ml-auto" />
-                      </Button>
+            {/* Info Overlay - Bottom */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
+              <div className="flex items-end justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-bold text-xl mb-2 truncate">
+                    {selectedThumbnail.title || `Thumbnail ${selectedThumbnail.id.slice(-8).toUpperCase()}`}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4" />
+                      <span suppressHydrationWarning>{getTimeAgo(new Date(selectedThumbnail.createdAt))}</span>
                     </div>
-                  )}
-
-                  {/* Template ID Link */}
-                  {selectedThumbnail.templateId && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Template ID
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
+                    {selectedThumbnail.templateId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           router.push(`/dashboard/templates?template=${selectedThumbnail.templateId}`);
                           setSelectedThumbnail(null);
                         }}
-                        className="w-full justify-start gap-2"
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all"
                       >
-                        <Palette className="h-4 w-4" />
-                        <span className="font-mono">Template #{selectedThumbnail.templateId.toString().padStart(2, '0')}</span>
-                        <ExternalLink className="h-3 w-3 ml-auto" />
-                      </Button>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Created
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm text-foreground" suppressHydrationWarning>
-                        {getTimeAgo(new Date(selectedThumbnail.createdAt))}
-                      </p>
-                    </div>
+                        <Palette className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">Template #{selectedThumbnail.templateId.toString().padStart(2, '0')}</span>
+                      </button>
+                    )}
+                    {selectedThumbnail.projectId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/projects?edit=${selectedThumbnail.projectId}`);
+                          setSelectedThumbnail(null);
+                        }}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all"
+                      >
+                        <Video className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">Open Project</span>
+                      </button>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons Footer */}
-          {selectedThumbnail && (
-            <div className="px-6 py-4 border-t mt-auto">
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => handleDownload(selectedThumbnail.image, selectedThumbnail.title || `thumbnail-${selectedThumbnail.id.slice(-8)}`, selectedThumbnail.id)}
-                  className="flex-1 flex items-center justify-center gap-2"
-                  disabled={isDownloading === selectedThumbnail.id}
+                <Badge 
+                  className={`shrink-0 ${
+                    selectedThumbnail.status === "COMPLETED" 
+                      ? "bg-green-500/90 text-white border-0" 
+                      : "bg-gray-500/90 text-white border-0"
+                  }`}
                 >
-                  <Download className="h-4 w-4" />
-                  {isDownloading === selectedThumbnail.id ? "Downloading..." : "Download"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSelectedThumbnail(null)}
-                  className="flex-1"
-                  disabled={isDownloading === selectedThumbnail.id}
-                >
-                  Close
-                </Button>
+                  {selectedThumbnail.status === "COMPLETED" ? "✓ Complete" : "⏳ Pending"}
+                </Badge>
               </div>
             </div>
-          )}
-        </SheetContent>
-      </Sheet>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the thumbnail &quot;{thumbnailToDelete?.title || `Thumbnail ${thumbnailToDelete?.id.slice(-8).toUpperCase()}`}&quot;. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting === thumbnailToDelete?.id}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting === thumbnailToDelete?.id}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting === thumbnailToDelete?.id ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

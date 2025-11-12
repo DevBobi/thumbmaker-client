@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { GeneratedAd } from '@/types/ad.types';
 
@@ -13,10 +14,12 @@ const AdPreview = ({ ad }: AdPreviewProps) => {
       <CardContent className="p-4">
         <h3 className="font-medium mb-4">Ad Preview</h3>
         <div className="aspect-[4/3] relative overflow-hidden rounded-md">
-          <img 
+          <Image 
             src={ad.finalImageUrl || ad.imageUrl} 
             alt="Ad preview"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 400px"
           />
         </div>
         

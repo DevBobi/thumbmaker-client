@@ -79,7 +79,7 @@ const GeneratedAdsPage = () => {
     return () => {
       clearInterval(intervalId);
     };
-  }, [campaignId]);
+  }, [campaignId, authFetch]);
 
   const handleDownload = (imageUrl: string, title: string) => {
     const link = document.createElement("a");
@@ -226,7 +226,7 @@ const GeneratedAdsPage = () => {
 
       {ads.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">No ads have been generated yet.</p>
+          <p className="text-muted-foreground mb-4">No ads have been generated yet.</p>
           <Button onClick={handleBack} variant="outline">
             Return to Dashboard
           </Button>

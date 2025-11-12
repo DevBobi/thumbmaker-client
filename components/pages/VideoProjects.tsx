@@ -11,6 +11,7 @@ import {
   List,
   ArrowUpDown,
   Loader2,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -309,35 +310,43 @@ const VideoProjects = () => {
               key={project.id}
               id={`project-${project.id}`}
               onClick={() => handleEditProject(project.id)}
-              className={`group cursor-pointer ${isHighlighted ? "animate-pulse" : ""}`}
+              className={`group cursor-pointer h-full ${isHighlighted ? "animate-pulse" : ""}`}
             >
-              <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden transition-all duration-300 ${
+              <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full ${
                 isHighlighted 
                   ? "ring-4 ring-brand-500 shadow-xl border-brand-500" 
                   : "shadow-sm hover:shadow-lg"
               }`}>
-                <div className="aspect-video relative bg-muted">
+                <div className="aspect-video relative bg-muted flex-shrink-0">
                   <Image
                     src={project.image || "/logo/youtube.png"}
                     alt={project.title}
                     fill
-                    className="object-contain"
+                    className="object-contain group-hover:scale-105 transition-transform duration-500"
                     onError={(e) => {
                       console.log("Image load error:", e);
                       e.currentTarget.src = "/logo/youtube.png";
                     }}
                   />
+                  {/* Hover overlay with icon */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
+                      <div className="bg-white rounded-full p-3 shadow-xl">
+                        <Eye className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-brand-600 transition-colors">
+                <div className="p-4 flex flex-col flex-grow">
+                  <h3 className="font-bold text-lg text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors min-h-[3.5rem]">
                     {project.title}
                   </h3>
 
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3 flex-grow min-h-[2.5rem]">
                     {project.description}
                   </p>
 
-                  <div className="flex items-center text-xs text-gray-500">
+                  <div className="flex items-center text-xs text-muted-foreground/70 mt-auto">
                     {project.createdAt && getDaysAgo(project.createdAt)}
                   </div>
                 </div>
@@ -369,22 +378,30 @@ const VideoProjects = () => {
                         src={project.image || "/logo/youtube.png"}
                         alt={project.title}
                         fill
-                        className="object-contain"
+                        className="object-contain group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           console.log("Image load error:", e);
                           e.currentTarget.src = "/logo/youtube.png";
                         }}
                       />
+                      {/* Hover overlay with icon */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
+                          <div className="bg-white rounded-full p-3 shadow-xl">
+                            <Eye className="h-6 w-6 text-primary" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex-1 p-4 min-w-0">
-                    <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-brand-600 transition-colors">
+                    <h3 className="font-bold text-lg text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
                       {project.title}
                     </h3>
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                       {project.description}
                     </p>
-                    <div className="flex items-center text-xs text-gray-500">
+                    <div className="flex items-center text-xs text-muted-foreground/70">
                       {project.createdAt
                         ? getDaysAgo(project.createdAt)
                         : "No date"}
@@ -411,12 +428,17 @@ const VideoProjects = () => {
       {/* Project View/Edit Sheet */}
       <VideoProjectSheet
         open={isEditSheetOpen}
-        onOpenChange={setIsEditSheetOpen}
+        onOpenChange={(open) => {
+          setIsEditSheetOpen(open);
+          if (!open) {
+            // Clear the editing project ID when sheet closes
+            setEditingProjectId(null);
+          }
+        }}
         mode="view"
         projectId={editingProjectId || undefined}
         onSuccess={() => {
           refetch();
-          setEditingProjectId(null);
         }}
       />
     </div>

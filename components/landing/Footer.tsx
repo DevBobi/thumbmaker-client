@@ -18,19 +18,19 @@ export function Footer() {
             </p>
             <div className="flex flex-col space-y-1">
               <Link
-                className="text-xs text-gray-600 hover:text-brand-600 transition-colors"
+                className="text-xs text-gray-600 hover:text-primary transition-colors"
                 href="/pricing"
               >
                 Pricing
               </Link>
               <Link
-                className="text-[10px] text-gray-600 hover:text-brand-600 transition-colors"
+                className="text-[10px] text-gray-600 hover:text-primary transition-colors"
                 href="/terms-conditions"
               >
                 Terms & Conditions
               </Link>
               <Link
-                className="text-[10px] text-gray-600 hover:text-brand-600 transition-colors"
+                className="text-[10px] text-gray-600 hover:text-primary transition-colors"
                 href="/privacy-policy"
               >
                 Privacy Policy
@@ -41,16 +41,16 @@ export function Footer() {
           <div className="space-y-3">
             <h3 className="font-semibold text-base text-gray-900">Key Features</h3>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 One-Shot Thumbnail Generation
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 AI Text Overlays
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Proven Templates
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Multi-Format Export
               </li>
             </ul>
@@ -59,28 +59,28 @@ export function Footer() {
           <div className="space-y-3">
             <h3 className="font-semibold text-base text-gray-900">Thumbnail Styles</h3>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Gaming Content
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Educational Videos
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Vlogs & Lifestyle
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Tech Reviews
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 How-To Tutorials
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Product Reviews
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Entertainment
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Business & Finance
               </li>
             </ul>
@@ -89,33 +89,33 @@ export function Footer() {
           <div className="space-y-3">
             <h3 className="font-semibold text-base text-gray-900">Creation Tools</h3>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Product Profiling
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Template Filtering
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Text Generation
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Visual Asset Creation
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Thumbnail Variations
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Format Optimization
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Video Project Management
               </li>
-              <li className="hover:text-brand-600 transition-colors">
+              <li className="hover:text-primary transition-colors">
                 Performance Analytics
               </li>
               <li>
                 <Link
-                  className="text-sm transition-colors hover:text-brand-600"
+                  className="text-sm transition-colors hover:text-primary"
                   href="/tools"
                 >
                   View all tools

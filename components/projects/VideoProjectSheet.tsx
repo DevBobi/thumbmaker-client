@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { uploadToStorage } from "@/actions/upload";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,7 @@ import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Image, Plus, X, Sparkles, Loader2, Trash2, Video } from "lucide-react";
+import { Plus, X, Sparkles, Loader2, Trash2, Image as ImageIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +33,6 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BulkVideoLinksDialog } from "@/components/dialogs/BulkVideoLinksDialog";
 
 // Form validation schema
 const formSchema = z.object({
@@ -86,9 +86,6 @@ export function VideoProjectSheet({
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Bulk video links dialog state
-  const [bulkVideoDialogOpen, setBulkVideoDialogOpen] = useState(false);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -105,6 +102,28 @@ export function VideoProjectSheet({
   useEffect(() => {
     setCurrentMode(mode);
   }, [mode]);
+
+  // Reset state when sheet closes
+  useEffect(() => {
+    if (!open) {
+      // Reset all state when sheet closes
+      setProjectData(null);
+      setImageFile(null);
+      setImagePreview(null);
+      setHighlights([""]);
+      setBriefDescription("");
+      setIsEnhanced(false);
+      setTextContent("");
+      setYoutubeLink("");
+      setDocumentFile(null);
+      form.reset({
+        videoTitle: "",
+        videoDescription: "",
+        targetAudience: "",
+        image: "",
+      });
+    }
+  }, [open, form]);
 
   // Load project data if in edit or view mode
   useEffect(() => {
@@ -278,7 +297,7 @@ export function VideoProjectSheet({
         throw new Error("Failed to create project");
       }
 
-      const data = await response.json();
+      await response.json();
       toast({
         title: "Project created",
         description: "Your project has been created successfully.",
@@ -369,7 +388,7 @@ export function VideoProjectSheet({
         throw new Error(`Error: ${response.status} - ${response.statusText}`);
       }
 
-      const data = await response.json();
+      await response.json();
 
       toast({
         title: currentMode === "edit" ? "Project updated" : "Project created",
@@ -461,7 +480,7 @@ export function VideoProjectSheet({
       } else {
         throw new Error("Failed to delete project");
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to delete the project. Please try again.",
@@ -539,11 +558,13 @@ export function VideoProjectSheet({
             {projectData?.image && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Project Image</label>
-                <div className="mt-2 flex justify-center bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
-                  <img 
+                <div className="mt-2 flex justify-center bg-gray-50 dark:bg-gray-900 rounded-lg border p-2 relative" style={{ minHeight: '256px' }}>
+                  <Image 
                     src={projectData.image} 
                     alt={projectData.title || "Project image"} 
-                    className="w-full max-h-64 object-contain rounded-lg"
+                    fill
+                    className="object-contain rounded-lg"
+                    sizes="(max-width: 768px) 100vw, 600px"
                   />
                 </div>
               </div>
@@ -585,28 +606,18 @@ export function VideoProjectSheet({
             </div>
           </div>
           
-          <div className="flex flex-col gap-2 pt-4 border-t">
-            <Button 
-              onClick={() => setBulkVideoDialogOpen(true)} 
-              className="w-full gap-2"
-              variant="brand"
-            >
-              <Video className="h-4 w-4" />
-              Add YouTube Links & Generate Thumbnails
+          <div className="flex gap-2 pt-4 border-t">
+            <Button onClick={handleEdit} className="flex-1" variant={"outline"}>
+              Edit Project Information
             </Button>
-            <div className="flex gap-2">
-              <Button onClick={handleEdit} className="flex-1" variant={"outline"}>
-                Edit Project Information
-              </Button>
-              <Button 
-                onClick={handleDeleteClick} 
-                variant="destructive"
-                className="gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
-            </div>
+            <Button 
+              onClick={handleDeleteClick} 
+              variant="destructive"
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
           </div>
         </div>
       ) : currentMode === "create" ? (
@@ -713,15 +724,15 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
-                      <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                      <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                       <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="text-image-upload" />
                   <label htmlFor="text-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
                     <div className="flex flex-col items-center gap-2">
-                      <Image className="h-6 w-6 text-gray-400" />
+                      <ImageIcon className="h-6 w-6 text-gray-400" />
                       <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
                       <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
                     </div>
@@ -746,15 +757,15 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
-                      <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                      <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                       <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="youtube-image-upload" />
                   <label htmlFor="youtube-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
                     <div className="flex flex-col items-center gap-2">
-                      <Image className="h-6 w-6 text-gray-400" />
+                      <ImageIcon className="h-6 w-6 text-gray-400" />
                       <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
                       <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
                     </div>
@@ -780,15 +791,15 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
-                      <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                      <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                       <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="doc-image-upload" />
                   <label htmlFor="doc-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
                     <div className="flex flex-col items-center gap-2">
-                      <Image className="h-6 w-6 text-gray-400" />
+                      <ImageIcon className="h-6 w-6 text-gray-400" />
                       <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
                       <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
                     </div>
@@ -819,14 +830,14 @@ export function VideoProjectSheet({
                 <FormField
                   control={form.control}
                   name="image"
-                  render={({ field }) => (
+                  render={() => (
                     <FormItem>
                       <FormLabel>Project Image</FormLabel>
                       <FormControl>
                         <div className="space-y-4">
                           {imagePreview && (
-                            <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
-                              <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-lg mx-auto" />
+                            <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                              <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                               <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                             </div>
                           )}
@@ -834,7 +845,7 @@ export function VideoProjectSheet({
                             <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
                             <label htmlFor="image-upload" className="flex-1 cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
                               <div className="flex flex-col items-center gap-2">
-                                <Image className="h-6 w-6 text-gray-400" />
+                                <ImageIcon className="h-6 w-6 text-gray-400" />
                                 <span className="text-sm text-gray-600">{imagePreview ? "Change" : "Upload"}</span>
                               </div>
                             </label>
@@ -922,14 +933,14 @@ export function VideoProjectSheet({
             <FormField
               control={form.control}
               name="image"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Project Image</FormLabel>
                   <FormControl>
                     <div className="space-y-4">
                       {imagePreview && (
-                        <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg border p-2">
-                          <img src={imagePreview} alt="Preview" className="w-full max-h-64 object-contain rounded-lg mx-auto" />
+                        <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                          <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                           <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                         </div>
                       )}
@@ -937,7 +948,7 @@ export function VideoProjectSheet({
                         <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
                         <label htmlFor="image-upload" className="flex-1 cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
                           <div className="flex flex-col items-center gap-2">
-                            <Image className="h-8 w-8 text-gray-400" />
+                            <ImageIcon className="h-8 w-8 text-gray-400" />
                             <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
                             <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
                           </div>
@@ -1027,19 +1038,6 @@ export function VideoProjectSheet({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-
-    <BulkVideoLinksDialog
-      open={bulkVideoDialogOpen}
-      onOpenChange={setBulkVideoDialogOpen}
-      projectId={projectId}
-      onSuccess={() => {
-        // Refresh thumbnails or navigate to thumbnails page
-        toast({
-          title: "Thumbnails generated",
-          description: "Your thumbnails have been generated successfully",
-        });
-      }}
-    />
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import Image from "next/image";
 import { Edit, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -194,12 +195,16 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       }
                     >
                       {imagePreview ? (
-                        <div className="w-full">
-                          <img
-                            src={imagePreview}
-                            alt="Template preview"
-                            className="max-h-72 mx-auto rounded-md object-contain"
-                          />
+                        <div className="w-full flex justify-center">
+                          <div className="relative w-full max-h-72" style={{ aspectRatio: '16/9' }}>
+                            <Image
+                              src={imagePreview}
+                              alt="Template preview"
+                              fill
+                              className="rounded-md object-contain"
+                              sizes="(max-width: 768px) 100vw, 600px"
+                            />
+                          </div>
                           <p className="text-sm text-muted-foreground text-center mt-2">
                             Click to change image
                           </p>

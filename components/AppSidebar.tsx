@@ -76,7 +76,7 @@ export function AppSidebar({
   subscription: Subscription;
 }) {
   const pathname = usePathname();
-  const { isLoading, error, handleGetFreeCredits } = useFreeCredits();
+  const { } = useFreeCredits();
 
   return (
     <Sidebar className="bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 border-r border-gray-200 dark:border-gray-800">

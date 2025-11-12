@@ -46,9 +46,6 @@ interface AutomatedInputFormProps {
 }
 
 const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) => {
-  const [inspirationPreview, setInspirationPreview] = useState<string | null>(
-    null
-  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<"text" | "youtube" | "document">(defaultTab);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
