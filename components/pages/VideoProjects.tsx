@@ -312,7 +312,7 @@ const VideoProjects = () => {
               onClick={() => handleEditProject(project.id)}
               className={`group cursor-pointer h-full ${isHighlighted ? "animate-pulse" : ""}`}
             >
-              <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full ${
+              <div className={`bg-card border rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full ${
                 isHighlighted 
                   ? "ring-4 ring-brand-500 shadow-xl border-brand-500" 
                   : "shadow-sm hover:shadow-lg"
@@ -331,7 +331,7 @@ const VideoProjects = () => {
                   {/* Hover overlay with icon */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
                     <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
-                      <div className="bg-white rounded-full p-3 shadow-xl">
+                      <div className="bg-background dark:bg-card rounded-full p-3 shadow-xl">
                         <Eye className="h-6 w-6 text-primary" />
                       </div>
                     </div>
@@ -366,7 +366,7 @@ const VideoProjects = () => {
               onClick={() => handleEditProject(project.id)}
               className={`group cursor-pointer ${isHighlighted ? "animate-pulse" : ""}`}
             >
-              <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden transition-all duration-300 ${
+              <div className={`bg-card border rounded-xl overflow-hidden transition-all duration-300 ${
                 isHighlighted
                   ? "ring-4 ring-brand-500 shadow-xl border-brand-500"
                   : "shadow-sm hover:shadow-lg"
@@ -387,7 +387,7 @@ const VideoProjects = () => {
                       {/* Hover overlay with icon */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
-                          <div className="bg-white rounded-full p-3 shadow-xl">
+                          <div className="bg-background dark:bg-card rounded-full p-3 shadow-xl">
                             <Eye className="h-6 w-6 text-primary" />
                           </div>
                         </div>

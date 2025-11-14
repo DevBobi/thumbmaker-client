@@ -558,7 +558,7 @@ export function VideoProjectSheet({
             {projectData?.image && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Project Image</label>
-                <div className="mt-2 flex justify-center bg-gray-50 dark:bg-gray-900 rounded-lg border p-2 relative" style={{ minHeight: '256px' }}>
+                <div className="mt-2 flex justify-center bg-muted/30 rounded-lg border p-2 relative" style={{ minHeight: '256px' }}>
                   <Image 
                     src={projectData.image} 
                     alt={projectData.title || "Project image"} 
@@ -623,29 +623,44 @@ export function VideoProjectSheet({
       ) : currentMode === "create" ? (
         // Create mode with tabs
         <div className="space-y-4">
-          <Tabs value={creationMethod} onValueChange={(value: any) => setCreationMethod(value)}>
-            <TabsList className="grid w-full grid-cols-5 mb-4">
+          <Tabs value={creationMethod === "ai-enhanced" || creationMethod === "text" || creationMethod === "youtube" || creationMethod === "document" ? "ai" : "manual"} onValueChange={(value: any) => {
+            if (value === "manual") {
+              setCreationMethod("manual");
+            } else {
+              setCreationMethod("ai-enhanced");
+            }
+          }}>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="manual">Manual</TabsTrigger>
-              <TabsTrigger value="ai-enhanced">AI</TabsTrigger>
-              <TabsTrigger value="text">Text</TabsTrigger>
-              <TabsTrigger value="youtube">YouTube</TabsTrigger>
-              <TabsTrigger value="document">Doc</TabsTrigger>
+              <TabsTrigger value="ai">AI-Enhanced</TabsTrigger>
             </TabsList>
 
             <TabsContent value="manual">
               <p className="text-sm text-muted-foreground mb-4">Fill in all project details manually</p>
             </TabsContent>
-            <TabsContent value="ai-enhanced">
-              <p className="text-sm text-muted-foreground mb-4">Provide a brief description and let AI expand it</p>
-            </TabsContent>
-            <TabsContent value="text">
-              <p className="text-sm text-muted-foreground mb-4">Paste your content and AI will analyze it</p>
-            </TabsContent>
-            <TabsContent value="youtube">
-              <p className="text-sm text-muted-foreground mb-4">Provide a YouTube link for automatic extraction</p>
-            </TabsContent>
-            <TabsContent value="document">
-              <p className="text-sm text-muted-foreground mb-4">Upload a document for AI analysis</p>
+            
+            <TabsContent value="ai">
+              <Tabs value={creationMethod === "manual" ? "ai-enhanced" : creationMethod} onValueChange={(value: any) => setCreationMethod(value)}>
+                <TabsList className="grid w-full grid-cols-4 mb-4">
+                  <TabsTrigger value="ai-enhanced">AI Form</TabsTrigger>
+                  <TabsTrigger value="text">Text</TabsTrigger>
+                  <TabsTrigger value="youtube">YouTube</TabsTrigger>
+                  <TabsTrigger value="document">Document</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="ai-enhanced">
+                  <p className="text-sm text-muted-foreground mb-4">Provide a brief description and let AI expand it</p>
+                </TabsContent>
+                <TabsContent value="text">
+                  <p className="text-sm text-muted-foreground mb-4">Paste your content and AI will analyze it</p>
+                </TabsContent>
+                <TabsContent value="youtube">
+                  <p className="text-sm text-muted-foreground mb-4">Provide a YouTube link for automatic extraction</p>
+                </TabsContent>
+                <TabsContent value="document">
+                  <p className="text-sm text-muted-foreground mb-4">Upload a document for AI analysis</p>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           </Tabs>
 
@@ -724,17 +739,17 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                    <div className="relative mb-2 bg-muted/30 rounded-lg border p-2" style={{ minHeight: '192px' }}>
                       <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                       <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="text-image-upload" />
-                  <label htmlFor="text-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
+                  <label htmlFor="text-image-upload" className="cursor-pointer border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors block">
                     <div className="flex flex-col items-center gap-2">
-                      <ImageIcon className="h-6 w-6 text-gray-400" />
-                      <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
-                      <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{imagePreview ? "Change Image" : "Upload Image"}</span>
+                      <span className="text-xs text-muted-foreground/60">PNG, JPG, GIF up to 10MB</span>
                     </div>
                   </label>
                 </div>
@@ -757,17 +772,17 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                    <div className="relative mb-2 bg-muted/30 rounded-lg border p-2" style={{ minHeight: '192px' }}>
                       <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                       <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="youtube-image-upload" />
-                  <label htmlFor="youtube-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
+                  <label htmlFor="youtube-image-upload" className="cursor-pointer border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors block">
                     <div className="flex flex-col items-center gap-2">
-                      <ImageIcon className="h-6 w-6 text-gray-400" />
-                      <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
-                      <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{imagePreview ? "Change Image" : "Upload Image"}</span>
+                      <span className="text-xs text-muted-foreground/60">PNG, JPG, GIF up to 10MB</span>
                     </div>
                   </label>
                 </div>
@@ -791,17 +806,17 @@ export function VideoProjectSheet({
                 <label className="text-sm font-medium">Project Image (Optional)</label>
                 <div className="mt-2">
                   {imagePreview && (
-                    <div className="relative mb-2 bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                    <div className="relative mb-2 bg-muted/30 rounded-lg border p-2" style={{ minHeight: '192px' }}>
                       <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                       <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                     </div>
                   )}
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="doc-image-upload" />
-                  <label htmlFor="doc-image-upload" className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
+                  <label htmlFor="doc-image-upload" className="cursor-pointer border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors block">
                     <div className="flex flex-col items-center gap-2">
-                      <ImageIcon className="h-6 w-6 text-gray-400" />
-                      <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
-                      <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{imagePreview ? "Change Image" : "Upload Image"}</span>
+                      <span className="text-xs text-muted-foreground/60">PNG, JPG, GIF up to 10MB</span>
                     </div>
                   </label>
                 </div>
@@ -836,17 +851,17 @@ export function VideoProjectSheet({
                       <FormControl>
                         <div className="space-y-4">
                           {imagePreview && (
-                            <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                            <div className="relative bg-muted/30 rounded-lg border p-2" style={{ minHeight: '192px' }}>
                               <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                               <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                             </div>
                           )}
                           <div>
                             <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
-                            <label htmlFor="image-upload" className="flex-1 cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors block">
+                            <label htmlFor="image-upload" className="flex-1 cursor-pointer border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors block">
                               <div className="flex flex-col items-center gap-2">
-                                <ImageIcon className="h-6 w-6 text-gray-400" />
-                                <span className="text-sm text-gray-600">{imagePreview ? "Change" : "Upload"}</span>
+                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">{imagePreview ? "Change" : "Upload"}</span>
                               </div>
                             </label>
                           </div>
@@ -939,18 +954,18 @@ export function VideoProjectSheet({
                   <FormControl>
                     <div className="space-y-4">
                       {imagePreview && (
-                        <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg border p-2" style={{ minHeight: '192px' }}>
+                        <div className="relative bg-muted/30 rounded-lg border p-2" style={{ minHeight: '192px' }}>
                           <Image src={imagePreview} alt="Preview" fill className="object-contain rounded-lg" sizes="(max-width: 768px) 100vw, 600px" unoptimized />
                           <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg">×</button>
                         </div>
                       )}
                       <div className="flex items-center gap-4">
                         <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
-                        <label htmlFor="image-upload" className="flex-1 cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                        <label htmlFor="image-upload" className="flex-1 cursor-pointer border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
                           <div className="flex flex-col items-center gap-2">
-                            <ImageIcon className="h-8 w-8 text-gray-400" />
-                            <span className="text-sm text-gray-600">{imagePreview ? "Change Image" : "Upload Image"}</span>
-                            <span className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</span>
+                            <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">{imagePreview ? "Change Image" : "Upload Image"}</span>
+                            <span className="text-xs text-muted-foreground/60">PNG, JPG, GIF up to 10MB</span>
                           </div>
                         </label>
                       </div>

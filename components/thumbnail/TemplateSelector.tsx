@@ -2,6 +2,12 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Pagination,
   PaginationContent,
@@ -24,9 +30,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Check,
   ExternalLink,
-  Search,
   X,
   FilterX,
+  Tag,
+  User,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -187,6 +196,32 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     setCurrentPage(1);
   }, [templateType]);
 
+  // Query for fetching ALL templates metadata (for filters)
+  const { data: allTemplatesData } = useQuery<PaginatedResponse, Error>({
+    queryKey: ["templates-metadata", templateType],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "1000", // Get a large number to fetch all metadata
+      });
+
+      if (templateType === "user") params.append("type", "user");
+
+      const endpoint = templateType === "user" 
+        ? `/api/templates/user?${params.toString()}`
+        : `/api/templates/presets?${params.toString()}`;
+      
+      const response = await authFetch(endpoint);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch template metadata`);
+      }
+
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   // Query for fetching templates with pagination
   const { data, status, error } = useQuery<
     PaginatedResponse,
@@ -201,7 +236,12 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
       if (filters.searchQuery) params.append("search", filters.searchQuery);
       if (filters.creator !== "all") params.append("creator", filters.creator);
-      if (filters.tag !== "all") params.append("tag", filters.tag);
+      if (filters.tag !== "all") {
+        // Try both 'tag' and 'category' parameters in case backend uses different naming
+        params.append("tag", filters.tag);
+        params.append("category", filters.tag);
+        console.log("🔍 Filtering by category/tag:", filters.tag);
+      }
       if (templateType === "user") params.append("type", "user");
 
       // Use different endpoint based on template type
@@ -209,13 +249,22 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         ? `/api/templates/user?${params.toString()}`
         : `/api/templates/presets?${params.toString()}`;
       
+      console.log("📡 API Request:", endpoint);
+      
       const response = await authFetch(endpoint);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch ${templateType} templates: ${response.statusText}`);
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log("📊 Results:", {
+        total: result.pagination?.total,
+        count: result.templates?.length,
+        filter: filters.tag !== "all" ? filters.tag : "none"
+      });
+
+      return result;
     },
   });
 
@@ -223,22 +272,24 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const templates = React.useMemo(() => data?.templates || [], [data?.templates]);
   const totalPages = data?.pagination?.pages || 1;
 
-  // Extract unique creators and tags from all templates
+  // Extract unique creators and tags from ALL templates (not just current page)
+  const allTemplates = React.useMemo(() => allTemplatesData?.templates || [], [allTemplatesData?.templates]);
+
   const uniqueCreators = React.useMemo(() => {
     const creators = new Set<string>();
-    templates.forEach(template => {
+    allTemplates.forEach(template => {
       if (template.creator) creators.add(template.creator);
     });
     return Array.from(creators).sort();
-  }, [templates]);
+  }, [allTemplates]);
 
   const uniqueTags = React.useMemo(() => {
     const tags = new Set<string>();
-    templates.forEach(template => {
+    allTemplates.forEach(template => {
       template.tags?.forEach(tag => tags.add(tag));
     });
     return Array.from(tags).sort();
-  }, [templates]);
+  }, [allTemplates]);
 
   // Handlers
   const handleTemplateClick = useCallback(
@@ -270,7 +321,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     setCurrentPage(page);
   };
 
-  const hasActiveFilters = filters.searchQuery || filters.creator !== "all" || filters.tag !== "all";
+  const hasActiveFilters = filters.searchQuery.trim() !== "" || filters.creator !== "all" || filters.tag !== "all";
 
   const clearFilters = () => {
     setFilters({
@@ -278,6 +329,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       creator: "all",
       tag: "all",
     });
+    setCurrentPage(1);
   };
 
   return (
@@ -342,76 +394,154 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       </div>
 
       {/* Search and Filters */}
-      <div className="space-y-3">
+      <div className="space-y-4">
+        {/* Search Bar and Dropdowns */}
         <div className="flex flex-col lg:flex-row gap-3">
-          {/* Search Bar */}
+          {/* Search Input */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search templates..."
               value={filters.searchQuery}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))
-              }
-              className="pl-9 h-10"
+              onChange={(e) => {
+                setFilters((prev) => ({ ...prev, searchQuery: e.target.value }));
+                setCurrentPage(1);
+              }}
+              className="pl-9"
             />
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3">
+          {/* Dropdowns */}
+          <div className="flex gap-3">
             {/* Creator Filter */}
             <Select
               value={filters.creator}
-              onValueChange={(value) =>
-                setFilters((prev) => ({ ...prev, creator: value }))
-              }
+              onValueChange={(value) => {
+                setFilters((prev) => ({ ...prev, creator: value }));
+                setCurrentPage(1);
+              }}
             >
-              <SelectTrigger className="w-full sm:w-[180px] h-10">
-                <SelectValue placeholder="All Creators" />
+              <SelectTrigger className="w-[180px]">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <SelectValue placeholder="All Creators" />
+                </div>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[400px] w-[320px]">
                 <SelectItem value="all">All Creators</SelectItem>
-                {uniqueCreators.map((creator) => (
-                  <SelectItem key={creator} value={creator}>
-                    {creator}
-                  </SelectItem>
-                ))}
+                <div className="grid grid-cols-2 gap-1 p-1">
+                  {uniqueCreators.map((creator) => (
+                    <SelectItem key={creator} value={creator} className="col-span-1">
+                      {creator}
+                    </SelectItem>
+                  ))}
+                </div>
               </SelectContent>
             </Select>
 
-            {/* Tag Filter */}
+            {/* Category Dropdown (synced with badges) */}
             <Select
               value={filters.tag}
-              onValueChange={(value) =>
-                setFilters((prev) => ({ ...prev, tag: value }))
-              }
+              onValueChange={(value) => {
+                setFilters((prev) => ({ ...prev, tag: value }));
+                setCurrentPage(1);
+              }}
             >
-              <SelectTrigger className="w-full sm:w-[180px] h-10">
-                <SelectValue placeholder="All Tags" />
+              <SelectTrigger className="w-[180px]">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  <SelectValue placeholder="All Categories" />
+                </div>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Tags</SelectItem>
-                {uniqueTags.map((tag) => (
-                  <SelectItem key={tag} value={tag}>
-                    {tag}
-                  </SelectItem>
-                ))}
+              <SelectContent className="max-h-[400px]">
+                <SelectItem value="all">All Categories</SelectItem>
+                <div className="grid grid-cols-2 gap-1 p-1">
+                  {uniqueTags.map((tag) => (
+                    <SelectItem key={tag} value={tag} className="col-span-1">
+                      {tag}
+                    </SelectItem>
+                  ))}
+                </div>
               </SelectContent>
             </Select>
-
-            {/* Clear Filters Button */}
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-10 px-3"
-              >
-                <FilterX className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-            )}
           </div>
+        </div>
+
+        {/* Category Badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Tag className="h-3.5 w-3.5" />
+            Categories:
+          </span>
+          
+          {/* All Badge */}
+          <Badge
+            variant={filters.tag === "all" ? "default" : "outline"}
+            className="cursor-pointer hover:bg-primary/10 transition-colors"
+            onClick={() => {
+              setFilters((prev) => ({ ...prev, tag: "all" }));
+              setCurrentPage(1);
+            }}
+          >
+            All
+          </Badge>
+          
+          {/* First 4 categories */}
+          {uniqueTags.slice(0, 4).map((tag) => (
+            <Badge
+              key={tag}
+              variant={filters.tag === tag ? "default" : "outline"}
+              className="cursor-pointer hover:bg-primary/10 transition-colors"
+              onClick={() => {
+                setFilters((prev) => ({ ...prev, tag }));
+                setCurrentPage(1);
+              }}
+            >
+              {tag}
+            </Badge>
+          ))}
+          
+          {/* More dropdown */}
+          {uniqueTags.length > 4 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 px-2 gap-1">
+                  More
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[400px] max-h-[300px] overflow-y-auto p-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {uniqueTags.slice(4).map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant={filters.tag === tag ? "default" : "outline"}
+                      className="cursor-pointer hover:bg-primary/10 transition-colors justify-center"
+                      onClick={() => {
+                        setFilters((prev) => ({ ...prev, tag }));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="h-7 px-2 ml-2"
+            >
+              <FilterX className="h-3.5 w-3.5 mr-1.5" />
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 

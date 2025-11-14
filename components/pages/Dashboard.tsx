@@ -200,7 +200,7 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Link href="/dashboard/create-youtube-thumbnail">
-          <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
+          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
@@ -216,11 +216,11 @@ const Dashboard = () => {
           </Card>
         </Link>
 
-        <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => setIsCreateSheetOpen(true)}>
+        <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => setIsCreateSheetOpen(true)}>
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                <Video className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg group-hover:bg-blue-500/20 dark:group-hover:bg-blue-400/30 transition-colors">
+                <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-base mb-1 text-foreground">New Project</h3>
@@ -231,11 +231,11 @@ const Dashboard = () => {
         </Card>
 
         <Link href="/dashboard/templates">
-          <Card className="bg-white border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
+          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                  <LayoutTemplate className="h-6 w-6 text-purple-600" />
+                <div className="p-3 bg-purple-500/10 dark:bg-purple-400/20 rounded-lg group-hover:bg-purple-500/20 dark:group-hover:bg-purple-400/30 transition-colors">
+                  <LayoutTemplate className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-base mb-1 text-foreground">Browse Templates</h3>
@@ -265,7 +265,7 @@ const Dashboard = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="bg-white border-gray-200 overflow-hidden">
+              <Card key={i} className="bg-card border overflow-hidden">
                 <div className="h-40 bg-muted animate-pulse" />
                 <CardContent className="p-4 space-y-3">
                   <div className="h-5 bg-muted rounded animate-pulse" />
@@ -283,7 +283,7 @@ const Dashboard = () => {
               <ProductCard key={project.id} project={project} onEdit={handleEditProject} />
                 ))}
                 {sortedProjects.length > 6 && (
-                  <Card className="relative border-2 border-dashed border-gray-300 hover:border-primary/50 hover:bg-gradient-to-br hover:from-primary/5 hover:to-purple-500/5 transition-all duration-500 h-full flex flex-col group overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10">
+                  <Card className="relative border-2 border-dashed border-border hover:border-primary/50 hover:bg-gradient-to-br hover:from-primary/5 hover:to-purple-500/5 transition-all duration-500 h-full flex flex-col group overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 bg-card">
                     {/* Animated background circles */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
@@ -316,12 +316,12 @@ const Dashboard = () => {
               </>
             ) : (
               <div className="col-span-full">
-                <Card className="bg-white border-gray-200 border-dashed border-2">
+                <Card className="bg-card border-2 border-dashed">
                   <CardContent className="p-12 text-center">
                     <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
                       <div className="relative">
-                        <div className="p-4 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full">
-                          <Video className="h-8 w-8 text-purple-600" />
+                        <div className="p-4 bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-400/20 dark:to-blue-400/20 rounded-full">
+                          <Video className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                         </div>
                         <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                           <Sparkles className="h-3.5 w-3.5 text-white" />

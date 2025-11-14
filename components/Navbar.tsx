@@ -70,20 +70,6 @@ export default function Navbar() {
             icon={MenuIcon}
             className="cursor-pointer hover:text-foreground"
           />
-
-          {/* Only show app name when sidebar is closed */}
-          {!open && (
-            <div className="flex items-center gap-2">
-              <Link href="/" className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
-                  THUMBMAKER
-                </h1>
-              </Link>
-              <Badge variant="outline" className="uppercase text-[8px]">
-                Beta
-              </Badge>
-            </div>
-          )}
         </div>
 
         {/* Credits section at top right */}

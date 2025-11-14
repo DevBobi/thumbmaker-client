@@ -66,7 +66,7 @@ export function FormSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className={cn("flex flex-col p-0 w-full bg-white", sizeClasses[size])}
+        className={cn("flex flex-col p-0 w-full bg-background", sizeClasses[size])}
       >
         <SheetHeader className="px-6 py-4 border-b">
           <SheetTitle>{title}</SheetTitle>
