@@ -15,7 +15,6 @@ import {
   FolderOpen,
   ChevronRight,
   ArrowLeft,
-  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -59,7 +58,8 @@ import {
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 50; // Fetch more thumbnails to group properly
+const PROJECTS_PER_PAGE = 5; // Show 5 projects per page
 
 const History = () => {
   const router = useRouter();
@@ -74,12 +74,6 @@ const History = () => {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [thumbnailToDelete, setThumbnailToDelete] = useState<any>(null);
-  const [pagination, setPagination] = useState({
-    total: 0,
-    page: 1,
-    limit: 6,
-    totalPages: 0,
-  });
   const [selectedThumbnail, setSelectedThumbnail] = useState<any>(null);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'project'>('list'); // 'list' shows grouped projects, 'project' shows thumbnails in selected project
@@ -118,7 +112,7 @@ const History = () => {
     try {
       // Build the API URL with query parameters
       const params = new URLSearchParams();
-      params.append("page", currentPage.toString());
+      params.append("page", "1"); // Always fetch from page 1
       params.append("limit", ITEMS_PER_PAGE.toString());
 
       if (debouncedSearchTerm) {
@@ -141,14 +135,6 @@ const History = () => {
         console.log('📊 Fetched campaigns data:', data.data);
         console.log('📷 Sample image URLs:', data.data?.slice(0, 2).map((t: any) => ({ id: t.id, image: t.image })));
         setCampaigns(data.data || []);
-        setPagination(
-          data.pagination || {
-            total: 0,
-            page: 1,
-            limit: 5,
-            totalPages: 0,
-          }
-        );
       } else {
         console.error("Failed to fetch thumbnails");
       }
@@ -158,12 +144,17 @@ const History = () => {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, debouncedSearchTerm, filterBy]);
+  }, [debouncedSearchTerm, filterBy]);
 
   // Fetch campaigns when page, search term or filter changes
   useEffect(() => {
     fetchCampaigns();
   }, [fetchCampaigns]);
+
+  // Reset to page 1 when campaigns data changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, filterBy]);
 
   // Group thumbnails by project
   const groupedProjects = useMemo(() => {
@@ -196,6 +187,16 @@ const History = () => {
       new Date(b.latestDate).getTime() - new Date(a.latestDate).getTime()
     );
   }, [campaigns]);
+
+  // Client-side pagination for projects
+  const paginatedProjects = useMemo(() => {
+    const startIndex = (currentPage - 1) * PROJECTS_PER_PAGE;
+    const endIndex = startIndex + PROJECTS_PER_PAGE;
+    return groupedProjects.slice(startIndex, endIndex);
+  }, [groupedProjects, currentPage]);
+
+  // Calculate total pages for projects
+  const totalProjectPages = Math.ceil(groupedProjects.length / PROJECTS_PER_PAGE);
 
   const handleViewProject = (project: any) => {
     setSelectedProject(project);
@@ -300,13 +301,16 @@ const History = () => {
           }
         }
         
-        // If we're on a page with only 1 item and it's not the first page, go back
-        if (campaigns.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        } else {
-          // Otherwise, refetch the current page
-          await fetchCampaigns();
-        }
+        // Refetch to update the list
+        await fetchCampaigns();
+        
+        // After refetch, check if current page is now empty
+        setTimeout(() => {
+          const newTotalPages = Math.ceil(groupedProjects.length / PROJECTS_PER_PAGE);
+          if (currentPage > newTotalPages && newTotalPages > 0) {
+            setCurrentPage(newTotalPages);
+          }
+        }, 100);
       } else {
         const data = await response.json();
         toast({
@@ -344,31 +348,27 @@ const History = () => {
   // Handle search with debounce
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to first page on new search
   };
 
   // Clear search
   const clearSearch = () => {
     setSearchTerm("");
-    setCurrentPage(1);
   };
 
   // Handle filter change
   const handleFilterChange = (value: string) => {
     setFilterBy(value);
-    setCurrentPage(1); // Reset to first page on new filter
   };
 
   // Reset all filters
   const resetFilters = () => {
     setSearchTerm("");
     setFilterBy("All");
-    setCurrentPage(1);
   };
 
   // Skeleton loader for project cards
   const ProjectSkeleton = () => (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden p-6">
+    <div className="bg-card border rounded-xl shadow-sm overflow-hidden p-6">
       <div className="flex items-start gap-6">
         {/* Thumbnail Skeleton */}
         <div className="flex-shrink-0">
@@ -582,17 +582,17 @@ const History = () => {
           ) : (
             <>
               <div className="space-y-4">
-                {groupedProjects.map((project: any) => (
+                {paginatedProjects.map((project: any) => (
                   <div
                     key={project.id}
-                    className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer"
+                    className="bg-card border rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer"
                     onClick={() => handleViewProject(project)}
                   >
                     <div className="p-6">
                       <div className="flex items-start gap-6">
                         {/* Thumbnail Preview - Left Side */}
                         <div className="flex-shrink-0">
-                          <div className="relative w-48 h-28 rounded-lg overflow-hidden border-2 border-gray-200 group-hover:border-primary/50 transition-all">
+                          <div className="relative w-48 h-28 rounded-lg overflow-hidden border-2 border-border group-hover:border-primary/50 transition-all">
                             {project.thumbnails[0]?.image ? (
                               <>
                                 <Image
@@ -690,7 +690,7 @@ const History = () => {
               </div>
 
               {/* Pagination controls */}
-              {pagination.totalPages > 1 && (
+              {totalProjectPages > 1 && (
                 <Pagination className="mt-6">
                   <PaginationContent>
                     <PaginationItem>
@@ -706,7 +706,7 @@ const History = () => {
                       />
                     </PaginationItem>
                     {Array.from(
-                      { length: pagination.totalPages },
+                      { length: totalProjectPages },
                       (_, i) => i + 1
                     ).map((number) => (
                       <PaginationItem key={number}>
@@ -722,11 +722,11 @@ const History = () => {
                       <PaginationNext
                         onClick={() =>
                           setCurrentPage(
-                            Math.min(pagination.totalPages, currentPage + 1)
+                            Math.min(totalProjectPages, currentPage + 1)
                           )
                         }
                         className={
-                          currentPage === pagination.totalPages
+                          currentPage === totalProjectPages
                             ? "pointer-events-none opacity-50"
                             : ""
                         }
@@ -742,16 +742,17 @@ const History = () => {
         /* Project View - Shows all thumbnails in selected project */
         <div className="space-y-6">
           {selectedProject && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {selectedProject.thumbnails.map((thumbnail: any) => (
-                <Card 
+                <div 
                   key={thumbnail.id}
-                  className="group overflow-hidden border border-gray-200/60 hover:border-primary/40 transition-all duration-300 hover:shadow-xl bg-white rounded-2xl"
+                  className="group cursor-pointer"
                 >
-                  <div className="relative">
+                  {/* YouTube-style Thumbnail Card */}
+                  <div className="space-y-3">
                     {/* Thumbnail Image Container */}
                     <div 
-                      className="relative w-full aspect-video overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 cursor-pointer"
+                      className="relative w-full aspect-video overflow-hidden rounded-xl bg-muted"
                       onClick={() => handleViewThumbnail(thumbnail)}
                     >
                       {thumbnail.image ? (
@@ -760,16 +761,12 @@ const History = () => {
                             src={thumbnail.image}
                             alt={thumbnail.title || "Thumbnail preview"}
                             fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                            className="object-cover transition-all duration-200"
                             unoptimized
                           />
-                          {/* Overlay on hover */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/95 backdrop-blur-sm rounded-full p-3 shadow-xl">
-                              <Eye className="h-5 w-5 text-primary" />
-                            </div>
-                          </div>
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
                         </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -778,7 +775,7 @@ const History = () => {
                       )}
                       
                       {/* Action Buttons Overlay - Top Right */}
-                      <div className="absolute top-2.5 right-2.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         {/* Download Button */}
                         <button
                           onClick={(e) => {
@@ -786,10 +783,10 @@ const History = () => {
                             handleDownload(thumbnail.image, thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`, thumbnail.id);
                           }}
                           disabled={!thumbnail.image || isDownloading === thumbnail.id}
-                          className="bg-white/95 hover:bg-white backdrop-blur-md p-2 rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                          className="bg-black/80 hover:bg-black backdrop-blur-sm p-2 rounded-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Download"
                         >
-                          <Download className="h-3.5 w-3.5 text-blue-600 group-hover/btn:scale-110 transition-transform" />
+                          <Download className="h-4 w-4 text-white" />
                         </button>
                         
                         {/* Delete Button */}
@@ -799,46 +796,47 @@ const History = () => {
                             handleDeleteClick(thumbnail);
                           }}
                           disabled={isDeleting === thumbnail.id}
-                          className="bg-white/95 hover:bg-white backdrop-blur-md p-2 rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                          className="bg-black/80 hover:bg-black backdrop-blur-sm p-2 rounded-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete"
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-red-600 group-hover/btn:scale-110 transition-transform" />
+                          <Trash2 className="h-4 w-4 text-white" />
                         </button>
                       </div>
                       
-                      {/* Status Badge Overlay - Top Left */}
-                      <div className="absolute top-2.5 left-2.5">
-                        <Badge 
-                          variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
-                          className={`shadow-md text-[10px] px-2 py-0.5 ${
-                            thumbnail.status === "COMPLETED" 
-                              ? "bg-green-500/95 text-white border-0 font-semibold backdrop-blur-sm" 
-                              : "bg-gray-500/95 text-white border-0 font-semibold backdrop-blur-sm"
-                          }`}
-                        >
-                          {thumbnail.status === "COMPLETED" ? "✓" : "⏳"}
-                        </Badge>
+                      {/* Duration badge (YouTube style) - Bottom Right */}
+                      <div className="absolute bottom-2 right-2">
+                        <div className="bg-black/90 text-white text-xs font-semibold px-1.5 py-0.5 rounded">
+                          16:9
+                        </div>
                       </div>
                     </div>
                     
-                    {/* Thumbnail Info Section */}
-                    <div className="p-4">
-                      {/* Title */}
-                      <h4 className="font-semibold text-[15px] line-clamp-2 text-foreground leading-tight mb-3 min-h-[2.6rem]">
-                        {thumbnail.title || `Thumbnail ${thumbnail.id.slice(-8).toUpperCase()}`}
-                      </h4>
+                    {/* Thumbnail Info Section - YouTube style */}
+                    <div className="flex gap-3">
+                      {/* Status indicator circle */}
+                      <div className="flex-shrink-0 pt-1">
+                        <div className={`w-2 h-2 rounded-full ${
+                          thumbnail.status === "COMPLETED" 
+                            ? "bg-green-500" 
+                            : "bg-yellow-500"
+                        }`} />
+                      </div>
+                      
+                      {/* Text content */}
+                      <div className="flex-1 min-w-0">
+                        {/* Title */}
+                        <h3 
+                          className="font-semibold text-sm line-clamp-2 text-foreground mb-1 leading-tight group-hover:text-primary transition-colors"
+                          onClick={() => handleViewThumbnail(thumbnail)}
+                        >
+                          {thumbnail.title || `Thumbnail ${thumbnail.id.slice(-8).toUpperCase()}`}
+                        </h3>
 
-                      {/* Metadata Cards */}
-                      <div className="space-y-2">
-                        {/* Date and ID Row */}
-                        <div className="flex items-stretch gap-2">
-                          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50/50 rounded-lg flex-1 min-h-[28px]">
-                            <Calendar className="h-3.5 w-3.5 text-blue-600 flex-shrink-0" />
-                            <span suppressHydrationWarning className="text-xs text-blue-900/80 font-medium truncate leading-none">{getTimeAgo(new Date(thumbnail.createdAt))}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gray-100/80 rounded-lg min-h-[28px]">
-                            <span className="font-mono text-[11px] text-gray-700 font-semibold leading-none">#{thumbnail.id.slice(-6).toUpperCase()}</span>
-                          </div>
+                        {/* Metadata - YouTube style */}
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                          <span suppressHydrationWarning>{getTimeAgo(new Date(thumbnail.createdAt))}</span>
+                          <span>•</span>
+                          <span className="font-mono">#{thumbnail.id.slice(-6).toUpperCase()}</span>
                         </div>
 
                         {/* Template Badge */}
@@ -848,17 +846,16 @@ const History = () => {
                               e.stopPropagation();
                               router.push(`/dashboard/templates?template=${thumbnail.templateId}`);
                             }}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all duration-200 border border-purple-100 hover:border-purple-200 w-full group/template min-h-[32px]"
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted hover:bg-muted/80 transition-colors text-xs group/template"
                           >
-                            <Palette className="h-3.5 w-3.5 text-purple-600 flex-shrink-0" />
-                            <span className="text-xs font-semibold text-purple-700 flex-1 text-left leading-none">Template #{thumbnail.templateId.toString().padStart(2, '0')}</span>
-                            <ExternalLink className="h-3 w-3 text-purple-600 opacity-0 group-hover/template:opacity-100 transition-opacity flex-shrink-0" />
+                            <Palette className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-muted-foreground font-medium">Template #{thumbnail.templateId.toString().padStart(2, '0')}</span>
                           </button>
                         )}
                       </div>
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           )}

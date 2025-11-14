@@ -448,7 +448,7 @@ export const BulkVideoLinksDialog: React.FC<BulkVideoLinksDialogProps> = ({
                         {Math.round((generationProgress.current / generationProgress.total) * 100)}%
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                       <div
                         className="bg-brand-600 h-full transition-all duration-300"
                         style={{

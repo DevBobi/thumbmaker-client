@@ -66,12 +66,9 @@ export default function CreateProject() {
 
       <div className="mx-auto">
         <Tabs defaultValue="manual" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="manual">Manual</TabsTrigger>
             <TabsTrigger value="ai-enhanced">AI-Enhanced</TabsTrigger>
-            <TabsTrigger value="text">Text</TabsTrigger>
-            <TabsTrigger value="youtube">YouTube</TabsTrigger>
-            <TabsTrigger value="document">Document</TabsTrigger>
           </TabsList>
 
           <TabsContent value="manual" className="mt-6">
@@ -79,19 +76,30 @@ export default function CreateProject() {
           </TabsContent>
 
           <TabsContent value="ai-enhanced" className="mt-6">
-            <AIEnhancedManualForm />
-          </TabsContent>
+            <Tabs defaultValue="ai-enhanced-form" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="ai-enhanced-form">AI Form</TabsTrigger>
+                <TabsTrigger value="text">Text</TabsTrigger>
+                <TabsTrigger value="youtube">YouTube</TabsTrigger>
+                <TabsTrigger value="document">Document</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="text" className="mt-6">
-            <AutomatedInputForm defaultTab="text" />
-          </TabsContent>
+              <TabsContent value="ai-enhanced-form" className="mt-6">
+                <AIEnhancedManualForm />
+              </TabsContent>
 
-          <TabsContent value="youtube" className="mt-6">
-            <AutomatedInputForm defaultTab="youtube" />
-          </TabsContent>
+              <TabsContent value="text" className="mt-6">
+                <AutomatedInputForm defaultTab="text" />
+              </TabsContent>
 
-          <TabsContent value="document" className="mt-6">
-            <AutomatedInputForm defaultTab="document" />
+              <TabsContent value="youtube" className="mt-6">
+                <AutomatedInputForm defaultTab="youtube" />
+              </TabsContent>
+
+              <TabsContent value="document" className="mt-6">
+                <AutomatedInputForm defaultTab="document" />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>
