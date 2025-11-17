@@ -388,7 +388,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {ratioThumbnails.map((thumbnail) => (
                       <div key={thumbnail.id}>
-                        {thumbnail.status ? (
+                        {thumbnail.status && thumbnail.status.toUpperCase() !== "COMPLETED" ? (
                           <div className="space-y-3">
                             <div className="relative overflow-hidden rounded-lg bg-muted">
                               <Skeleton className="aspect-video w-full" />

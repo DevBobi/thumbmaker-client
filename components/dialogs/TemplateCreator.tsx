@@ -25,9 +25,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { AdTemplate } from "@/contexts/AdContext";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { toast } from "@/hooks/use-toast";
-import { extractYouTubeThumbnail } from "@/lib/youtube";
+import { extractYouTubeThumbnail, extractVideoId } from "@/lib/youtube";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Upload, Link2, Loader2, Download, ListPlus } from "lucide-react";
+import { Plus, Upload, Loader2, Download, ListPlus } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -61,9 +61,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [templateImage, setTemplateImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("youtube");
-  const [youtubeUrl, setYoutubeUrl] = useState<string>("");
-  const [isExtractingThumbnail, setIsExtractingThumbnail] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("bulk");
   
   // Bulk import state
   const [bulkUrls, setBulkUrls] = useState<string>("");
@@ -100,86 +98,6 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
     }
   };
 
-  const handleExtractFromYouTube = async () => {
-    if (!youtubeUrl.trim()) {
-      toast({
-        title: "YouTube URL required",
-        description: "Please enter a valid YouTube URL",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsExtractingThumbnail(true);
-
-      const result = await extractYouTubeThumbnail(youtubeUrl);
-
-      if (!result) {
-        throw new Error("Failed to extract thumbnail");
-      }
-
-      const { file, title, channelName } = result;
-
-      // Set the file and preview
-      setTemplateImage(file);
-      form.setValue("image", file, { shouldValidate: true });
-
-      // Auto-fill creator name from channel
-      if (channelName) {
-        form.setValue("brand", channelName, { shouldValidate: true });
-      }
-
-      // Use AI to detect niche from title and channel
-      if (title && channelName) {
-        try {
-          const nicheResponse = await authFetch("/api/templates/detect-niche", {
-            method: "POST",
-            body: JSON.stringify({
-              title,
-              channelName,
-            }),
-          });
-
-          if (nicheResponse.ok) {
-            const nicheData = await nicheResponse.json();
-            if (nicheData.niche) {
-              form.setValue("niche", nicheData.niche, { shouldValidate: true });
-            }
-          }
-        } catch (error) {
-          console.error("Failed to detect niche with AI:", error);
-          // Fallback to default
-          form.setValue("niche", "Entertainment", { shouldValidate: true });
-        }
-      }
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-
-      toast({
-        title: "Thumbnail extracted",
-        description: "Thumbnail and metadata extracted successfully",
-      });
-    } catch (error) {
-      console.error("Error extracting YouTube thumbnail:", error);
-      toast({
-        title: "Extraction failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to extract thumbnail from YouTube URL",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExtractingThumbnail(false);
-    }
-  };
-
   const handleDownloadThumbnail = () => {
     if (!templateImage || !imagePreview) {
       toast({
@@ -213,26 +131,26 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
     }
   };
 
-  const handleBulkImport = async () => {
-    if (!bulkUrls.trim()) {
-      toast({
-        title: "No URLs provided",
-        description: "Please enter at least one YouTube URL",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Parse URLs from textarea (one per line)
-    const urls = bulkUrls
+  // Validate YouTube URLs in bulk import
+  const getValidYouTubeUrls = (urlsText: string): string[] => {
+    if (!urlsText.trim()) return [];
+    
+    return urlsText
       .split('\n')
       .map(url => url.trim())
-      .filter(url => url.length > 0);
+      .filter(url => url.length > 0 && extractVideoId(url) !== null);
+  };
+
+  const validYouTubeUrls = getValidYouTubeUrls(bulkUrls);
+
+  const handleBulkImport = async () => {
+    // Get valid YouTube URLs
+    const urls = getValidYouTubeUrls(bulkUrls);
 
     if (urls.length === 0) {
       toast({
-        title: "No valid URLs",
-        description: "Please enter valid YouTube URLs",
+        title: "No valid YouTube URLs",
+        description: "Please enter at least one valid YouTube URL (youtube.com or youtu.be)",
         variant: "destructive",
       });
       return;
@@ -308,20 +226,8 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
           throw new Error(errorData.error || "Template creation failed");
         }
 
-        const data = await response.json();
-
-        // Call callback with new template
-        if (onTemplateCreated) {
-          const newTemplate = {
-            id: data.id,
-            image: data.image,
-            creator: data.creator,
-            brand: data.brand,
-            niche: data.niche,
-            tags: [data.brand, data.niche],
-          };
-          onTemplateCreated(newTemplate);
-        }
+        // Note: We don't call onTemplateCreated here for bulk import
+        // It will be called once after all templates are processed if at least one succeeded
 
         succeeded++;
         results.push({
@@ -359,6 +265,19 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
       description: `Successfully created ${succeeded} template(s). ${failed > 0 ? `Failed: ${failed}` : ''}`,
       variant: failed > 0 ? "default" : "default",
     });
+
+    // Switch to user templates tab if at least one template was successfully created
+    if (succeeded > 0 && onTemplateCreated) {
+      // Call callback once to trigger tab switch in parent component
+      // Pass a dummy template since we just want to trigger the tab switch
+      onTemplateCreated({
+        id: "",
+        image: "",
+        brand: "",
+        niche: "",
+        tags: [],
+      });
+    }
   };
 
   const handleCreateTemplate = async (values: FormValues) => {
@@ -447,10 +366,9 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
   const resetForm = () => {
     setTemplateImage(null);
     setImagePreview(null);
-    setYoutubeUrl("");
     setBulkUrls("");
     setBulkProgress(null);
-    setActiveTab("youtube");
+    setActiveTab("bulk");
     form.reset();
   };
 
@@ -494,11 +412,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                       onValueChange={setActiveTab}
                       className="w-full"
                     >
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="youtube">
-                          <Link2 className="h-4 w-4 mr-2" />
-                          Single URL
-                        </TabsTrigger>
+                      <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="bulk">
                           <ListPlus className="h-4 w-4 mr-2" />
                           Bulk Import
@@ -508,84 +422,6 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                           Upload Image
                         </TabsTrigger>
                       </TabsList>
-
-                      <TabsContent value="youtube" className="mt-4">
-                        <div className="space-y-4">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Paste YouTube video URL here..."
-                              value={youtubeUrl}
-                              onChange={(e) => setYoutubeUrl(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleExtractFromYouTube();
-                                }
-                              }}
-                              disabled={isExtractingThumbnail}
-                            />
-                            <Button
-                              type="button"
-                              onClick={handleExtractFromYouTube}
-                              disabled={isExtractingThumbnail || !youtubeUrl.trim()}
-                              className="shrink-0"
-                            >
-                              {isExtractingThumbnail ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Extracting...
-                                </>
-                              ) : (
-                                "Extract"
-                              )}
-                            </Button>
-                          </div>
-
-                          {imagePreview && (
-                            <div className="border-2 border-dashed rounded-md p-4 flex justify-center">
-                              <div className="relative w-full max-h-72" style={{ aspectRatio: '16/9' }}>
-                                <Image
-                                  src={imagePreview}
-                                  alt="Extracted thumbnail"
-                                  fill
-                                  className="rounded-md object-contain"
-                                  sizes="(max-width: 768px) 100vw, 600px"
-                                />
-                              </div>
-                              <div className="flex items-center justify-between mt-3">
-                                <p className="text-sm text-green-600 font-medium">
-                                  ✓ Thumbnail and metadata extracted
-                                </p>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleDownloadThumbnail}
-                                  className="gap-2"
-                                >
-                                  <Download className="h-4 w-4" />
-                                  Download
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-
-                          {!imagePreview && (
-                            <div className="border-2 border-dashed rounded-md p-6 text-center">
-                              <Link2 className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                              <p className="text-muted-foreground">
-                                Enter a YouTube URL to extract thumbnail
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Supports youtube.com and youtu.be links
-                              </p>
-                              <p className="text-xs text-green-600 mt-2">
-                                Creator name and niche will be auto-filled
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
 
                       <TabsContent value="bulk" className="mt-4">
                         <div className="space-y-4">
@@ -598,13 +434,30 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                               className="min-h-[150px] font-mono text-sm"
                             />
                             <div className="flex items-center justify-between">
-                              <p className="text-xs text-muted-foreground">
-                                {bulkUrls.split('\n').filter(url => url.trim().length > 0).length} URL(s) detected
-                              </p>
+                              <div className="flex flex-col gap-1">
+                                <p className="text-xs text-muted-foreground">
+                                  {validYouTubeUrls.length > 0 ? (
+                                    <span className="text-green-600 font-medium">
+                                      {validYouTubeUrls.length} valid YouTube URL(s)
+                                    </span>
+                                  ) : bulkUrls.trim() ? (
+                                    <span className="text-red-600 font-medium">
+                                      No valid YouTube URLs found
+                                    </span>
+                                  ) : (
+                                    "Enter YouTube URLs (one per line)"
+                                  )}
+                                </p>
+                                {bulkUrls.split('\n').filter(url => url.trim().length > 0).length > validYouTubeUrls.length && bulkUrls.trim() && (
+                                  <p className="text-xs text-amber-600">
+                                    {bulkUrls.split('\n').filter(url => url.trim().length > 0).length - validYouTubeUrls.length} invalid URL(s) will be skipped
+                                  </p>
+                                )}
+                              </div>
                               <Button
                                 type="button"
                                 onClick={handleBulkImport}
-                                disabled={isBulkProcessing || !bulkUrls.trim()}
+                                disabled={isBulkProcessing || validYouTubeUrls.length === 0}
                               >
                                 {isBulkProcessing ? (
                                   <>
@@ -687,7 +540,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                                 Bulk Import YouTube Thumbnails
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Paste multiple YouTube URLs (one per line) to create templates in bulk
+                                Paste YouTube URLs (one per line) to create templates. Works with single or multiple URLs.
                               </p>
                               <div className="mt-3 space-y-1 text-xs text-left max-w-md mx-auto">
                                 <p className="text-green-600">✓ Auto-extracts thumbnails</p>
@@ -772,8 +625,8 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
               )}
             />
 
-            {/* Creator Input (Auto-filled from YouTube) - Hidden for bulk import */}
-            {activeTab !== "bulk" && (
+            {/* Creator Input - Only shown for upload tab */}
+            {activeTab === "upload" && (
             <FormField
               control={form.control}
               name="brand"
@@ -781,15 +634,10 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                 <FormItem>
                   <FormLabel>
                     Creator <span className="text-red-500">*</span>
-                    {imagePreview && (
-                      <span className="ml-2 text-xs text-green-600 font-normal">
-                        ✓ Auto-filled (editable)
-                      </span>
-                    )}
                   </FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Creator name (auto-filled from YouTube)" 
+                      placeholder="Creator name" 
                       {...field} 
                     />
                   </FormControl>
@@ -799,8 +647,8 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
             />
             )}
 
-            {/* Niche Selection (Auto-detected from YouTube) - Hidden for bulk import */}
-            {activeTab !== "bulk" && (
+            {/* Niche Selection - Only shown for upload tab */}
+            {activeTab === "upload" && (
             <FormField
               control={form.control}
               name="niche"
@@ -808,15 +656,10 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                 <FormItem>
                   <FormLabel>
                     Niche <span className="text-red-500">*</span>
-                    {imagePreview && field.value && (
-                      <span className="ml-2 text-xs text-green-600 font-normal">
-                        ✓ AI-detected (editable)
-                      </span>
-                    )}
                   </FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Niche (auto-detected from video)" 
+                      placeholder="Niche" 
                       {...field}
                     />
                   </FormControl>
@@ -827,8 +670,8 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
             )}
             </div>
 
-            {/* Footer - Hidden for bulk import (bulk import has its own button) */}
-            {activeTab !== "bulk" && (
+            {/* Footer - Only shown for upload tab (bulk import has its own button) */}
+            {activeTab === "upload" && (
             <SheetFooter className="flex-row gap-2">
               <SheetClose asChild>
                 <Button variant="outline" type="button" className="flex-1">

@@ -29,6 +29,7 @@ export interface FormSheetProps {
   size?: "sm" | "md" | "lg" | "xl";
   hideFooter?: boolean;
   hideSaveButton?: boolean;
+  footerActions?: React.ReactNode;
 }
 
 const sizeClasses = {
@@ -53,6 +54,7 @@ export function FormSheet({
   size = "md",
   hideFooter = false,
   hideSaveButton = false,
+  footerActions,
 }: FormSheetProps) {
   const handleCancel = () => {
     if (onCancel) {
@@ -85,34 +87,40 @@ export function FormSheet({
 
         {!hideFooter && (
           <SheetFooter className="px-6 py-4 border-t mt-auto">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <SheetClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                  className="flex-1 sm:flex-initial"
-                >
-                  {cancelLabel}
-                </Button>
-              </SheetClose>
-              {!hideSaveButton && onSave && (
-                <Button
-                  type="button"
-                  onClick={onSave}
-                  disabled={isSaving || isLoading}
-                  className="flex-1 sm:flex-initial"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    saveLabel
+            <div className="flex gap-3 w-full justify-end">
+              {footerActions ? (
+                footerActions
+              ) : (
+                <>
+                  <SheetClose asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="min-w-[100px]"
+                    >
+                      {cancelLabel}
+                    </Button>
+                  </SheetClose>
+                  {!hideSaveButton && onSave && (
+                    <Button
+                      type="button"
+                      onClick={onSave}
+                      disabled={isSaving || isLoading}
+                      className="min-w-[100px]"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        saveLabel
+                      )}
+                    </Button>
                   )}
-                </Button>
+                </>
               )}
             </div>
           </SheetFooter>

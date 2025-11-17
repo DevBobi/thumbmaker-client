@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdTemplate } from "@/contexts/AdContext";
 import PresetTemplateGallery from "@/components/templates/PresetTemplateGallery";
 import UserTemplateGallery from "@/components/templates/UserTemplateGallery";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { TemplatePagination } from "@/components/templates/TemplatePagination";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -26,12 +26,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, User, Tag, ChevronDown, FilterX } from "lucide-react";
+import TemplateCreator from "@/components/dialogs/TemplateCreator";
 
 // Constants
 const TEMPLATES_PER_PAGE = 12; // Match TemplateSelector
 
 const AllTemplates = () => {
   const { authFetch } = useAuthFetch();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,6 +49,9 @@ const AllTemplates = () => {
 
   // State to track loaded templates
   const [loadedTemplates, setLoadedTemplates] = useState<AdTemplate[]>([]);
+  
+  // State to track if we should refetch after tab switch
+  const [shouldRefetchOnTabSwitch, setShouldRefetchOnTabSwitch] = useState(false);
 
   // Handle query parameter for template highlighting
   useEffect(() => {
@@ -222,6 +227,21 @@ const AllTemplates = () => {
     }
   }, [templates]);
 
+  // Refetch when tab switches to user-templates after template creation
+  useEffect(() => {
+    if (activeTab === "user-templates" && shouldRefetchOnTabSwitch) {
+      // Invalidate all user templates queries
+      queryClient.invalidateQueries({ queryKey: ["userTemplates"] });
+      queryClient.invalidateQueries({ queryKey: ["templates-metadata", "user-templates"] });
+      
+      // Refetch the current query
+      refetchUserTemplates();
+      
+      // Reset the flag
+      setShouldRefetchOnTabSwitch(false);
+    }
+  }, [activeTab, shouldRefetchOnTabSwitch, queryClient, refetchUserTemplates]);
+
   const handleClearFilters = () => {
     setFilters({
       creator: "all",
@@ -322,6 +342,13 @@ const AllTemplates = () => {
             Browse our preset templates or create your own custom templates
           </p>
         </div>
+        <TemplateCreator
+          onTemplateCreated={() => {
+            // Switch to user templates tab and mark for refetch
+            setShouldRefetchOnTabSwitch(true);
+            setActiveTab("user-templates");
+          }}
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
