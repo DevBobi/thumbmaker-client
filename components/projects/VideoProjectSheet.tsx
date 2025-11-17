@@ -18,7 +18,7 @@ import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, X, Sparkles, Loader2, Trash2, Image as ImageIcon } from "lucide-react";
+import { Plus, X, Trash2, Image as ImageIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,10 +75,7 @@ export function VideoProjectSheet({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   // New states for creation methods
-  const [creationMethod, setCreationMethod] = useState<"manual" | "ai-enhanced" | "text" | "youtube" | "document">("manual");
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [isEnhanced, setIsEnhanced] = useState(false);
-  const [briefDescription, setBriefDescription] = useState("");
+  const [creationMethod, setCreationMethod] = useState<"manual" | "text" | "youtube" | "document">("manual");
   const [textContent, setTextContent] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -111,8 +108,6 @@ export function VideoProjectSheet({
       setImageFile(null);
       setImagePreview(null);
       setHighlights([""]);
-      setBriefDescription("");
-      setIsEnhanced(false);
       setTextContent("");
       setYoutubeLink("");
       setDocumentFile(null);
@@ -169,50 +164,6 @@ export function VideoProjectSheet({
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleEnhanceWithAI = async () => {
-    const title = form.getValues("videoTitle");
-    if (!title || !briefDescription) {
-      toast({
-        title: "Input required",
-        description: "Please provide both title and brief description.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsEnhancing(true);
-    try {
-      const response = await authFetch("/api/projects/enhance-brief", {
-        method: "POST",
-        body: JSON.stringify({ title, briefDescription }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to enhance project");
-      }
-
-      const data = await response.json();
-      form.setValue("videoDescription", data.description || "");
-      form.setValue("targetAudience", data.targetAudience || "");
-      if (Array.isArray(data.highlights)) {
-        setHighlights(data.highlights);
-      }
-      setIsEnhanced(true);
-      toast({
-        title: "Enhanced successfully",
-        description: "AI has generated detailed content. Review and edit as needed.",
-      });
-    } catch (error) {
-      toast({
-        title: "Enhancement failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsEnhancing(false);
     }
   };
 
@@ -334,16 +285,6 @@ export function VideoProjectSheet({
       return;
     }
 
-    // AI-enhanced needs to be enhanced first
-    if (currentMode === "create" && creationMethod === "ai-enhanced" && !isEnhanced) {
-      toast({
-        title: "Enhancement required",
-        description: "Please enhance with AI before creating the project.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Handle manual and edit modes
     const isValid = await form.trigger();
     if (!isValid) return;
@@ -406,8 +347,6 @@ export function VideoProjectSheet({
       setHighlights([""]);
       setImageFile(null);
       setImagePreview(null);
-      setBriefDescription("");
-      setIsEnhanced(false);
       onOpenChange(false);
 
       // Call success callback
@@ -546,10 +485,28 @@ export function VideoProjectSheet({
       onSave={handleSave}
       onCancel={handleCancel}
       saveLabel={currentMode === "edit" ? "Update Project" : "Create Project"}
+      cancelLabel={currentMode === "view" ? "Close" : currentMode === "edit" ? "Cancel" : "Cancel"}
       hideSaveButton={currentMode === "view"}
       isSaving={isSaving}
       isLoading={isLoading}
       size="md"
+      footerActions={
+        currentMode === "view" ? (
+          <>
+            <Button onClick={handleEdit} variant={"default"} className="min-w-[120px]">
+              Edit Project
+            </Button>
+            <Button 
+              onClick={handleDeleteClick} 
+              variant="destructive"
+              className="gap-2 min-w-[120px]"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </>
+        ) : undefined
+      }
     >
       {currentMode === "view" ? (
         <div className="space-y-6">
@@ -605,34 +562,20 @@ export function VideoProjectSheet({
               </p>
             </div>
           </div>
-          
-          <div className="flex gap-2 pt-4 border-t">
-            <Button onClick={handleEdit} className="flex-1" variant={"outline"}>
-              Edit Project Information
-            </Button>
-            <Button 
-              onClick={handleDeleteClick} 
-              variant="destructive"
-              className="gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </Button>
-          </div>
         </div>
       ) : currentMode === "create" ? (
         // Create mode with tabs
         <div className="space-y-4">
-          <Tabs value={creationMethod === "ai-enhanced" || creationMethod === "text" || creationMethod === "youtube" || creationMethod === "document" ? "ai" : "manual"} onValueChange={(value: any) => {
+          <Tabs value={creationMethod === "text" || creationMethod === "youtube" || creationMethod === "document" ? "ai" : "manual"} onValueChange={(value: any) => {
             if (value === "manual") {
               setCreationMethod("manual");
             } else {
-              setCreationMethod("ai-enhanced");
+              setCreationMethod("text");
             }
           }}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="manual">Manual</TabsTrigger>
               <TabsTrigger value="ai">AI-Enhanced</TabsTrigger>
+              <TabsTrigger value="manual">Manual</TabsTrigger>
             </TabsList>
 
             <TabsContent value="manual">
@@ -640,17 +583,13 @@ export function VideoProjectSheet({
             </TabsContent>
             
             <TabsContent value="ai">
-              <Tabs value={creationMethod === "manual" ? "ai-enhanced" : creationMethod} onValueChange={(value: any) => setCreationMethod(value)}>
-                <TabsList className="grid w-full grid-cols-4 mb-4">
-                  <TabsTrigger value="ai-enhanced">AI Form</TabsTrigger>
+              <Tabs value={creationMethod === "manual" ? "text" : creationMethod} onValueChange={(value: any) => setCreationMethod(value)}>
+                <TabsList className="grid w-full grid-cols-3 mb-4">
                   <TabsTrigger value="text">Text</TabsTrigger>
                   <TabsTrigger value="youtube">YouTube</TabsTrigger>
                   <TabsTrigger value="document">Document</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="ai-enhanced">
-                  <p className="text-sm text-muted-foreground mb-4">Provide a brief description and let AI expand it</p>
-                </TabsContent>
                 <TabsContent value="text">
                   <p className="text-sm text-muted-foreground mb-4">Paste your content and AI will analyze it</p>
                 </TabsContent>
@@ -683,46 +622,6 @@ export function VideoProjectSheet({
             </Form>
           )}
           
-          {creationMethod === "ai-enhanced" && (
-            <div className="space-y-4">
-              <Form {...form}>
-                <FormField
-                  control={form.control}
-                  name="videoTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Project Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter project title" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Form>
-              <div>
-                <label className="text-sm font-medium">Brief Description</label>
-                <Textarea
-                  placeholder="Provide a brief description (20+ characters)"
-                  value={briefDescription}
-                  onChange={(e) => setBriefDescription(e.target.value)}
-                  rows={3}
-                  className="mt-2"
-                  disabled={isEnhanced}
-                />
-              </div>
-              {!isEnhanced && (
-                <Button onClick={handleEnhanceWithAI} disabled={isEnhancing} className="w-full">
-                  {isEnhancing ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enhancing...</>
-                  ) : (
-                    <><Sparkles className="mr-2 h-4 w-4" /> Enhance with AI</>
-                  )}
-                </Button>
-              )}
-            </div>
-          )}
-
           {creationMethod === "text" && (
             <div className="space-y-4">
               <div>
@@ -824,8 +723,8 @@ export function VideoProjectSheet({
             </div>
           )}
 
-          {/* Common form fields shown for all methods (or after enhancement for AI method) */}
-          {(creationMethod === "manual" || isEnhanced) && (
+          {/* Common form fields shown for all methods */}
+          {creationMethod === "manual" && (
             <Form {...form}>
               <div className="space-y-4">
                 <FormField
