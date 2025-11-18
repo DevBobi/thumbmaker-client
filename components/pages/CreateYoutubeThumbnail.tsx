@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import {
   Breadcrumb,
@@ -10,7 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Check, LayoutTemplate, Youtube, Upload, Loader2, Sparkles, Video, Info, X, Search, CheckSquare } from "lucide-react";
+import { Check, LayoutTemplate, Youtube, Upload, Loader2, Sparkles, Video, Info, X, Search, CheckSquare, ImageIcon } from "lucide-react";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import {
   Card,
@@ -39,6 +39,78 @@ interface ThumbnailAsset {
   type: string;
   url?: string;
 }
+
+// Component for displaying thumbnail asset preview
+const ThumbnailAssetPreview: React.FC<{ asset: ThumbnailAsset; index: number; onRemove: () => void }> = ({ asset, index, onRemove }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  // More robust HEIC/HEIF detection
+  const fileName = asset.file.name.toLowerCase();
+  const fileType = (asset.type || asset.file.type || '').toLowerCase();
+  const isHeic = fileName.endsWith('.heic') || 
+                 fileName.endsWith('.heif') ||
+                 fileType.includes('heic') ||
+                 fileType.includes('heif') ||
+                 fileName.includes('.heic') ||
+                 fileName.includes('.heif');
+  
+  // Don't create object URL for HEIC files since they can't be displayed
+  const imageUrl = isHeic ? null : URL.createObjectURL(asset.file);
+
+  // Cleanup object URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [imageUrl]);
+
+  return (
+    <div className="relative aspect-video rounded-lg overflow-hidden border group">
+      <div className="relative aspect-video bg-muted">
+        {isHeic || imageError ? (
+          <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-muted to-muted/50">
+            <ImageIcon className="h-10 w-10 text-muted-foreground mb-2 opacity-60" />
+            <p className="text-xs text-foreground font-medium truncate w-full px-2">
+              {asset.file.name}
+            </p>
+            {isHeic && (
+              <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">
+                HEIC/HEIF Format
+              </p>
+            )}
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Preview not available in browser
+            </p>
+            <p className="text-[9px] text-muted-foreground/70 mt-1">
+              File will be uploaded
+            </p>
+          </div>
+        ) : (
+          <Image
+            src={imageUrl!}
+            alt={asset.file.name}
+            fill
+            className="object-cover"
+            unoptimized
+            sizes="(max-width: 768px) 100vw, 300px"
+            onError={() => setImageError(true)}
+          />
+        )}
+        <button
+          onClick={onRemove}
+          className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors z-10"
+        >
+          <X className="h-4 w-4 text-white" />
+        </button>
+      </div>
+      <p className="text-xs text-muted-foreground mt-1 truncate" title={asset.file.name}>
+        {asset.file.name}
+      </p>
+    </div>
+  );
+};
 
 const channelStyles = [
   {
@@ -97,6 +169,7 @@ export default function CreateYoutubeThumbnail() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("template");
   const [allSelectedTemplates, setAllSelectedTemplates] = useState<string[]>([]);
+  const [preSelectedTemplateObjects, setPreSelectedTemplateObjects] = useState<any[]>([]);
   const [inspirationUrl, setInspirationUrl] = useState("");
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
   const [channelStyle, setChannelStyle] = useState<string>("");
@@ -113,6 +186,10 @@ export default function CreateYoutubeThumbnail() {
     thumbnailGoal?: boolean;
   }>({});
   const MAX_SELECTIONS = 10; // Maximum templates user can select
+
+  // Storage keys for persisting selected templates
+  const STORAGE_KEY_IDS = "yt-thumbnail-selected-template-ids";
+  const STORAGE_KEY_OBJECTS = "yt-thumbnail-selected-template-objects";
 
   // Fetch projects on mount
   const fetchProjects = async () => {
@@ -145,6 +222,234 @@ export default function CreateYoutubeThumbnail() {
     fetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fetch template details for selected template IDs
+  const fetchTemplateDetails = useCallback(async (templateIds: string[], existingObjects: any[] = []) => {
+    if (templateIds.length === 0) {
+      setPreSelectedTemplateObjects([]);
+      return;
+    }
+
+    // Check which template IDs we already have objects for
+    const existingIds = new Set(existingObjects.map((t) => t.id));
+    const missingIds = templateIds.filter((id) => !existingIds.has(id));
+
+    // If we have all templates, use existing objects
+    if (missingIds.length === 0) {
+      const orderedTemplates = templateIds
+        .map((id) => existingObjects.find((t) => t.id === id))
+        .filter((t) => t !== undefined);
+      setPreSelectedTemplateObjects(orderedTemplates);
+      
+      // Update storage with ordered templates
+      try {
+        localStorage.setItem(STORAGE_KEY_OBJECTS, JSON.stringify(orderedTemplates));
+      } catch (error) {
+        console.error("Error saving template objects to storage:", error);
+      }
+      return;
+    }
+
+    try {
+      // Fetch templates from both preset and user endpoints with higher limit
+      const [presetResponse, userResponse] = await Promise.all([
+        authFetch(`/api/templates/presets?limit=2000`).catch(() => null),
+        authFetch(`/api/templates/user?limit=2000`).catch(() => null),
+      ]);
+
+      const templates: any[] = [...existingObjects]; // Start with existing
+
+      if (presetResponse?.ok) {
+        const presetData = await presetResponse.json();
+        const presetTemplates = Array.isArray(presetData) ? presetData : presetData?.templates || [];
+        // Only add templates we don't already have
+        presetTemplates.forEach((t: any) => {
+          if (!existingIds.has(t.id) && templateIds.includes(t.id)) {
+            templates.push(t);
+          }
+        });
+      }
+
+      if (userResponse?.ok) {
+        const userData = await userResponse.json();
+        const userTemplates = Array.isArray(userData) ? userData : userData?.templates || [];
+        // Only add templates we don't already have
+        userTemplates.forEach((t: any) => {
+          if (!existingIds.has(t.id) && templateIds.includes(t.id)) {
+            templates.push(t);
+          }
+        });
+      }
+
+      // Order templates according to templateIds order and filter to only selected
+      let orderedTemplates = templateIds
+        .map((id) => templates.find((t) => t.id === id))
+        .filter((t) => t !== undefined);
+      
+      // If we're still missing some templates, try fetching them individually
+      const foundIds = new Set(orderedTemplates.map((t) => t.id));
+      const stillMissingIds = templateIds.filter((id) => !foundIds.has(id));
+      
+      if (stillMissingIds.length > 0) {
+        // Try to fetch missing templates individually (if API supports it)
+        // For now, we'll just use what we have and log the missing ones
+        console.warn(`Could not find ${stillMissingIds.length} template(s) in bulk fetch:`, stillMissingIds);
+      }
+      
+      setPreSelectedTemplateObjects(orderedTemplates);
+      
+      // Store template objects in localStorage (even if some are missing)
+      try {
+        localStorage.setItem(STORAGE_KEY_OBJECTS, JSON.stringify(orderedTemplates));
+      } catch (error) {
+        console.error("Error saving template objects to storage:", error);
+      }
+    } catch (error) {
+      console.error("Error fetching template details:", error);
+      // If fetch fails, use existing objects if available
+      if (existingObjects.length > 0) {
+        const orderedTemplates = templateIds
+          .map((id) => existingObjects.find((t) => t.id === id))
+          .filter((t) => t !== undefined);
+        setPreSelectedTemplateObjects(orderedTemplates);
+      } else {
+        setPreSelectedTemplateObjects([]);
+      }
+    }
+  }, [authFetch]);
+
+  // Load selected templates from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedIds = localStorage.getItem(STORAGE_KEY_IDS);
+      const storedObjects = localStorage.getItem(STORAGE_KEY_OBJECTS);
+      
+      let templateIds: string[] = [];
+      let templateObjects: any[] = [];
+      
+      if (storedIds) {
+        const parsedIds = JSON.parse(storedIds);
+        if (Array.isArray(parsedIds) && parsedIds.length > 0) {
+          templateIds = parsedIds;
+        }
+      }
+      
+      if (storedObjects) {
+        const parsedObjects = JSON.parse(storedObjects);
+        if (Array.isArray(parsedObjects) && parsedObjects.length > 0) {
+          // Validate that template objects have required fields (id, image, title)
+          templateObjects = parsedObjects.filter((t: any) => 
+            t && 
+            typeof t.id === 'string' && 
+            t.id.length > 0 &&
+            (t.image || t.link) && // At least one image source
+            t.title // Title is required
+          );
+        }
+      }
+      
+      if (templateIds.length > 0) {
+        // Order template objects according to templateIds order
+        const orderedObjects = templateIds
+          .map((id) => templateObjects.find((t) => t && t.id === id))
+          .filter((t) => t !== undefined);
+        
+        setAllSelectedTemplates(templateIds);
+        
+        // Use stored objects immediately if we have them
+        if (orderedObjects.length > 0) {
+          setPreSelectedTemplateObjects(orderedObjects);
+        }
+        
+        // Fetch details for any missing templates (this will update if needed)
+        if (orderedObjects.length < templateIds.length) {
+          fetchTemplateDetails(templateIds, orderedObjects);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading selected templates from storage:", error);
+    }
+  }, [fetchTemplateDetails]);
+
+  // Persist selected template IDs to localStorage whenever they change
+  useEffect(() => {
+    if (allSelectedTemplates.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY_IDS, JSON.stringify(allSelectedTemplates));
+      } catch (error) {
+        console.error("Error saving selected template IDs to storage:", error);
+      }
+    } else {
+      // Clear storage if no templates selected
+      try {
+        localStorage.removeItem(STORAGE_KEY_IDS);
+        localStorage.removeItem(STORAGE_KEY_OBJECTS);
+        setPreSelectedTemplateObjects([]);
+      } catch (error) {
+        console.error("Error clearing selected templates from storage:", error);
+      }
+    }
+  }, [allSelectedTemplates]);
+
+  // Handle when a template object is selected (captured from TemplateSelector)
+  const handleTemplateObjectSelect = useCallback((template: any) => {
+    setPreSelectedTemplateObjects((currentObjects) => {
+      // Check if we already have this template
+      if (currentObjects.find((t) => t.id === template.id)) {
+        return currentObjects;
+      }
+      // Add the new template object
+      const updated = [...currentObjects, template];
+      // Store in localStorage
+      try {
+        localStorage.setItem(STORAGE_KEY_OBJECTS, JSON.stringify(updated));
+      } catch (error) {
+        console.error("Error saving template object to storage:", error);
+      }
+      return updated;
+    });
+  }, []);
+
+  // Update preSelectedTemplateObjects when templates are selected/deselected
+  const handleTemplateSelection = useCallback((newSelection: string[] | ((prev: string[]) => string[])) => {
+    setAllSelectedTemplates((prev) => {
+      const updatedSelection = typeof newSelection === "function" 
+        ? newSelection(prev)
+        : newSelection;
+      
+      // Update preSelectedTemplateObjects - remove objects for deselected templates
+      setPreSelectedTemplateObjects((currentObjects) => {
+        // Filter out templates that are no longer selected
+        const filteredObjects = currentObjects.filter((t) => updatedSelection.includes(t.id));
+        
+        // If we have fewer objects than selected IDs, fetch missing ones
+        if (updatedSelection.length > 0) {
+          if (filteredObjects.length < updatedSelection.length) {
+            // Fetch details for any missing templates
+            fetchTemplateDetails(updatedSelection, filteredObjects);
+          } else {
+            // Update storage with filtered objects
+            try {
+              localStorage.setItem(STORAGE_KEY_OBJECTS, JSON.stringify(filteredObjects));
+            } catch (error) {
+              console.error("Error saving template objects to storage:", error);
+            }
+          }
+          return filteredObjects;
+        } else {
+          // No templates selected, clear everything
+          try {
+            localStorage.removeItem(STORAGE_KEY_OBJECTS);
+          } catch (error) {
+            console.error("Error clearing template objects from storage:", error);
+          }
+          return [];
+        }
+      });
+      
+      return updatedSelection;
+    });
+  }, [fetchTemplateDetails]);
 
   // Filter projects based on search query
   const filteredProjects = projects.filter((project) => {
@@ -221,13 +526,63 @@ export default function CreateYoutubeThumbnail() {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       const remainingSlots = 4 - thumbnailAssets.length;
-      if (remainingSlots > 0) {
+      
+      // Supported image formats
+      const supportedImageTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/svg+xml',
+        'image/bmp',
+        'image/tiff',
+        'image/x-icon',
+        'image/heic',
+        'image/heif',
+        'image/avif',
+      ];
+      
+      // Also check by file extension for formats that might not have proper MIME types
+      const supportedExtensions = [
+        '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif',
+        '.ico', '.heic', '.heif', '.avif'
+      ];
+      
+      const isValidImageFile = (file: File): boolean => {
+        // Check MIME type
+        if (file.type && supportedImageTypes.includes(file.type.toLowerCase())) {
+          return true;
+        }
+        // Check file extension as fallback (for HEIC and other formats that might not have proper MIME types)
+        const fileName = file.name.toLowerCase();
+        return supportedExtensions.some(ext => fileName.endsWith(ext));
+      };
+      
+      const validFiles = newFiles.filter(isValidImageFile);
+      const invalidFiles = newFiles.filter(file => !isValidImageFile(file));
+      
+      if (invalidFiles.length > 0) {
+        toast({
+          title: "Unsupported file type",
+          description: `${invalidFiles.length} file(s) were skipped. Please upload image files only (JPG, PNG, GIF, WebP, SVG, BMP, TIFF, HEIC, HEIF, AVIF).`,
+          variant: "destructive",
+        });
+      }
+      
+      if (validFiles.length > 0 && remainingSlots > 0) {
         setThumbnailAssets((prev) => [
           ...prev,
-          ...newFiles.slice(0, remainingSlots).map((file) => ({
-            file,
-            type: file.type.split("/")[1],
-          })),
+          ...validFiles.slice(0, remainingSlots).map((file) => {
+            // Get file extension
+            const extension = file.name.split('.').pop()?.toLowerCase() || '';
+            // Use MIME type if available, otherwise use extension
+            const fileType = file.type || extension || 'unknown';
+            return {
+              file,
+              type: fileType,
+            };
+          }),
         ]);
       }
     }
@@ -416,6 +771,14 @@ export default function CreateYoutubeThumbnail() {
         throw new Error("Invalid response from server");
       }
       
+      // Clear selected templates from storage after successful generation
+      try {
+        localStorage.removeItem(STORAGE_KEY_IDS);
+        localStorage.removeItem(STORAGE_KEY_OBJECTS);
+      } catch (error) {
+        console.error("Error clearing selected templates from storage:", error);
+      }
+      
       router.push(`/dashboard/generated-thumbnails/${data.id}`);
     } catch (error) {
       console.error("Error generating thumbnail:", error);
@@ -460,181 +823,6 @@ export default function CreateYoutubeThumbnail() {
 
       {/* Form Content */}
       <div className="space-y-6 mb-8">
-        {/* Generation Method Tabs */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Generation Method</CardTitle>
-            <CardDescription>
-              Choose how you want to generate your thumbnail
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={generationMode} onValueChange={(value) => setGenerationMode(value as GenerationMode)}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="template" className="flex items-center gap-2">
-                  <LayoutTemplate className="h-4 w-4" />
-                  Templates
-                </TabsTrigger>
-                <TabsTrigger value="youtube" className="flex items-center gap-2">
-                  <Youtube className="h-4 w-4" />
-                  YouTube Link
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="template" className="space-y-4 mt-4">
-                <TemplateSelector
-                  selectedTemplateIds={allSelectedTemplates}
-                  onSelect={setAllSelectedTemplates}
-                  maxSelections={MAX_SELECTIONS}
-                  preSelectedTemplates={[]}
-                />
-                
-                {allSelectedTemplates.length > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">
-                        {allSelectedTemplates.length} template{allSelectedTemplates.length > 1 ? 's' : ''} selected
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {templateVariations} variation{templateVariations > 1 ? 's' : ''} each = {allSelectedTemplates.length * templateVariations} total thumbnail{allSelectedTemplates.length * templateVariations > 1 ? 's' : ''}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Variations:</span>
-                      {[1, 2, 3].map((num) => (
-                        <Button
-                          key={num}
-                          variant={templateVariations === num ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setTemplateVariations(num)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {num}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="youtube" className="space-y-4 mt-4">
-                <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-background to-background">
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {/* Header */}
-                      <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
-                          <Youtube className="h-6 w-6 text-red-500" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold">YouTube Inspiration</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Paste single or multiple YouTube URLs (one per line)
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Textarea for bulk paste */}
-                      <div className="space-y-2">
-                        <Textarea
-                          placeholder="Paste YouTube URLs here...&#10;https://youtube.com/watch?v=...&#10;https://youtu.be/...&#10;&#10;💡 Tip: Paste multiple links, one per line!"
-                          value={inspirationUrl}
-                          onChange={(e) => handleInspirationUrlChange(e.target.value)}
-                          rows={6}
-                          className="resize-none font-mono text-sm"
-                        />
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Sparkles className="h-3 w-3" />
-                            Each URL will generate a unique thumbnail
-                          </span>
-                          {inspirationUrl.trim() && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setInspirationUrl("");
-                                setInspirationPreview(null);
-                              }}
-                              className="h-7 px-2"
-                            >
-                              <X className="h-3 w-3 mr-1" />
-                              Clear All
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Preview Grid */}
-                      {inspirationPreview && (
-                        <div className="border-t pt-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <CheckSquare className="h-4 w-4 text-green-500" />
-                            <span className="text-sm font-medium">Preview</span>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {inspirationUrl.split('\n').filter(url => url.trim()).map((url, index) => {
-                              const videoId = url.match(
-                                /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
-                              )?.[1];
-                              
-                              if (!videoId) return null;
-                              
-                              return (
-                                <div key={index} className="relative group">
-                                  <div className="relative aspect-video rounded-lg overflow-hidden border-2 border-primary/20">
-                                    <Image
-                                      src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-                                      alt={`Video ${index + 1}`}
-                                      fill
-                                      className="object-cover"
-                                      sizes="(max-width: 768px) 50vw, 33vw"
-                                    />
-                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                      <Youtube className="h-8 w-8 text-white" />
-                                    </div>
-                                    <div className="absolute top-2 right-2">
-                                      <Badge variant="secondary" className="text-xs">
-                                        #{index + 1}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <p className="text-sm text-blue-900 dark:text-blue-100 flex items-start gap-2">
-                              <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>
-                                {inspirationUrl.split('\n').filter(url => url.trim()).length} video{inspirationUrl.split('\n').filter(url => url.trim()).length > 1 ? 's' : ''} detected. Each will generate a unique thumbnail inspired by its style.
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Helper Text */}
-                      {!inspirationUrl.trim() && (
-                        <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-dashed">
-                          <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                          <div className="space-y-1 text-sm">
-                            <p className="font-medium">Quick Start:</p>
-                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                              <li>Paste one YouTube URL for single inspiration</li>
-                              <li>Paste multiple URLs (one per line) for bulk generation</li>
-                              <li>Mix and match different video styles</li>
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
         {/* Project Selection */}
         <Card>
           <CardHeader>
@@ -865,7 +1053,7 @@ export default function CreateYoutubeThumbnail() {
                   Click to upload additional assets (optional)
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  JPG, PNG, SVG formats accepted (max 4 files)
+                  JPG, PNG, GIF, WebP, SVG, BMP, TIFF, HEIC, HEIF, AVIF formats accepted (max 4 files)
                 </p>
                 {selectedProject?.image && (
                   <p className="text-xs text-green-600 dark:text-green-400 mt-2">
@@ -877,7 +1065,7 @@ export default function CreateYoutubeThumbnail() {
                 type="file"
                 className="hidden"
                 multiple
-                accept="image/jpeg,image/png,image/svg+xml"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml,image/bmp,image/tiff,image/x-icon,image/heic,image/heif,image/avif,.heic,.heif,.avif"
                 onChange={handleFileChange}
                 id="thumbnail-assets"
                 disabled={thumbnailAssets.length >= 4}
@@ -902,31 +1090,192 @@ export default function CreateYoutubeThumbnail() {
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {thumbnailAssets.map((asset, index) => (
-                    <div
+                    <ThumbnailAssetPreview
                       key={index}
-                      className="relative aspect-video rounded-lg overflow-hidden border group"
-                    >
-                      <div className="relative aspect-video">
-                        <Image
-                          src={URL.createObjectURL(asset.file)}
-                          alt={asset.file.name}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                          sizes="(max-width: 768px) 100vw, 300px"
-                        />
-                        <button
-                          onClick={() => handleRemoveFile(index)}
-                          className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                        >
-                          <X className="h-4 w-4 text-white" />
-                        </button>
-                      </div>
-                    </div>
+                      asset={asset}
+                      index={index}
+                      onRemove={() => handleRemoveFile(index)}
+                    />
                   ))}
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Generation Method Tabs */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Generation Method</CardTitle>
+            <CardDescription>
+              Choose how you want to generate your thumbnail
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={generationMode} onValueChange={(value) => setGenerationMode(value as GenerationMode)}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="template" className="flex items-center gap-2">
+                  <LayoutTemplate className="h-4 w-4" />
+                  Templates
+                </TabsTrigger>
+                <TabsTrigger value="youtube" className="flex items-center gap-2">
+                  <Youtube className="h-4 w-4" />
+                  YouTube Link
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="template" className="space-y-4 mt-4">
+                <TemplateSelector
+                  selectedTemplateIds={allSelectedTemplates}
+                  onSelect={handleTemplateSelection}
+                  maxSelections={MAX_SELECTIONS}
+                  preSelectedTemplates={preSelectedTemplateObjects}
+                  onTemplateObjectSelect={handleTemplateObjectSelect}
+                />
+                
+                {allSelectedTemplates.length > 0 && (
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">
+                        {allSelectedTemplates.length} template{allSelectedTemplates.length > 1 ? 's' : ''} selected
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {templateVariations} variation{templateVariations > 1 ? 's' : ''} each = {allSelectedTemplates.length * templateVariations} total thumbnail{allSelectedTemplates.length * templateVariations > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Variations:</span>
+                      {[1, 2, 3].map((num) => (
+                        <Button
+                          key={num}
+                          variant={templateVariations === num ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setTemplateVariations(num)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {num}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="youtube" className="space-y-4 mt-4">
+                <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-background to-background">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {/* Header */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                          <Youtube className="h-6 w-6 text-red-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold">YouTube Inspiration</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Paste single or multiple YouTube URLs (one per line)
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Textarea for bulk paste */}
+                      <div className="space-y-2">
+                        <Textarea
+                          placeholder="Paste YouTube URLs here...&#10;https://youtube.com/watch?v=...&#10;https://youtu.be/...&#10;&#10;💡 Tip: Paste multiple links, one per line!"
+                          value={inspirationUrl}
+                          onChange={(e) => handleInspirationUrlChange(e.target.value)}
+                          rows={6}
+                          className="resize-none font-mono text-sm"
+                        />
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            Each URL will generate a unique thumbnail
+                          </span>
+                          {inspirationUrl.trim() && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setInspirationUrl("");
+                                setInspirationPreview(null);
+                              }}
+                              className="h-7 px-2"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Clear All
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Preview Grid */}
+                      {inspirationPreview && (
+                        <div className="border-t pt-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <CheckSquare className="h-4 w-4 text-green-500" />
+                            <span className="text-sm font-medium">Preview</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {inspirationUrl.split('\n').filter(url => url.trim()).map((url, index) => {
+                              const videoId = url.match(
+                                /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+                              )?.[1];
+                              
+                              if (!videoId) return null;
+                              
+                              return (
+                                <div key={index} className="relative group">
+                                  <div className="relative aspect-video rounded-lg overflow-hidden border-2 border-primary/20">
+                                    <Image
+                                      src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+                                      alt={`Video ${index + 1}`}
+                                      fill
+                                      className="object-cover"
+                                      sizes="(max-width: 768px) 50vw, 33vw"
+                                    />
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <Youtube className="h-8 w-8 text-white" />
+                                    </div>
+                                    <div className="absolute top-2 right-2">
+                                      <Badge variant="secondary" className="text-xs">
+                                        #{index + 1}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-sm text-blue-900 dark:text-blue-100 flex items-start gap-2">
+                              <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span>
+                                {inspirationUrl.split('\n').filter(url => url.trim()).length} video{inspirationUrl.split('\n').filter(url => url.trim()).length > 1 ? 's' : ''} detected. Each will generate a unique thumbnail inspired by its style.
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Helper Text */}
+                      {!inspirationUrl.trim() && (
+                        <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-dashed">
+                          <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <div className="space-y-1 text-sm">
+                            <p className="font-medium">Quick Start:</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li>Paste one YouTube URL for single inspiration</li>
+                              <li>Paste multiple URLs (one per line) for bulk generation</li>
+                              <li>Mix and match different video styles</li>
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 

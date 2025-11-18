@@ -132,8 +132,6 @@ const History = () => {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('📊 Fetched campaigns data:', data.data);
-        console.log('📷 Sample image URLs:', data.data?.slice(0, 2).map((t: any) => ({ id: t.id, image: t.image })));
         setCampaigns(data.data || []);
       } else {
         console.error("Failed to fetch thumbnails");

@@ -303,7 +303,6 @@ const VideoProjects = () => {
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedProjects.map((project) => {
-            console.log("Rendering project:", project);
             const isHighlighted = highlightProjectId === project.id;
             return (
             <div

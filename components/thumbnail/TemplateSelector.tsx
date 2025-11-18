@@ -69,6 +69,7 @@ interface TemplateSelectorProps {
   className?: string;
   maxSelections?: number;
   preSelectedTemplates?: any[]; // Add this to pass full template objects
+  onTemplateObjectSelect?: (template: Template) => void; // Callback when template is selected with its object
 }
 
 interface FilterState {
@@ -90,19 +91,19 @@ const TEMPLATES_PER_PAGE = 12;
 // Components
 const SelectedTemplate: React.FC<SelectedTemplateProps> = React.memo(
   ({ templateId, index, onRemove, template }) => (
-    <div className="relative flex-shrink-0 w-full sm:w-64 md:w-48 group">
+    <div className="relative flex-shrink-0 group">
       <div className="aspect-video relative rounded-lg overflow-hidden border-2 border-violet-500">
         <Image
           src={template.image}
           alt={template.title}
           fill
           className="object-cover"
-          sizes="(max-width: 640px) 100vw, (max-width: 768px) 256px, 192px"
+          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
         />
-        <div className="absolute top-2 right-2 bg-violet-500 text-white rounded-full p-1">
-          <div className="flex items-center gap-1">
-            <span className="text-xs font-medium">{index + 1}</span>
-            <Check className="h-3 w-3" />
+        <div className="absolute top-1 right-1 bg-violet-500 text-white rounded-full p-0.5">
+          <div className="flex items-center gap-0.5">
+            <span className="text-[10px] font-medium leading-none">{index + 1}</span>
+            <Check className="h-2.5 w-2.5" />
           </div>
         </div>
         <button
@@ -110,12 +111,12 @@ const SelectedTemplate: React.FC<SelectedTemplateProps> = React.memo(
             e.stopPropagation();
             onRemove(templateId);
           }}
-          className="absolute top-2 left-2 bg-violet-500 text-white rounded-full p-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity hover:bg-violet-600"
+          className="absolute top-1 left-1 bg-violet-500 text-white rounded-full p-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity hover:bg-violet-600"
         >
-          <X className="h-3 w-3" />
+          <X className="h-2.5 w-2.5" />
         </button>
       </div>
-      <p className="text-sm mt-1 truncate">{template.title}</p>
+      <p className="text-xs mt-1 truncate text-muted-foreground">{template.title}</p>
     </div>
   )
 );
@@ -179,6 +180,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   className,
   maxSelections = 5,
   preSelectedTemplates = [],
+  onTemplateObjectSelect,
 }) => {
   const { authFetch } = useAuthFetch();
 
@@ -294,18 +296,30 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   // Handlers
   const handleTemplateClick = useCallback(
     (templateId: string) => {
+      // Find the template object from current page or pre-selected templates
+      const template = templates.find((t) => t.id === templateId) || 
+                      preSelectedTemplates.find((t) => t.id === templateId);
+      
       onSelect((prevIds: string[]) => {
         const isSelected = prevIds.includes(templateId);
         if (isSelected) {
           return prevIds.filter((id) => id !== templateId);
         }
         if (prevIds.length >= maxSelections) {
+          // If template object is available, notify parent
+          if (template && onTemplateObjectSelect) {
+            onTemplateObjectSelect(template);
+          }
           return [...prevIds.slice(1), templateId];
+        }
+        // If template object is available, notify parent
+        if (template && onTemplateObjectSelect) {
+          onTemplateObjectSelect(template);
         }
         return [...prevIds, templateId];
       });
     },
-    [maxSelections, onSelect]
+    [maxSelections, onSelect, templates, preSelectedTemplates, onTemplateObjectSelect]
   );
 
   const handleRemoveTemplate = useCallback(
@@ -351,25 +365,47 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
       {/* Selected Templates */}
       {selectedTemplateIds.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {selectedTemplateIds.map((templateId, index) => {
-            // First try to find in current page templates, then in pre-selected templates
-            let template = templates.find((t) => t.id === templateId);
-            if (!template) {
-              template = preSelectedTemplates.find((t) => t.id === templateId);
-            }
-            if (!template) return null;
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">
+              Selected Templates ({selectedTemplateIds.length})
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {selectedTemplateIds.map((templateId, index) => {
+              // First try to find in pre-selected templates (from localStorage), then in current page templates
+              let template = preSelectedTemplates.find((t) => t && t.id === templateId);
+              if (!template) {
+                template = templates.find((t) => t.id === templateId);
+              }
+              
+              // If template still not found, show a placeholder
+              if (!template) {
+                return (
+                  <div key={templateId} className="relative flex-shrink-0 group">
+                    <div className="aspect-video relative rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30 bg-muted/50">
+                      <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                        <div className="h-8 w-8 rounded-full bg-muted-foreground/20 flex items-center justify-center mb-2">
+                          <span className="text-xs font-medium text-muted-foreground">{index + 1}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Loading...</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
 
-            return (
-              <SelectedTemplate
-                key={templateId}
-                templateId={templateId}
-                index={index}
-                onRemove={handleRemoveTemplate}
-                template={template}
-              />
-            );
-          })}
+              return (
+                <SelectedTemplate
+                  key={templateId}
+                  templateId={templateId}
+                  index={index}
+                  onRemove={handleRemoveTemplate}
+                  template={template}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
 
