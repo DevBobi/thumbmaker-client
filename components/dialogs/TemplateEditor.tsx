@@ -1,7 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Image from "next/image";
-import { Edit, Upload } from "lucide-react";
+import { Edit, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,7 +38,13 @@ interface TemplateEditorProps {
 
 const formSchema = z.object({
   brand: z.string().min(1, "Creator name is required"),
-  niche: z.string().min(1, "Niche is required"),
+  tagsInput: z
+    .string()
+    .min(1, "At least one tag is required")
+    .refine(
+      (value) => value.split(",").some((tag) => tag.trim().length > 0),
+      "Please provide at least one valid tag"
+    ),
   image: z.any().optional(),
 });
 
@@ -58,11 +64,21 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
     template.image
   );
 
+  const defaultTagsInput = useMemo(() => {
+    if (template.tags && template.tags.length > 0) {
+      return template.tags.join(", ");
+    }
+    if (template.niche) {
+      return template.niche;
+    }
+    return "";
+  }, [template.tags, template.niche]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       brand: template.brand,
-      niche: template.niche,
+      tagsInput: defaultTagsInput,
     },
   });
 
@@ -81,9 +97,20 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
     }
   };
 
+  const parseTags = (input: string) => {
+    return input
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .map((tag) => tag.slice(0, 40))
+      .slice(0, 8);
+  };
+
   const handleUpdateTemplate = async (values: FormValues) => {
     try {
       setIsLoading(true);
+      const parsedTags = parseTags(values.tagsInput);
+      const primaryTag = parsedTags[0] || template.niche || template.brand;
 
       let imageUrl = template.image;
 
@@ -102,7 +129,8 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
           image: imageUrl,
           creator: values.brand,
           brand: values.brand,
-          niche: values.niche,
+          niche: primaryTag,
+          tags: parsedTags,
         }),
       });
 
@@ -119,10 +147,13 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
         image: updatedTemplate.image,
         brand: updatedTemplate.brand,
         niche: updatedTemplate.niche,
-        tags: [
-          updatedTemplate.brand,
-          updatedTemplate.niche,
-        ],
+        tags:
+          parsedTags.length > 0
+            ? parsedTags
+            : [
+                updatedTemplate.brand,
+                updatedTemplate.niche,
+              ].filter(Boolean) as string[],
       });
 
       toast({
@@ -151,7 +182,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
       setImagePreview(template.image);
       form.reset({
         brand: template.brand,
-        niche: template.niche,
+        tagsInput: defaultTagsInput,
       });
       setTemplateImage(null);
     }
@@ -188,26 +219,26 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     Template Image <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <div
-                      className="flex flex-col items-center border-2 border-dashed rounded-md p-6 cursor-pointer"
-                      onClick={() =>
-                        document.getElementById("template-image")?.click()
-                      }
-                    >
+                    <div className="relative">
+                      <label
+                        htmlFor="template-image"
+                        className="flex flex-col items-center border-2 border-dashed rounded-md p-6 cursor-pointer transition hover:border-primary/70"
+                      >
                       {imagePreview ? (
                         <div className="w-full flex justify-center">
-                          <div className="relative w-full max-h-72" style={{ aspectRatio: '16/9' }}>
+                          <div className="relative w-full max-h-72 overflow-hidden rounded-md" style={{ aspectRatio: '16/9' }}>
                             <Image
                               src={imagePreview}
                               alt="Template preview"
                               fill
-                              className="rounded-md object-contain"
+                              className="object-cover"
                               sizes="(max-width: 768px) 100vw, 600px"
                             />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 hover:opacity-100 transition flex flex-col items-center justify-center text-white text-sm gap-2">
+                              <Upload className="h-5 w-5" />
+                              <span>Click to change image</span>
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground text-center mt-2">
-                            Click to change image
-                          </p>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center">
@@ -219,6 +250,24 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                             JPG, PNG, SVG formats accepted
                           </p>
                         </div>
+                      )}
+                      </label>
+                      {imagePreview && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-4 right-4 h-8 w-8 rounded-full shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setImagePreview(null);
+                            setTemplateImage(null);
+                            form.setValue("image", undefined);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       )}
                       <Input
                         id="template-image"
@@ -254,18 +303,24 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
               )}
             />
 
-            {/* Niche Input */}
+            {/* Tags Input */}
             <FormField
               control={form.control}
-              name="niche"
+              name="tagsInput"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Niche <span className="text-red-500">*</span>
+                    Tags <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter niche (e.g., Finance, Gaming)" {...field} />
+                    <Input
+                      placeholder="Add tags (comma separated, e.g., Technology, Audio, Awards)"
+                      {...field}
+                    />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Use 1-3 word tags. Separate each tag with a comma.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

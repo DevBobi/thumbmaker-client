@@ -36,6 +36,7 @@ import {
   User,
   ChevronDown,
   Search,
+  Search as SearchIcon,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -190,6 +191,8 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     creator: "all",
     tag: "all",
   });
+  const [creatorSearch, setCreatorSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
   const [templateType, setTemplateType] = useState<"preset" | "user">("preset");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -239,10 +242,8 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       if (filters.searchQuery) params.append("search", filters.searchQuery);
       if (filters.creator !== "all") params.append("creator", filters.creator);
       if (filters.tag !== "all") {
-        // Try both 'tag' and 'category' parameters in case backend uses different naming
-        params.append("tag", filters.tag);
-        params.append("category", filters.tag);
-        console.log("🔍 Filtering by category/tag:", filters.tag);
+        params.append("tags", filters.tag);
+        console.log("🔍 Filtering by tag:", filters.tag);
       }
       if (templateType === "user") params.append("type", "user");
 
@@ -288,10 +289,27 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const uniqueTags = React.useMemo(() => {
     const tags = new Set<string>();
     allTemplates.forEach(template => {
-      template.tags?.forEach(tag => tags.add(tag));
+      template.tags?.forEach(tag => {
+        if (tag && tag.length <= 25) {
+          tags.add(tag);
+        }
+      });
     });
     return Array.from(tags).sort();
   }, [allTemplates]);
+
+  // Filtered creators and categories for search
+  const filteredCreators = React.useMemo(() => {
+    return uniqueCreators.filter(creator => 
+      creator.toLowerCase().includes(creatorSearch.toLowerCase())
+    );
+  }, [uniqueCreators, creatorSearch]);
+
+  const filteredCategories = React.useMemo(() => {
+    return uniqueTags.filter(tag =>
+      tag.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [uniqueTags, categorySearch]);
 
   // Handlers
   const handleTemplateClick = useCallback(
@@ -431,153 +449,188 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
       {/* Search and Filters */}
       <div className="space-y-4">
-        {/* Search Bar and Dropdowns */}
-        <div className="flex flex-col lg:flex-row gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search templates..."
-              value={filters.searchQuery}
-              onChange={(e) => {
-                setFilters((prev) => ({ ...prev, searchQuery: e.target.value }));
-                setCurrentPage(1);
-              }}
-              className="pl-9"
-            />
-          </div>
-
-          {/* Dropdowns */}
-          <div className="flex gap-3">
-            {/* Creator Filter */}
-            <Select
-              value={filters.creator}
-              onValueChange={(value) => {
-                setFilters((prev) => ({ ...prev, creator: value }));
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <SelectValue placeholder="All Creators" />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="max-h-[400px] w-[320px]">
-                <SelectItem value="all">All Creators</SelectItem>
-                <div className="grid grid-cols-2 gap-1 p-1">
-                  {uniqueCreators.map((creator) => (
-                    <SelectItem key={creator} value={creator} className="col-span-1">
-                      {creator}
-                    </SelectItem>
-                  ))}
-                </div>
-              </SelectContent>
-            </Select>
-
-            {/* Category Dropdown (synced with badges) */}
-            <Select
-              value={filters.tag}
-              onValueChange={(value) => {
-                setFilters((prev) => ({ ...prev, tag: value }));
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <div className="flex items-center gap-2">
-                  <Tag className="h-4 w-4" />
-                  <SelectValue placeholder="All Categories" />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="max-h-[400px]">
-                <SelectItem value="all">All Categories</SelectItem>
-                <div className="grid grid-cols-2 gap-1 p-1">
-                  {uniqueTags.map((tag) => (
-                    <SelectItem key={tag} value={tag} className="col-span-1">
-                      {tag}
-                    </SelectItem>
-                  ))}
-                </div>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Category Badges */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-            <Tag className="h-3.5 w-3.5" />
-            Categories:
-          </span>
-          
-          {/* All Badge */}
-          <Badge
-            variant={filters.tag === "all" ? "default" : "outline"}
-            className="cursor-pointer hover:bg-primary/10 transition-colors"
-            onClick={() => {
-              setFilters((prev) => ({ ...prev, tag: "all" }));
+        {/* Search Input - On its own line */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search templates..."
+            value={filters.searchQuery}
+            onChange={(e) => {
+              setFilters((prev) => ({ ...prev, searchQuery: e.target.value }));
               setCurrentPage(1);
             }}
-          >
-            All
-          </Badge>
-          
-          {/* First 4 categories */}
-          {uniqueTags.slice(0, 4).map((tag) => (
-            <Badge
-              key={tag}
-              variant={filters.tag === tag ? "default" : "outline"}
-              className="cursor-pointer hover:bg-primary/10 transition-colors"
-              onClick={() => {
-                setFilters((prev) => ({ ...prev, tag }));
-                setCurrentPage(1);
-              }}
-            >
-              {tag}
-            </Badge>
-          ))}
-          
-          {/* More dropdown */}
-          {uniqueTags.length > 4 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 px-2 gap-1">
-                  More
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[400px] max-h-[300px] overflow-y-auto p-3">
-                <div className="grid grid-cols-2 gap-2">
-                  {uniqueTags.slice(4).map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant={filters.tag === tag ? "default" : "outline"}
-                      className="cursor-pointer hover:bg-primary/10 transition-colors justify-center"
-                      onClick={() => {
-                        setFilters((prev) => ({ ...prev, tag }));
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            className="pl-9"
+          />
+        </div>
+
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          {/* Tag Filter - Badges with More dropdown */}
+          {uniqueTags.length > 0 && (
+            <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap lg:flex-nowrap">
+              <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" />
+                Tags:
+              </span>
+              
+              {/* All Badge */}
+              <Badge
+                variant={filters.tag === "all" ? "default" : "outline"}
+                className="cursor-pointer hover:bg-primary/10 transition-colors h-7 px-2 text-xs"
+                onClick={() => {
+                  setFilters((prev) => ({ ...prev, tag: "all" }));
+                  setCurrentPage(1);
+                }}
+              >
+                All
+              </Badge>
+              
+              {/* First 5 tags as badges */}
+              {uniqueTags.slice(0, 5).map((tag) => (
+                <Badge
+                  key={tag}
+                  variant={filters.tag === tag ? "default" : "outline"}
+                  className="cursor-pointer hover:bg-primary/10 transition-colors h-7 px-2 text-xs"
+                  onClick={() => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      tag: prev.tag === tag ? "all" : tag,
+                    }));
+                    setCurrentPage(1);
+                  }}
+                >
+                  {tag}
+                </Badge>
+              ))}
+              
+              {/* More dropdown for additional tags */}
+              {uniqueTags.length > 5 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 px-2 gap-1">
+                      More
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    align="start"
+                    side="bottom"
+                    sideOffset={4}
+                    className="w-[calc(100vw-2rem)] sm:w-[min(320px,calc(100vw-2rem))] md:w-[min(360px,calc(100vw-2rem))] lg:w-[min(400px,calc(100vw-2rem))] p-0"
+                  >
+                    <div className="relative px-3 pt-2">
+                      <SearchIcon className="absolute left-6 top-5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search tags..."
+                        value={categorySearch}
+                        onChange={(e) => setCategorySearch(e.target.value)}
+                        className="pl-8 h-9 mb-2"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    <div className="max-h-[50vh] sm:max-h-[400px] overflow-y-auto p-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* If searching, show all filtered tags. Otherwise, show only those after the first 9 */}
+                        {(() => {
+                        const firstFiveTags = uniqueTags.slice(0, 5);
+                          const categoriesToShow = categorySearch.trim() 
+                            ? filteredCategories // When searching, show all matching results
+                          : filteredCategories.filter(tag => !firstFiveTags.includes(tag)); // When not searching, exclude first 5
+                          
+                          return categoriesToShow.length > 0 ? (
+                            categoriesToShow.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant={filters.tag === tag ? "default" : "outline"}
+                                className="cursor-pointer hover:bg-primary/10 transition-colors justify-center text-xs sm:text-sm"
+                                onClick={() => {
+                                  setFilters((prev) => ({
+                                    ...prev,
+                                    tag: prev.tag === tag ? "all" : tag,
+                                  }));
+                                  setCurrentPage(1);
+                                  setCategorySearch(""); // Clear search after selection
+                                }}
+                              >
+                                {tag}
+                              </Badge>
+                            ))
+                          ) : (
+                              <div className="col-span-full text-center py-4 text-sm text-muted-foreground">
+                                {categorySearch.trim() ? "No tags found" : "No additional tags"}
+                              </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           )}
 
-          {/* Clear Filters */}
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="h-7 px-2 ml-2"
-            >
-              <FilterX className="h-3.5 w-3.5 mr-1.5" />
-              Clear
-            </Button>
-          )}
+          {/* Creator Filter and Clear Button - inline with tags */}
+          <div className="flex items-center gap-3 w-full lg:w-auto min-w-[220px] justify-start lg:justify-end flex-wrap">
+            <div className="w-full sm:w-60 lg:w-64">
+              <Select
+                value={filters.creator}
+                onValueChange={(value) => {
+                  setFilters((prev) => ({ ...prev, creator: value }));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <SelectValue placeholder="Filter by creator" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="p-0 w-[calc(100vw-2rem)] sm:w-[300px] md:w-[400px] max-w-[95vw]">
+                  <div className="relative px-3 pt-2">
+                    <SearchIcon className="absolute left-6 top-5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search creators..."
+                      value={creatorSearch}
+                      onChange={(e) => setCreatorSearch(e.target.value)}
+                      className="pl-8 h-9 mb-2"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="max-h-[50vh] sm:max-h-[400px] overflow-y-auto px-1">
+                    <SelectItem value="all" className="font-medium">All Creators</SelectItem>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-1">
+                      {filteredCreators.map((creator) => (
+                        <SelectItem 
+                          key={creator} 
+                          value={creator}
+                          className="col-span-1 text-xs sm:text-sm"
+                        >
+                          {creator}
+                        </SelectItem>
+                      ))}
+                      {filteredCreators.length === 0 && (
+                        <div className="col-span-full text-center py-4 text-sm text-muted-foreground">
+                          No creators found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear Filters Button - aligned with creator filter */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-9 px-3 flex-shrink-0"
+              >
+                <FilterX className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

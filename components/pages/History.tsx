@@ -77,6 +77,7 @@ const History = () => {
   const [selectedThumbnail, setSelectedThumbnail] = useState<any>(null);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'project'>('list'); // 'list' shows grouped projects, 'project' shows thumbnails in selected project
+  const [historyTab, setHistoryTab] = useState<'projects' | 'timeline'>('projects');
 
   // Debounce search term to avoid excessive API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -154,6 +155,57 @@ const History = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, filterBy]);
 
+  // Helpers
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffInDays = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffInDays === 0) return "Today";
+    if (diffInDays === 1) return "Yesterday";
+    return `${diffInDays} days ago`;
+  };
+
+  const getDayLabel = useCallback((date: Date): string => {
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfDate = new Date(date);
+    startOfDate.setHours(0, 0, 0, 0);
+
+    const diffInDays = Math.round(
+      (startOfToday.getTime() - startOfDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffInDays === 0) return "Today";
+    if (diffInDays === 1) return "Yesterday";
+    if (diffInDays < 7) {
+      return date.toLocaleDateString(undefined, { weekday: "long" });
+    }
+
+    return date.toLocaleDateString(undefined, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, []);
+
+  const formatFullDate = (date: Date): string =>
+    date.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  const formatTimeLabel = (date: Date): string =>
+    date.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
   // Group thumbnails by project
   const groupedProjects = useMemo(() => {
     const projectMap = new Map();
@@ -185,6 +237,51 @@ const History = () => {
       new Date(b.latestDate).getTime() - new Date(a.latestDate).getTime()
     );
   }, [campaigns]);
+
+  const timelineGroups = useMemo(() => {
+    const dayMap = new Map<
+      string,
+      {
+        key: string;
+        date: Date;
+        label: string;
+        thumbnails: any[];
+      }
+    >();
+
+    campaigns.forEach((thumbnail: any) => {
+      if (!thumbnail?.createdAt) return;
+      const createdDate = new Date(thumbnail.createdAt);
+      const normalizedDate = new Date(createdDate);
+      normalizedDate.setHours(0, 0, 0, 0);
+      const dayKey = createdDate.toDateString();
+
+      if (!dayMap.has(dayKey)) {
+        dayMap.set(dayKey, {
+          key: dayKey,
+          date: normalizedDate,
+          label: getDayLabel(createdDate),
+          thumbnails: [],
+        });
+      }
+
+      const dayGroup = dayMap.get(dayKey);
+      dayGroup?.thumbnails.push(thumbnail);
+    });
+
+    const sortedGroups = Array.from(dayMap.values()).sort(
+      (a, b) => b.date.getTime() - a.date.getTime()
+    );
+
+    sortedGroups.forEach((group) => {
+      group.thumbnails.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    });
+
+    return sortedGroups;
+  }, [campaigns, getDayLabel]);
 
   // Client-side pagination for projects
   const paginatedProjects = useMemo(() => {
@@ -331,18 +428,6 @@ const History = () => {
     }
   };
 
-  // Function to get time ago string
-  const getTimeAgo = (date: Date): string => {
-    const now = new Date();
-    const diffInDays = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffInDays === 0) return "Today";
-    if (diffInDays === 1) return "Yesterday";
-    return `${diffInDays} days ago`;
-  };
-
   // Handle search with debounce
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -389,6 +474,34 @@ const History = () => {
           <Skeleton className="h-10 w-24" />
         </div>
       </div>
+    </div>
+  );
+
+  const TimelineSkeleton = () => (
+    <div className="space-y-6">
+      {[1, 2].map((group) => (
+        <div key={group} className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-5 w-24" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2].map((item) => (
+              <div key={item} className="border rounded-xl p-4 space-y-3">
+                <Skeleton className="h-4 w-28" />
+                <div className="flex gap-3">
+                  <Skeleton className="w-32 aspect-video rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-1/3" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 
@@ -554,186 +667,360 @@ const History = () => {
             </div>
           )}
 
-          {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2].map((i) => (
-                <ProjectSkeleton key={i} />
-              ))}
+          {/* View toggles */}
+          <div className="flex flex-wrap items-center gap-3 mt-4">
+            <div className="inline-flex items-center rounded-full border bg-muted/40 p-1">
+              <Button
+                variant={historyTab === 'projects' ? "default" : "ghost"}
+                size="sm"
+                className={`rounded-full ${historyTab === 'projects' ? 'shadow-sm' : ''}`}
+                onClick={() => setHistoryTab('projects')}
+              >
+                Projects
+              </Button>
+              <Button
+                variant={historyTab === 'timeline' ? "default" : "ghost"}
+                size="sm"
+                className={`rounded-full ${historyTab === 'timeline' ? 'shadow-sm' : ''}`}
+                onClick={() => setHistoryTab('timeline')}
+              >
+                Timeline
+              </Button>
             </div>
-          ) : groupedProjects.length === 0 ? (
-            <Card className="border-dashed border-2">
-              <CardContent className="p-12 text-center">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="bg-muted rounded-full p-3">
-                    <Search className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-medium text-lg">No matching thumbnails</h3>
-                  <p className="text-muted-foreground max-w-md">
-                    Try adjusting your search or filter criteria
-                  </p>
-                  <Button variant="outline" className="mt-2" onClick={resetFilters}>
-                    Clear all filters
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              <div className="space-y-4">
-                {paginatedProjects.map((project: any) => (
-                  <div
-                    key={project.id}
-                    className="bg-card border rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer"
-                    onClick={() => handleViewProject(project)}
-                  >
-                    <div className="p-6">
-                      <div className="flex items-start gap-6">
-                        {/* Thumbnail Preview - Left Side */}
-                        <div className="flex-shrink-0">
-                          <div className="relative w-48 h-28 rounded-lg overflow-hidden border-2 border-border group-hover:border-primary/50 transition-all">
-                            {project.thumbnails[0]?.image ? (
-                              <>
-                                <Image
-                                  src={project.thumbnails[0].image}
-                                  alt={project.thumbnails[0].title || "Thumbnail preview"}
-                                  fill
-                                  sizes="192px"
-                                  className="object-cover"
-                                  unoptimized
-                                />
-                                {/* Multiple Thumbnails Badge */}
-                                {project.thumbnails.length > 1 && (
-                                  <div className="absolute bottom-2.5 right-2.5 bg-gradient-to-r from-blue-600 to-purple-600 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xl border-2 border-white/20">
-                                    <ImageIcon className="h-4 w-4 text-white" />
-                                    <span className="text-white font-bold text-base leading-none">
-                                      +{project.thumbnails.length - 1}
-                                    </span>
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <div className="w-full h-full bg-muted flex items-center justify-center">
-                                <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
+          </div>
 
-                        {/* Content - Middle */}
-                        <div className="flex-1 min-w-0">
-                          {/* Header */}
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <FolderOpen className="h-5 w-5 text-primary flex-shrink-0" />
-                                <h3 className="text-lg font-bold text-foreground line-clamp-1">
-                                  {project.title}
-                                </h3>
-                              </div>
-                              {project.id !== 'ungrouped' && (
-                                <p className="text-xs text-muted-foreground font-mono">
-                                  Project ID: {project.id.slice(-12).toUpperCase()}
-                                </p>
+          {historyTab === 'projects' ? (
+            isLoading ? (
+              <div className="space-y-4 mt-6">
+                {[1, 2].map((i) => (
+                  <ProjectSkeleton key={i} />
+                ))}
+              </div>
+            ) : groupedProjects.length === 0 ? (
+              <Card className="border-dashed border-2 mt-6">
+                <CardContent className="p-12 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="bg-muted rounded-full p-3">
+                      <Search className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="font-medium text-lg">No matching thumbnails</h3>
+                    <p className="text-muted-foreground max-w-md">
+                      Try adjusting your search or filter criteria
+                    </p>
+                    <Button variant="outline" className="mt-2" onClick={resetFilters}>
+                      Clear all filters
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="space-y-4 mt-6">
+                  {paginatedProjects.map((project: any) => (
+                    <div
+                      key={project.id}
+                      className="bg-card border rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer"
+                      onClick={() => handleViewProject(project)}
+                    >
+                      <div className="p-6">
+                        <div className="flex items-start gap-6">
+                          {/* Thumbnail Preview - Left Side */}
+                          <div className="flex-shrink-0">
+                            <div className="relative w-48 h-28 rounded-lg overflow-hidden border-2 border-border group-hover:border-primary/50 transition-all">
+                              {project.thumbnails[0]?.image ? (
+                                <>
+                                  <Image
+                                    src={project.thumbnails[0].image}
+                                    alt={project.thumbnails[0].title || "Thumbnail preview"}
+                                    fill
+                                    sizes="192px"
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                  {/* Multiple Thumbnails Badge */}
+                                  {project.thumbnails.length > 1 && (
+                                    <div className="absolute bottom-2.5 right-2.5 bg-gradient-to-r from-blue-600 to-purple-600 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xl border-2 border-white/20">
+                                      <ImageIcon className="h-4 w-4 text-white" />
+                                      <span className="text-white font-bold text-base leading-none">
+                                        +{project.thumbnails.length - 1}
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="w-full h-full bg-muted flex items-center justify-center">
+                                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                                </div>
                               )}
                             </div>
                           </div>
 
-                          {/* Metadata */}
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1.5">
-                              <ImageIcon className="h-4 w-4" />
-                              <span className="font-medium">{project.thumbnails.length} Thumbnail{project.thumbnails.length !== 1 ? 's' : ''}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="h-4 w-4" />
-                              <span suppressHydrationWarning>Last updated {getTimeAgo(new Date(project.latestDate))}</span>
-                            </div>
-                          </div>
-
-                          {/* Status Summary */}
-                          <div className="flex items-center gap-2">
-                            {project.thumbnails.filter((t: any) => t.status === 'COMPLETED').length === project.thumbnails.length ? (
-                              <Badge className="bg-green-100 text-green-800 border-green-200">
-                                All Complete
-                              </Badge>
-                            ) : (
-                              <>
-                                <Badge className="bg-green-100 text-green-800 border-green-200">
-                                  {project.thumbnails.filter((t: any) => t.status === 'COMPLETED').length} Complete
-                                </Badge>
-                                {project.thumbnails.filter((t: any) => t.status !== 'COMPLETED').length > 0 && (
-                                  <Badge variant="secondary">
-                                    {project.thumbnails.filter((t: any) => t.status !== 'COMPLETED').length} Pending
-                                  </Badge>
+                          {/* Content - Middle */}
+                          <div className="flex-1 min-w-0">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <FolderOpen className="h-5 w-5 text-primary flex-shrink-0" />
+                                  <h3 className="text-lg font-bold text-foreground line-clamp-1">
+                                    {project.title}
+                                  </h3>
+                                </div>
+                                {project.id !== 'ungrouped' && (
+                                  <p className="text-xs text-muted-foreground font-mono">
+                                    Project ID: {project.id.slice(-12).toUpperCase()}
+                                  </p>
                                 )}
-                              </>
-                            )}
-                          </div>
-                        </div>
+                              </div>
+                            </div>
 
-                        {/* Action Button - Right Side */}
-                        <div className="flex items-center">
-                          <Button
-                            variant="outline"
-                            className="gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                          >
-                            View All
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
+                            {/* Metadata */}
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground mb-3">
+                              <div className="flex items-center gap-1.5">
+                                <ImageIcon className="h-4 w-4" />
+                                <span className="font-medium">{project.thumbnails.length} Thumbnail{project.thumbnails.length !== 1 ? 's' : ''}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="h-4 w-4" />
+                                <span suppressHydrationWarning>Last updated {getTimeAgo(new Date(project.latestDate))}</span>
+                              </div>
+                            </div>
+
+                            {/* Status Summary */}
+                            <div className="flex items-center gap-2">
+                              {project.thumbnails.filter((t: any) => t.status === 'COMPLETED').length === project.thumbnails.length ? (
+                                <Badge className="bg-green-100 text-green-800 border-green-200">
+                                  All Complete
+                                </Badge>
+                              ) : (
+                                <>
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                                    {project.thumbnails.filter((t: any) => t.status === 'COMPLETED').length} Complete
+                                  </Badge>
+                                  {project.thumbnails.filter((t: any) => t.status !== 'COMPLETED').length > 0 && (
+                                    <Badge variant="secondary">
+                                      {project.thumbnails.filter((t: any) => t.status !== 'COMPLETED').length} Pending
+                                    </Badge>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Button - Right Side */}
+                          <div className="flex items-center">
+                            <Button
+                              variant="outline"
+                              className="gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                            >
+                              View All
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              {/* Pagination controls */}
-              {totalProjectPages > 1 && (
-                <Pagination className="mt-6">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() =>
-                          setCurrentPage(Math.max(1, currentPage - 1))
-                        }
-                        className={
-                          currentPage === 1
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-                    {Array.from(
-                      { length: totalProjectPages },
-                      (_, i) => i + 1
-                    ).map((number) => (
-                      <PaginationItem key={number}>
-                        <PaginationLink
-                          isActive={currentPage === number}
-                          onClick={() => setCurrentPage(number)}
-                        >
-                          {number}
-                        </PaginationLink>
+                {/* Pagination controls */}
+                {totalProjectPages > 1 && (
+                  <Pagination className="mt-6">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() =>
+                            setCurrentPage(Math.max(1, currentPage - 1))
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }
+                        />
                       </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() =>
-                          setCurrentPage(
-                            Math.min(totalProjectPages, currentPage + 1)
-                          )
-                        }
-                        className={
-                          currentPage === totalProjectPages
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                      {Array.from(
+                        { length: totalProjectPages },
+                        (_, i) => i + 1
+                      ).map((number) => (
+                        <PaginationItem key={number}>
+                          <PaginationLink
+                            isActive={currentPage === number}
+                            onClick={() => setCurrentPage(number)}
+                          >
+                            {number}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() =>
+                            setCurrentPage(
+                              Math.min(totalProjectPages, currentPage + 1)
+                            )
+                          }
+                          className={
+                            currentPage === totalProjectPages
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </>
+            )
+          ) : (
+            <div className="mt-6">
+              {isLoading ? (
+                <TimelineSkeleton />
+              ) : timelineGroups.length === 0 ? (
+                <Card className="border-dashed border-2">
+                  <CardContent className="p-12 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="bg-muted rounded-full p-3">
+                        <Calendar className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <h3 className="font-medium text-lg">No timeline entries</h3>
+                      <p className="text-muted-foreground max-w-md">
+                        Try adjusting your search or filter criteria to see older batches
+                      </p>
+                      <Button variant="outline" className="mt-2" onClick={resetFilters}>
+                        Clear all filters
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-10">
+                  {timelineGroups.map((group) => (
+                    <div key={group.key} className="relative pl-6 sm:pl-10">
+                      <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
+                      <div className="absolute left-2 top-2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-primary bg-background" />
+
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <div className="flex items-center gap-2 text-foreground font-semibold text-lg">
+                          <Calendar className="h-4 w-4 text-primary" />
+                          <span>{group.label}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {formatFullDate(group.date)}
+                        </span>
+                        <Badge variant="secondary" className="capitalize">
+                          {group.thumbnails.length} thumbnail{group.thumbnails.length !== 1 ? 's' : ''} generated
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {group.thumbnails.map((thumbnail: any) => (
+                          <div
+                            key={thumbnail.id}
+                            className="border rounded-xl p-4 bg-card/60 hover:bg-card transition-all cursor-pointer group/timeline-card"
+                            onClick={() => handleViewThumbnail(thumbnail)}
+                          >
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span suppressHydrationWarning>{formatTimeLabel(new Date(thumbnail.createdAt))}</span>
+                              <Badge
+                                variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
+                                className={thumbnail.status === "COMPLETED" ? "bg-green-500/20 text-green-700 border border-green-200" : ""}
+                              >
+                                {thumbnail.status === "COMPLETED" ? "Completed" : "In progress"}
+                              </Badge>
+                            </div>
+
+                            <div className="mt-3 flex gap-3">
+                              <div className="relative w-32 aspect-video rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                {thumbnail.image ? (
+                                  <Image
+                                    src={thumbnail.image}
+                                    alt={thumbnail.title || "Thumbnail preview"}
+                                    fill
+                                    sizes="128px"
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm text-foreground line-clamp-2">
+                                  {thumbnail.title || `Thumbnail ${thumbnail.id.slice(-8).toUpperCase()}`}
+                                </h4>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {thumbnail.project?.title
+                                    ? `Project: ${thumbnail.project.title}`
+                                    : "Ungrouped thumbnail"}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-2">
+                                  <span className="font-mono">#{thumbnail.id.slice(-6).toUpperCase()}</span>
+                                  {thumbnail.templateId && (
+                                    <Badge variant="outline" className="text-[10px]">
+                                      Template #{thumbnail.templateId.toString().padStart(2, '0')}
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownload(
+                                        thumbnail.image,
+                                        thumbnail.title || `thumbnail-${thumbnail.id.slice(-8)}`,
+                                        thumbnail.id
+                                      );
+                                    }}
+                                    disabled={!thumbnail.image || isDownloading === thumbnail.id}
+                                  >
+                                    <Download className="h-3.5 w-3.5 mr-1" />
+                                    Download
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteClick(thumbnail);
+                                    }}
+                                    disabled={isDeleting === thumbnail.id}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                    Delete
+                                  </Button>
+                                  {thumbnail.projectId && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/dashboard/projects?edit=${thumbnail.projectId}`);
+                                      }}
+                                    >
+                                      <Video className="h-3.5 w-3.5 mr-1" />
+                                      Open Project
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
-            </>
+            </div>
           )}
         </>
       ) : (

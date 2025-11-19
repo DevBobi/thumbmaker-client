@@ -9,91 +9,73 @@ import {
 
 const faqItems = [
   {
-    question: "What is THUMBMAKER and how does it work?",
+    question: "What is ThumbMaker?",
     answer:
-      "THUMBMAKER is an AI-powered platform for creating high-performing YouTube thumbnails in seconds. Simply provide your video content, choose from our library of proven thumbnail templates, and let our AI generate context-aware, eye-catching thumbnails optimized for maximum click-through rates. All thumbnails are generated in the standard YouTube 16:9 ratio (1280x720 pixels).",
+      "ThumbMaker is an AI-powered platform that turns your scripts, YouTube links, or ideas into high-performing thumbnail batches in a few clicks.",
   },
   {
-    question: "How can I try THUMBMAKER?",
+    question: "How many thumbnails can I generate at once?",
     answer:
-      "Click \"Get Started\" in our header or hero section to create a free account. You'll get 10 free thumbnail credits to start—no credit card required.",
+      "Every project produces 20 variations instantly. Choose your favorites, edit details, and publish the winners.",
   },
   {
-    question: "Do I need to provide a credit card?",
+    question: "Can I use my own images in the thumbnails?",
     answer:
-      "No credit card is required to get started. You'll receive 10 free thumbnail credits immediately upon sign-up. Only add a payment method when you're ready to create more thumbnails.",
+      "Absolutely. Upload brand assets, screenshots, or custom photos and ThumbMaker will blend them into the generated concepts.",
   },
   {
-    question: "Can I customize the AI-generated thumbnails?",
+    question: "How does the YouTube import work?",
     answer:
-      "Absolutely. After generation, you can edit text, adjust fonts, swap images, change colors, reposition elements, and fine-tune your thumbnail within our built-in editor—no design skills required.",
+      "Drop a YouTube link and we automatically pull the title, description, and transcripts so the AI understands the full context.",
   },
   {
-    question: "What types of thumbnail templates are available?",
+    question: "Can I create my own templates?",
     answer:
-      "Our Template Gallery covers thumbnails for various YouTube niches: Gaming, Education, Tech Reviews, Vlogs, Tutorials, Business, Finance, Lifestyle, Entertainment, and more. All templates are designed in 16:9 format and optimized for high click-through rates.",
+      "Yes. Customize any template or build from scratch to create reusable layouts that match your visual identity.",
   },
   {
-    question: "What thumbnail format does THUMBMAKER support?",
+    question: "What if I run out of generations?",
     answer:
-      "We generate thumbnails in YouTube's standard 16:9 aspect ratio (1280x720 pixels), which is the recommended format for all YouTube videos. Thumbnails are exported as high-quality PNG or JPG files ready for upload.",
+      "Upgrade anytime or purchase top-up credits. Your projects and templates stay intact no matter what.",
   },
   {
-    question: "How does the AI understand my video content?",
+    question: "Is there a refund policy?",
     answer:
-      "Our AI analyzes your video title, description, and any additional context you provide. It extracts key themes, emotional hooks, and audience insights to generate thumbnails that perfectly match your content and maximize viewer engagement.",
-  },
-  {
-    question: "What kind of support do you provide?",
-    answer:
-      "We offer email support at contact@trykrillion.com. Our team typically responds within 24 hours to help with any questions or issues you may encounter.",
-  },
-  {
-    question: "How do I cancel my subscription?",
-    answer:
-      'Go to your Account settings and click "Cancel Subscription." Your plan will remain active until the end of your billing period, after which you\'ll revert to the free plan with limited features.',
+      "We offer a 7-day refund window for unused credits. Reach out to contact@trykrillion.com and we’ll help right away.",
   },
 ];
 
 export function Faq() {
   return (
-    <section
-      id="faq"
-      className="relative w-full px-4 sm:px-6 lg:px-8 py-20 bg-white overflow-hidden"
-    >
-      {/* Decorative background */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-1/4 left-0 w-96 h-96 bg-brand-600 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-red-500 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="max-w-6xl mx-auto relative z-10">
-        <div className="mb-12">
-          <h3 className="text-sm mb-4 font-medium text-muted-foreground">Got questions?</h3>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight mb-4 font-bold">
-            Frequently Asked
-            <br />{" "}
-            <span className="bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">
-              Questions
-            </span>
-          </h1>
+    <section id="faq" className="bg-[#F8F4FF] px-4 py-24 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row">
+        <div className="max-w-sm space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-500">
+            FAQ
+          </p>
+          <h2 className="text-3xl font-semibold text-gray-900 sm:text-4xl">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-base text-muted-foreground">
+            Still curious? We’ve answered the most common questions creators ask before shipping
+            their next viral video.
+          </p>
         </div>
-        <div className="mx-auto">
-          <Accordion type="single" collapsible className="w-full space-y-4">
+        <div className="flex-1">
+          <Accordion type="single" collapsible className="space-y-4">
             {faqItems.map((item, index) => (
-              <div key={index}>
-                <AccordionItem
-                  value={`item-${index}`}
-                  className="border border-border rounded-xl px-4 sm:px-6 py-2 bg-card hover:bg-accent hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md"
-                >
-                  <AccordionTrigger className="py-2 sm:py-4 cursor-pointer text-base sm:text-lg font-semibold hover:no-underline text-foreground">
-                    {item.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                    {item.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              </div>
+            <AccordionItem
+              key={item.question}
+              value={`item-${index}`}
+              className="rounded-2xl border border-black/5 bg-white px-6 py-2 shadow-sm"
+            >
+              <AccordionTrigger className="flex w-full items-center justify-between py-4 text-left text-base font-semibold text-gray-900 hover:no-underline [&>svg]:text-gray-400 [&[data-state=open]>svg]:text-rose-500">
+                {item.question}
+              </AccordionTrigger>
+                <AccordionContent className="pb-4 text-sm text-muted-foreground">
+                  {item.answer}
+                </AccordionContent>
+              </AccordionItem>
             ))}
           </Accordion>
         </div>

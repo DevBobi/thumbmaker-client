@@ -2,7 +2,16 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Plus, Image, Video, FolderOpen, LayoutTemplate, PlayCircle, ArrowRight } from "lucide-react";
+import {
+  Plus,
+  Image,
+  Video,
+  FolderOpen,
+  LayoutTemplate,
+  PlayCircle,
+  ArrowRight,
+  Wand2,
+} from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/products/ProductCard";
 import { GuaranteePopup } from "@/components/GuaranteePopup";
@@ -312,12 +321,20 @@ const Dashboard = () => {
                 <Card className="bg-card border-2 border-dashed">
                   <CardContent className="p-12 text-center">
                     <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
-                      <div className="relative">
-                        <div className="p-4 bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-400/20 dark:to-blue-400/20 rounded-full">
-                          <Video className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                          <Sparkles className="h-3.5 w-3.5 text-white" />
+                      <div className="relative group cursor-pointer">
+                        {/* Background Glow */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-700" />
+                        
+                        <div className="relative">
+                           {/* Main Icon Container */}
+                          <div className="w-24 h-24 mx-auto bg-card/50 backdrop-blur-xl rounded-3xl border border-primary/20 shadow-2xl shadow-primary/10 flex items-center justify-center group-hover:scale-105 group-hover:border-primary/40 transition-all duration-500 ease-out relative z-10">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 rounded-3xl" />
+                            <Wand2 className="h-10 w-10 text-primary group-hover:rotate-6 transition-transform duration-500" />
+                          </div>
+
+                          {/* Decorative Elements */}
+                          <div className="absolute -bottom-2 -left-2 w-8 h-8 bg-blue-500/10 rounded-full blur-xl animate-pulse" />
+                          <div className="absolute top-1/2 -right-8 w-6 h-6 bg-purple-500/10 rounded-full blur-xl delay-150 animate-pulse" />
                         </div>
                       </div>
                       <div>

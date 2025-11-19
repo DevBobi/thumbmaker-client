@@ -51,6 +51,29 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const buildTagList = (...candidateGroups: Array<Array<string | null | undefined>>) => {
+  const tags: string[] = [];
+  const seen = new Set<string>();
+
+  const addTags = (values: Array<string | null | undefined>) => {
+    values.forEach((value) => {
+      if (!value) return;
+      const normalized = value.toString().replace(/\s+/g, " ").trim();
+      
+      // Skip if empty or too long (max 25 chars to keep badges clean)
+      if (!normalized || normalized.length > 25) return;
+
+      const key = normalized.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      tags.push(normalized);
+    });
+  };
+
+  candidateGroups.forEach(addTags);
+  return tags.slice(0, 6);
+};
+
 const TemplateCreator: React.FC<TemplateCreatorProps> = ({
   triggerClassName,
   customTrigger,
@@ -252,8 +275,9 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
         formData.append("file", file);
         const { fileUrl } = await uploadToStorage(formData);
 
-        // Detect niche with AI
+        // Detect niche with AI + generate tags
         let niche = "Entertainment";
+        let aiTags: string[] = [];
         if (title && channelName) {
           try {
             const nicheResponse = await authFetch("/api/templates/detect-niche", {
@@ -266,11 +290,25 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
               if (nicheData.niche) {
                 niche = nicheData.niche;
               }
+              if (Array.isArray(nicheData.tags)) {
+                aiTags = buildTagList(nicheData.tags);
+              }
             }
           } catch (error) {
             console.error("Failed to detect niche:", error);
           }
         }
+
+        const fallbackTags = buildTagList(aiTags, [niche, channelName]);
+        const finalTags = fallbackTags.length > 0 ? fallbackTags : ["General"];
+
+        const cleanedTitle =
+          title?.trim() || channelName || "YouTube Template";
+        const cleanedDescription = title
+          ? `Imported from YouTube video: ${title.trim()}`
+          : channelName
+          ? `Imported from YouTube channel: ${channelName.trim()}`
+          : "Imported from YouTube";
 
         // Create template
         const response = await authFetch("/api/templates/create", {
@@ -280,6 +318,9 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
             creator: channelName || "Unknown Creator",
             brand: channelName || "Unknown Creator",
             niche: niche,
+            tags: finalTags,
+            title: cleanedTitle.slice(0, 200),
+            description: cleanedDescription.slice(0, 300),
           }),
         });
 
@@ -371,6 +412,9 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
           creator: values.brand,
           brand: values.brand,
           niche: values.niche,
+          tags: buildTagList([values.brand], [values.niche]),
+          title: values.brand.slice(0, 200),
+          description: values.niche.slice(0, 300),
         }),
       });
 

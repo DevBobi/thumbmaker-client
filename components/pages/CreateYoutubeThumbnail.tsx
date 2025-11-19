@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import {
   Breadcrumb,
@@ -35,68 +35,61 @@ import Link from "next/link";
 type GenerationMode = "template" | "youtube";
 
 interface ThumbnailAsset {
+  id: string;
   file: File;
   type: string;
   url?: string;
+  displayName?: string;
+  wasConverted?: boolean;
+  previewUrl?: string;
+  isProcessing?: boolean;
+  conversionError?: string;
 }
 
 // Component for displaying thumbnail asset preview
-const ThumbnailAssetPreview: React.FC<{ asset: ThumbnailAsset; index: number; onRemove: () => void }> = ({ asset, index, onRemove }) => {
+const ThumbnailAssetPreview: React.FC<{ asset: ThumbnailAsset; onRemove: () => void }> = ({ asset, onRemove }) => {
   const [imageError, setImageError] = useState(false);
-  
-  // More robust HEIC/HEIF detection
-  const fileName = asset.file.name.toLowerCase();
-  const fileType = (asset.type || asset.file.type || '').toLowerCase();
-  const isHeic = fileName.endsWith('.heic') || 
-                 fileName.endsWith('.heif') ||
-                 fileType.includes('heic') ||
-                 fileType.includes('heif') ||
-                 fileName.includes('.heic') ||
-                 fileName.includes('.heif');
-  
-  // Don't create object URL for HEIC files since they can't be displayed
-  const imageUrl = isHeic ? null : URL.createObjectURL(asset.file);
-
-  // Cleanup object URL on unmount
-  React.useEffect(() => {
-    return () => {
-      if (imageUrl) {
-        URL.revokeObjectURL(imageUrl);
-      }
-    };
-  }, [imageUrl]);
+  const displayFileName = asset.displayName || asset.file.name;
+  const previewUrl = asset.previewUrl;
 
   return (
     <div className="relative aspect-video rounded-lg overflow-hidden border group">
       <div className="relative aspect-video bg-muted">
-        {isHeic || imageError ? (
+        {asset.isProcessing ? (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <p className="text-xs text-muted-foreground font-medium">
+              Converting HEIC image...
+            </p>
+          </div>
+        ) : !previewUrl || imageError ? (
           <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-muted to-muted/50">
             <ImageIcon className="h-10 w-10 text-muted-foreground mb-2 opacity-60" />
             <p className="text-xs text-foreground font-medium truncate w-full px-2">
-              {asset.file.name}
-            </p>
-            {isHeic && (
-              <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">
-                HEIC/HEIF Format
-              </p>
-            )}
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              Preview not available in browser
+              {displayFileName}
             </p>
             <p className="text-[9px] text-muted-foreground/70 mt-1">
-              File will be uploaded
+              Preview not available
             </p>
           </div>
         ) : (
-          <Image
-            src={imageUrl!}
-            alt={asset.file.name}
-            fill
-            className="object-cover"
-            unoptimized
-            sizes="(max-width: 768px) 100vw, 300px"
-            onError={() => setImageError(true)}
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt={displayFileName}
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
+              onError={() => setImageError(true)}
+            />
+          </>
+        )}
+        {asset.wasConverted && !asset.isProcessing && (
+          <div className="absolute top-2 left-2">
+            <Badge variant="secondary" className="text-[10px]">
+              Converted
+            </Badge>
+          </div>
         )}
         <button
           onClick={onRemove}
@@ -105,8 +98,8 @@ const ThumbnailAssetPreview: React.FC<{ asset: ThumbnailAsset; index: number; on
           <X className="h-4 w-4 text-white" />
         </button>
       </div>
-      <p className="text-xs text-muted-foreground mt-1 truncate" title={asset.file.name}>
-        {asset.file.name}
+      <p className="text-xs text-muted-foreground mt-1 truncate" title={displayFileName}>
+        {displayFileName}
       </p>
     </div>
   );
@@ -185,8 +178,49 @@ export default function CreateYoutubeThumbnail() {
     channelStyle?: boolean;
     thumbnailGoal?: boolean;
   }>({});
-  const MAX_SELECTIONS = 10; // Maximum templates user can select
+  const MAX_SELECTIONS = 20; // Maximum templates user can select
+  const assetsRef = useRef<ThumbnailAsset[]>([]);
 
+  const createPreviewUrl = useCallback((file: File) => {
+    try {
+      return URL.createObjectURL(file);
+    } catch (error) {
+      console.error("Error creating preview URL:", error);
+      return undefined;
+    }
+  }, []);
+
+  const revokePreviewUrl = useCallback((url?: string) => {
+    if (!url) return;
+    try {
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error revoking preview URL:", error);
+    }
+  }, []);
+
+  const generateAssetId = useCallback(() => {
+    try {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+    } catch {
+      // Ignore and fall back to Math.random
+    }
+    return `asset-${Math.random().toString(36).slice(2)}`;
+  }, []);
+  
+  const isHeicFile = useCallback((file: File) => {
+    const name = file.name.toLowerCase();
+    const type = (file.type || "").toLowerCase();
+    return (
+      name.endsWith(".heic") ||
+      name.endsWith(".heif") ||
+      type.includes("heic") ||
+      type.includes("heif")
+    );
+  }, []);
+  
   // Storage keys for persisting selected templates
   const STORAGE_KEY_IDS = "yt-thumbnail-selected-template-ids";
   const STORAGE_KEY_OBJECTS = "yt-thumbnail-selected-template-objects";
@@ -222,6 +256,20 @@ export default function CreateYoutubeThumbnail() {
     fetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    assetsRef.current = thumbnailAssets;
+  }, [thumbnailAssets]);
+
+  useEffect(() => {
+    return () => {
+      assetsRef.current.forEach((asset) => {
+        if (asset.previewUrl) {
+          revokePreviewUrl(asset.previewUrl);
+        }
+      });
+    };
+  }, [revokePreviewUrl]);
 
   // Fetch template details for selected template IDs
   const fetchTemplateDetails = useCallback(async (templateIds: string[], existingObjects: any[] = []) => {
@@ -282,7 +330,7 @@ export default function CreateYoutubeThumbnail() {
       }
 
       // Order templates according to templateIds order and filter to only selected
-      let orderedTemplates = templateIds
+      const orderedTemplates = templateIds
         .map((id) => templates.find((t) => t.id === id))
         .filter((t) => t !== undefined);
       
@@ -522,7 +570,7 @@ export default function CreateYoutubeThumbnail() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       const remainingSlots = 4 - thumbnailAssets.length;
@@ -571,25 +619,132 @@ export default function CreateYoutubeThumbnail() {
       }
       
       if (validFiles.length > 0 && remainingSlots > 0) {
-        setThumbnailAssets((prev) => [
-          ...prev,
-          ...validFiles.slice(0, remainingSlots).map((file) => {
-            // Get file extension
-            const extension = file.name.split('.').pop()?.toLowerCase() || '';
-            // Use MIME type if available, otherwise use extension
-            const fileType = file.type || extension || 'unknown';
-            return {
-              file,
-              type: fileType,
-            };
-          }),
-        ]);
+        const convertHeicFile = async (file: File) => {
+          try {
+            if (typeof window === "undefined") {
+              throw new Error("HEIC conversion must run in the browser.");
+            }
+            const heicModule = await import("heic2any");
+            const heic2any = heicModule.default || heicModule;
+            const conversionResult = await heic2any({
+              blob: file,
+              toType: "image/jpeg",
+              quality: 0.9,
+            });
+            const convertedBlob = Array.isArray(conversionResult)
+              ? conversionResult[0]
+              : conversionResult;
+            if (!convertedBlob) {
+              throw new Error("Conversion returned empty result");
+            }
+            return new File(
+              [convertedBlob],
+              file.name.replace(/\.(heic|heif)$/i, ".jpg"),
+              { type: "image/jpeg" }
+            );
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : typeof error === "object" && error
+                ? JSON.stringify(error)
+                : "Unknown error";
+            console.warn(`[Thumbnail] HEIC conversion failed: ${errorMessage}`);
+            return null;
+          }
+        };
+
+        const filesToProcess = validFiles.slice(0, remainingSlots);
+        let convertedCount = 0;
+
+        for (const file of filesToProcess) {
+          const assetId = generateAssetId();
+          const extension = file.name.split('.').pop()?.toLowerCase() || '';
+          const fileType = file.type || extension || 'unknown';
+          const isHeic = isHeicFile(file);
+          const placeholderPreview = !isHeic ? createPreviewUrl(file) : undefined;
+
+          const placeholder: ThumbnailAsset = {
+            id: assetId,
+            file,
+            type: fileType,
+            displayName: file.name,
+            wasConverted: false,
+            previewUrl: placeholderPreview,
+            isProcessing: isHeic,
+          };
+
+          setThumbnailAssets((prev) => [...prev, placeholder]);
+
+          if (!isHeic) {
+            continue;
+          }
+
+          const convertedFile = await convertHeicFile(file);
+          if (!convertedFile) {
+            // Keep the original HEIC file without preview
+            setThumbnailAssets((prev) =>
+              prev.map((asset) =>
+                asset.id === assetId
+                  ? {
+                      ...asset,
+                      isProcessing: false,
+                      // No conversionError - just leave preview unavailable
+                    }
+                  : asset
+              )
+            );
+            continue;
+          }
+
+          convertedCount += 1;
+          const newPreviewUrl = createPreviewUrl(convertedFile);
+
+          setThumbnailAssets((prev) =>
+            prev.map((asset) => {
+              if (asset.id !== assetId) {
+                return asset;
+              }
+              if (asset.previewUrl && asset.previewUrl !== newPreviewUrl) {
+                revokePreviewUrl(asset.previewUrl);
+              }
+              return {
+                ...asset,
+                file: convertedFile,
+                type: convertedFile.type || "image/jpeg",
+                wasConverted: true,
+                previewUrl: newPreviewUrl,
+                isProcessing: false,
+                conversionError: undefined,
+              };
+            })
+          );
+        }
+
+        if (convertedCount > 0) {
+          toast({
+            title: "HEIC files converted",
+            description: `${convertedCount} file${convertedCount > 1 ? "s were" : " was"} converted to JPEG for compatibility.`,
+            variant: "default",
+          });
+        }
+
+        // Silent fallback - files that failed conversion are handled by placeholder cards showing "Preview not available"
       }
+
+      // Allow re-uploading the same file after processing
+      e.target.value = "";
     }
   };
 
   const handleRemoveFile = (index: number) => {
-    setThumbnailAssets((prev) => prev.filter((_, i) => i !== index));
+    setThumbnailAssets((prev) => {
+      const assetToRemove = prev[index];
+      if (assetToRemove?.previewUrl) {
+        revokePreviewUrl(assetToRemove.previewUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   // Check if we have valid YouTube links
@@ -607,6 +762,8 @@ export default function CreateYoutubeThumbnail() {
 
   // Check if button should be enabled
   const hasInputSource = allSelectedTemplates.length > 0 || hasValidYoutubeLinks;
+  const hasAssetPreviews = Boolean(selectedProject?.image) || thumbnailAssets.length > 0;
+  const assetPreviewCount = thumbnailAssets.length + (selectedProject?.image ? 1 : 0);
 
   const handleGenerate = async () => {
     if (isGenerating || hasSubmitted) {
@@ -685,7 +842,11 @@ export default function CreateYoutubeThumbnail() {
       
       setValidationErrors({});
 
-      const uploadPromises = thumbnailAssets.map(async (asset) => {
+      const readyAssets = thumbnailAssets.filter(
+        (asset) => !asset.isProcessing
+      );
+
+      const uploadPromises = readyAssets.map(async (asset) => {
         const formData = new FormData();
         formData.append("file", asset.file);
         const uploadResult = await uploadToStorage(formData);
@@ -1037,73 +1198,7 @@ export default function CreateYoutubeThumbnail() {
             </CardContent>
           </Card>
 
-        {/* Thumbnail Assets */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Thumbnail Assets</CardTitle>
-            <CardDescription>
-              Upload images to use in your thumbnail
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border-2 border-dashed rounded-lg p-6">
-              <div className="flex flex-col items-center">
-                <Upload className="h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">
-                  Click to upload additional assets (optional)
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  JPG, PNG, GIF, WebP, SVG, BMP, TIFF, HEIC, HEIF, AVIF formats accepted (max 4 files)
-                </p>
-                {selectedProject?.image && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    ℹ️ Project image will be used automatically
-                  </p>
-                )}
-              </div>
-              <Input
-                type="file"
-                className="hidden"
-                multiple
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml,image/bmp,image/tiff,image/x-icon,image/heic,image/heif,image/avif,.heic,.heif,.avif"
-                onChange={handleFileChange}
-                id="thumbnail-assets"
-                disabled={thumbnailAssets.length >= 4}
-              />
-              <Button
-                variant="outline"
-                className="mt-4 w-full"
-                onClick={() =>
-                  document.getElementById("thumbnail-assets")?.click()
-                }
-                disabled={thumbnailAssets.length >= 4}
-              >
-                {thumbnailAssets.length >= 4
-                  ? "Maximum files reached"
-                  : "Upload Files"}
-              </Button>
-            </div>
-            {thumbnailAssets.length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground mb-3">
-                  {thumbnailAssets.length} files selected
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {thumbnailAssets.map((asset, index) => (
-                    <ThumbnailAssetPreview
-                      key={index}
-                      asset={asset}
-                      index={index}
-                      onRemove={() => handleRemoveFile(index)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Generation Method Tabs */}
+                  {/* Generation Method Tabs */}
         <Card>
           <CardHeader>
             <CardTitle>Generation Method</CardTitle>
@@ -1179,7 +1274,7 @@ export default function CreateYoutubeThumbnail() {
                       {/* Textarea for bulk paste */}
                       <div className="space-y-2">
                         <Textarea
-                          placeholder="Paste YouTube URLs here...&#10;https://youtube.com/watch?v=...&#10;https://youtu.be/...&#10;&#10;💡 Tip: Paste multiple links, one per line!"
+                          placeholder={"Paste YouTube URLs here...\n\nExample URLs:\nhttps://youtube.com/watch?v=...\nhttps://youtu.be/...\n\n💡 Tip: Paste multiple links, one per line!"}
                           value={inspirationUrl}
                           onChange={(e) => handleInspirationUrlChange(e.target.value)}
                           rows={6}
@@ -1256,26 +1351,92 @@ export default function CreateYoutubeThumbnail() {
                           </div>
                         </div>
                       )}
-
-                      {/* Helper Text */}
-                      {!inspirationUrl.trim() && (
-                        <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-dashed">
-                          <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                          <div className="space-y-1 text-sm">
-                            <p className="font-medium">Quick Start:</p>
-                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                              <li>Paste one YouTube URL for single inspiration</li>
-                              <li>Paste multiple URLs (one per line) for bulk generation</li>
-                              <li>Mix and match different video styles</li>
-                            </ul>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Thumbnail Assets */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Thumbnail Assets</CardTitle>
+            <CardDescription>
+              Upload images to use in your thumbnail
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border-2 border-dashed rounded-lg p-6">
+              <div className="flex flex-col items-center">
+                <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">
+                  Click to upload additional assets (optional)
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  JPG, PNG, GIF, WebP, SVG, BMP, TIFF, HEIC, HEIF, AVIF formats accepted (max 4 files)
+                </p>
+                {selectedProject?.image && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    ℹ️ Project image will be used automatically
+                  </p>
+                )}
+              </div>
+              <Input
+                type="file"
+                className="hidden"
+                multiple
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml,image/bmp,image/tiff,image/x-icon,image/heic,image/heif,image/avif,.heic,.heif,.avif"
+                onChange={handleFileChange}
+                id="thumbnail-assets"
+                disabled={thumbnailAssets.length >= 4}
+              />
+              <Button
+                variant="outline"
+                className="mt-4 w-full"
+                onClick={() =>
+                  document.getElementById("thumbnail-assets")?.click()
+                }
+                disabled={thumbnailAssets.length >= 4}
+              >
+                {thumbnailAssets.length >= 4
+                  ? "Maximum files reached"
+                  : "Upload Files"}
+              </Button>
+            </div>
+            {hasAssetPreviews && (
+              <div className="mt-4">
+                <p className="text-sm text-muted-foreground mb-3">
+                  {assetPreviewCount} asset{assetPreviewCount !== 1 ? "s" : ""} ready for generation
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {selectedProject?.image && (
+                    <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                      <Image
+                        src={selectedProject.image}
+                        alt={selectedProject.title || "Project image"}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <Badge variant="secondary" className="text-xs">
+                          Project image
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                  {thumbnailAssets.map((asset, index) => (
+                    <ThumbnailAssetPreview
+                      key={asset.id}
+                      asset={asset}
+                      onRemove={() => handleRemoveFile(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -1293,7 +1454,7 @@ export default function CreateYoutubeThumbnail() {
                     <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs">
+                <TooltipContent side="right" className="max-w-xs bg-white text-foreground border shadow-lg dark:bg-gray-800 dark:text-white">
                   <p>
                     Choose the visual style that aligns with your channel's branding and content type. 
                     This helps tailor the thumbnail design to match your audience's expectations.
@@ -1330,8 +1491,8 @@ export default function CreateYoutubeThumbnail() {
                       )}
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p className="font-medium mb-1">{style.label}</p>
+                  <TooltipContent side="top" className="max-w-xs bg-white text-foreground border shadow-lg dark:bg-gray-800 dark:text-white">
+                    {/* <p className="font-medium mb-1">{style.label}</p> */}
                     <p className="text-sm">{style.description}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -1354,7 +1515,7 @@ export default function CreateYoutubeThumbnail() {
                     <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs">
+                <TooltipContent side="right" className="max-w-xs bg-white text-foreground border shadow-lg dark:bg-gray-800 dark:text-white">
                   <p>
                     Define the primary objective for your thumbnail. This influences the visual hierarchy, 
                     emotional tone, and design elements to maximize your desired outcome.
@@ -1391,8 +1552,7 @@ export default function CreateYoutubeThumbnail() {
                       )}
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p className="font-medium mb-1">{goal.label}</p>
+                  <TooltipContent side="top" className="max-w-xs bg-white text-foreground border shadow-lg dark:bg-gray-800 dark:text-white">
                     <p className="text-sm">{goal.description}</p>
                   </TooltipContent>
                 </Tooltip>
