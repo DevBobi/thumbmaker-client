@@ -28,7 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { extractYouTubeThumbnail, extractVideoId } from "@/lib/youtube";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Upload, Loader2, Download, ListPlus } from "lucide-react";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -51,6 +51,29 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const buildTagList = (...candidateGroups: Array<Array<string | null | undefined>>) => {
+  const tags: string[] = [];
+  const seen = new Set<string>();
+
+  const addTags = (values: Array<string | null | undefined>) => {
+    values.forEach((value) => {
+      if (!value) return;
+      const normalized = value.toString().replace(/\s+/g, " ").trim();
+      
+      // Skip if empty or too long (max 25 chars to keep badges clean)
+      if (!normalized || normalized.length > 25) return;
+
+      const key = normalized.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      tags.push(normalized);
+    });
+  };
+
+  candidateGroups.forEach(addTags);
+  return tags.slice(0, 6);
+};
+
 const TemplateCreator: React.FC<TemplateCreatorProps> = ({
   triggerClassName,
   customTrigger,
@@ -66,6 +89,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
   // Bulk import state
   const [bulkUrls, setBulkUrls] = useState<string>("");
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [downloadingPreviewId, setDownloadingPreviewId] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -142,6 +166,67 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
   };
 
   const validYouTubeUrls = getValidYouTubeUrls(bulkUrls);
+  const previewItems = useMemo(() => {
+    return validYouTubeUrls
+      .map((url, index) => {
+        const videoId = extractVideoId(url);
+        if (!videoId) {
+          return null;
+        }
+
+        return {
+          key: `${videoId}-${index}`,
+          videoId,
+          thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+          originalUrl: url,
+        };
+      })
+      .filter(
+        (
+          item
+        ): item is {
+          key: string;
+          videoId: string;
+          thumbnailUrl: string;
+          originalUrl: string;
+        } => item !== null
+      );
+  }, [validYouTubeUrls]);
+
+  const handleDownloadBulkPreview = async (videoId: string, thumbnailUrl: string) => {
+    try {
+      setDownloadingPreviewId(videoId);
+      const response = await fetch(thumbnailUrl);
+
+      if (!response.ok) {
+        throw new Error("Failed to download preview image");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `youtube-thumbnail-${videoId}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download started",
+        description: "Preview thumbnail is downloading.",
+      });
+    } catch (error) {
+      console.error("Failed to download preview thumbnail:", error);
+      toast({
+        title: "Download failed",
+        description: "Unable to download the preview thumbnail.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingPreviewId(null);
+    }
+  };
 
   const handleBulkImport = async () => {
     // Get valid YouTube URLs
@@ -190,8 +275,9 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
         formData.append("file", file);
         const { fileUrl } = await uploadToStorage(formData);
 
-        // Detect niche with AI
+        // Detect niche with AI + generate tags
         let niche = "Entertainment";
+        let aiTags: string[] = [];
         if (title && channelName) {
           try {
             const nicheResponse = await authFetch("/api/templates/detect-niche", {
@@ -204,11 +290,25 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
               if (nicheData.niche) {
                 niche = nicheData.niche;
               }
+              if (Array.isArray(nicheData.tags)) {
+                aiTags = buildTagList(nicheData.tags);
+              }
             }
           } catch (error) {
             console.error("Failed to detect niche:", error);
           }
         }
+
+        const fallbackTags = buildTagList(aiTags, [niche, channelName]);
+        const finalTags = fallbackTags.length > 0 ? fallbackTags : ["General"];
+
+        const cleanedTitle =
+          title?.trim() || channelName || "YouTube Template";
+        const cleanedDescription = title
+          ? `Imported from YouTube video: ${title.trim()}`
+          : channelName
+          ? `Imported from YouTube channel: ${channelName.trim()}`
+          : "Imported from YouTube";
 
         // Create template
         const response = await authFetch("/api/templates/create", {
@@ -218,6 +318,9 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
             creator: channelName || "Unknown Creator",
             brand: channelName || "Unknown Creator",
             niche: niche,
+            tags: finalTags,
+            title: cleanedTitle.slice(0, 200),
+            description: cleanedDescription.slice(0, 300),
           }),
         });
 
@@ -309,6 +412,9 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
           creator: values.brand,
           brand: values.brand,
           niche: values.niche,
+          tags: buildTagList([values.brand], [values.niche]),
+          title: values.brand.slice(0, 200),
+          description: values.niche.slice(0, 300),
         }),
       });
 
@@ -474,6 +580,49 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                             </div>
                           </div>
 
+                          {previewItems.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs text-muted-foreground">
+                                Preview thumbnails ({previewItems.length})
+                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {previewItems.map((item) => (
+                                  <div
+                                    key={item.key}
+                                    className="relative border rounded-md overflow-hidden"
+                                  >
+                                    <div className="relative w-full aspect-video bg-muted">
+                                      <Image
+                                        src={item.thumbnailUrl}
+                                        alt="YouTube thumbnail preview"
+                                        fill
+                                        className="object-cover"
+                                        sizes="400px"
+                                        unoptimized
+                                      />
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="secondary"
+                                      className="absolute top-3 right-3 rounded-full shadow-lg"
+                                      onClick={() =>
+                                        handleDownloadBulkPreview(item.videoId, item.thumbnailUrl)
+                                      }
+                                      disabled={downloadingPreviewId === item.videoId}
+                                    >
+                                      {downloadingPreviewId === item.videoId ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Download className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Progress Display */}
                           {bulkProgress && (
                             <div className="border rounded-md p-4 space-y-3">
@@ -529,25 +678,6 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
                                   ))}
                                 </div>
                               )}
-                            </div>
-                          )}
-
-                          {/* Info Card */}
-                          {!bulkProgress && (
-                            <div className="border-2 border-dashed rounded-md p-6 text-center">
-                              <ListPlus className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                              <p className="text-muted-foreground font-medium">
-                                Bulk Import YouTube Thumbnails
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Paste YouTube URLs (one per line) to create templates. Works with single or multiple URLs.
-                              </p>
-                              <div className="mt-3 space-y-1 text-xs text-left max-w-md mx-auto">
-                                <p className="text-green-600">✓ Auto-extracts thumbnails</p>
-                                <p className="text-green-600">✓ Auto-detects creator names</p>
-                                <p className="text-green-600">✓ AI-powered niche detection</p>
-                                <p className="text-green-600">✓ Creates templates automatically</p>
-                              </div>
                             </div>
                           )}
                         </div>

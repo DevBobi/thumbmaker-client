@@ -1,135 +1,102 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useClerk } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
-  {
-    label: "Gallery",
-    href: "/#gallery",
-  },
-  {
-    label: "Features",
-    href: "/#features",
-  },
-  {
-    label: "Pricing",
-    href: "/pricing",
-  },
-  {
-    label: "FAQ",
-    href: "/#faq",
-  },
+  { label: "Features", href: "/#how-it-works" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "FAQ's", href: "/#faq" },
 ];
 
 export function Navbar() {
-  const { isSignedIn } = useClerk();
+  const { isSignedIn } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const primaryCta = isSignedIn ? (
+    <Button className="rounded-full px-5" asChild>
+      <Link href="/dashboard">Dashboard</Link>
+    </Button>
+  ) : (
+    <Button className="rounded-full px-5 shadow-lg shadow-black/5" asChild>
+      <Link href="/sign-up">Sign Up</Link>
+    </Button>
+  );
+
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative">
-        {/* Left: Logo + Beta */}
-        <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
-              THUMBMAKER
-            </h1>
-          </Link>
-          <Badge variant="outline" className="uppercase text-[8px]">
-            Beta
-          </Badge>
-        </div>
+    <header className="sticky top-0 inset-x-0 z-50 border-b border-black/5 bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="text-xl font-semibold tracking-tight text-gray-900">
+          ThumbMaker
+        </Link>
 
-        {/* Center: Nav Items (hidden on mobile, absolutely centered) */}
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2">
-          <div className="flex items-center gap-8">
-            {navItems.map((item) => (
-              <Link
-                href={item.href}
-                key={item.href}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
+        <nav className="hidden md:flex items-center gap-8">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-        {/* Right: Auth Buttons (Desktop) */}
-        <div className="hidden md:flex items-center gap-4">
-          {isSignedIn ? (
-            <Button variant="default" asChild>
-              <Link href="/dashboard">Dashboard</Link>
+        <div className="hidden md:flex items-center gap-3">
+          {!isSignedIn && (
+            <Button variant="ghost" className="rounded-full px-4 text-sm font-medium" asChild>
+              <Link href="/sign-in">Log In</Link>
             </Button>
-          ) : (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/sign-in">Sign In</Link>
-              </Button>
-              <Button variant="default" asChild>
-                <Link href="/sign-up">Get Started</Link>
-              </Button>
-            </>
           )}
+          {primaryCta}
         </div>
 
-        {/* Mobile Menu Button */}
         <button
-          className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
+          className="md:hidden rounded-full border border-black/10 p-2 text-muted-foreground"
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          aria-label="Toggle navigation"
         >
-          {mobileMenuOpen ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <Menu className="w-6 h-6" />
-          )}
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-b shadow-lg">
-          <div className="px-4 py-4 space-y-4">
-            {/* Mobile Navigation Links */}
-            <div className="flex flex-col space-y-3">
+        <div className="md:hidden border-t border-black/5 bg-white">
+          <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
+            <div className="flex flex-col gap-4">
               {navItems.map((item) => (
                 <Link
-                  href={item.href}
                   key={item.href}
-                  className="text-base text-muted-foreground hover:text-foreground transition-colors py-2"
+                  href={item.href}
+                  className="text-base font-medium text-foreground"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.label}
                 </Link>
               ))}
             </div>
-
-            {/* Mobile Auth Buttons */}
-            <div className="flex flex-col gap-2 pt-4 border-t">
+            <div className="flex flex-col gap-3">
+              {!isSignedIn && (
+                <Button variant="ghost" className="w-full rounded-full" asChild>
+                  <Link href="/sign-in">Log In</Link>
+                </Button>
+              )}
               {isSignedIn ? (
-                <Button variant="default" className="w-full" asChild>
+                <Button className="w-full rounded-full" asChild>
                   <Link href="/dashboard">Dashboard</Link>
                 </Button>
               ) : (
-                <>
-                  <Button variant="ghost" className="w-full" asChild>
-                    <Link href="/sign-in">Sign In</Link>
-                  </Button>
-                  <Button variant="default" className="w-full" asChild>
-                    <Link href="/sign-up">Get Started</Link>
-                  </Button>
-                </>
+                <Button className="w-full rounded-full shadow-md" asChild>
+                  <Link href="/sign-up">Sign Up</Link>
+                </Button>
               )}
             </div>
           </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 }

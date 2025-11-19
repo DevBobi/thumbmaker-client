@@ -1,82 +1,62 @@
 "use client";
 
-import { TrendingUp, Users, Zap, Award } from "lucide-react";
+import Link from "next/link";
 
-const metrics = [
-  {
-    icon: TrendingUp,
-    value: "10M+",
-    label: "Thumbnails Generated",
-    description: "Trusted by creators worldwide",
-  },
-  {
-    icon: Users,
-    value: "50K+",
-    label: "Active Creators",
-    description: "Growing community daily",
-  },
-  {
-    icon: Zap,
-    value: "60s",
-    label: "Average Generation Time",
-    description: "Lightning-fast AI processing",
-  },
-  {
-    icon: Award,
-    value: "4.9/5",
-    label: "User Rating",
-    description: "Based on 10K+ reviews",
-  },
+const stats = [
+  { value: "17k+", label: "Thumbnails Generated" },
+  { value: "400+", label: "Creators" },
+  { value: "1,400+", label: "Proven Templates" },
+  { value: "98%", label: "Faster than Photoshop" },
 ];
 
 export function Metrics() {
-  return (
-    <section className="relative w-full py-16 sm:py-24 bg-gradient-to-b from-white via-gray-50 to-white overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-600 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-red-500 rounded-full blur-3xl"></div>
-      </div>
+  const demoVideoUrl = "https://youtu.be/KrLj6nc516A";
+  const embedUrl = "https://www.youtube.com/embed/KrLj6nc516A?rel=0&modestbranding=1";
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-12">
-          <h3 className="text-sm mb-4 font-medium text-muted-foreground">Trusted by creators</h3>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight mb-4 font-bold">
-            Numbers That Speak
-            <br />
-            <span className="bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">
-              For Themselves
-            </span>
-          </h2>
+  return (
+    <section id="metrics" className="bg-white px-4 py-20 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-12">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
+          <div className="flex items-center gap-4 border-b border-black/10 pb-6 lg:w-auto lg:flex-col lg:items-start lg:gap-4 lg:border-b-0 lg:border-r lg:pr-8">
+            <div className="h-16 w-px bg-black/40 lg:h-full" />
+            <p className="text-sm font-medium text-gray-800 leading-relaxed">
+              We speak with
+              <br />
+              our powerfull
+              <br />
+              statistics
+            </p>
+          </div>
+
+          <div className="flex flex-1 flex-wrap items-center justify-between gap-8">
+            {stats.map((stat) => (
+              <div key={stat.label} className="min-w-[140px] text-left">
+                <div className="text-3xl font-semibold text-gray-900">
+                  {stat.value}
+                </div>
+                <div className="mt-1 text-sm text-gray-600">{stat.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {metrics.map((metric) => {
-            const Icon = metric.icon;
-            return (
-              <div
-                key={metric.label}
-                className="relative group"
-              >
-                <div className="bg-card rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl border border-border transition-all duration-300 hover:-translate-y-1 h-full">
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-brand-500 to-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                      <Icon className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-2">
-                        {metric.value}
-                      </div>
-                      <div className="text-base sm:text-lg font-semibold text-foreground mb-1">
-                        {metric.label}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{metric.description}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="rounded-[32px] border border-black/5 bg-black p-3 shadow-[0_40px_120px_rgba(15,23,42,0.18)]">
+          <div className="relative overflow-hidden rounded-[28px] bg-black">
+            <iframe
+              className="h-full w-full aspect-video rounded-[28px]"
+              src={embedUrl}
+              title="ThumbMaker demo"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+            <Link
+              href={demoVideoUrl}
+              target="_blank"
+              className="absolute bottom-4 right-4 text-xs font-semibold text-white/80 underline underline-offset-4"
+            >
+              Watch on YouTube
+            </Link>
+          </div>
         </div>
       </div>
     </section>
