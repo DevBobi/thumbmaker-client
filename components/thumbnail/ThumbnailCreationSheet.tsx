@@ -28,6 +28,7 @@ import { uploadToStorage } from "@/actions/upload";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useToast } from "@/hooks/use-toast";
+import { CREDIT_BLOCK_MESSAGE } from "@/constants/credits";
 
 const channelStyles = [
   {
@@ -438,6 +439,10 @@ export default function ThumbnailCreationSheet({
         if (response.status === 429) {
           const retryAfter = errorData.retryAfter || 10;
           throw new Error(`Please wait ${retryAfter} seconds before creating another thumbnail.`);
+        }
+
+        if (response.status === 402) {
+          throw new Error(errorData.error || CREDIT_BLOCK_MESSAGE);
         }
         
         // More descriptive error message

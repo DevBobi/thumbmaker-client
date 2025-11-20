@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { TRIAL_CREDIT_ALLOCATION } from "@/constants/credits";
 
 const ctaThumbnails = [
   {
@@ -44,13 +45,13 @@ export function CTA() {
       >
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-500">
-            Start free trial
+            Unlock your free trial
           </p>
           <h2 className="text-3xl font-semibold text-gray-900 sm:text-5xl">
             Your Next Viral Thumbnail is One Click Away
           </h2>
           <p className="mx-auto max-w-3xl text-base text-muted-foreground">
-            Stop spending hours in Photoshop. Start generating thumbnails that actually get clicks.
+            Stop spending hours in Photoshop. Add your card once, get {TRIAL_CREDIT_ALLOCATION} free credits, and start generating thumbnails that actually get clicks.
           </p>
         </div>
 
@@ -79,10 +80,10 @@ export function CTA() {
 
         <div className="flex flex-col items-center gap-4">
           <Button className="h-12 rounded-full px-10 text-base font-semibold shadow-lg" size="lg" asChild>
-            <Link href="/sign-up">Start Free Trial</Link>
+            <Link href="/sign-up">Activate Free Trial</Link>
           </Button>
           <p className="text-sm text-muted-foreground">
-            No credit card required. Get 3 free generations to start.
+            Secure Stripe checkout. No charges until you upgrade.
           </p>
         </div>
       </motion.div>

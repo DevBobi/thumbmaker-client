@@ -6,12 +6,17 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { TRIAL_CREDIT_ALLOCATION } from "@/constants/credits";
 
 const faqItems = [
   {
     question: "What is ThumbMaker?",
     answer:
       "ThumbMaker is an AI-powered platform that turns your scripts, YouTube links, or ideas into high-performing thumbnail batches in a few clicks.",
+  },
+  {
+    question: "How does the 7-credit trial work?",
+    answer: `Add a payment method once via Stripe to verify your account. We instantly drop ${TRIAL_CREDIT_ALLOCATION} credits into your workspace and only charge you if you later pick a plan.`,
   },
   {
     question: "How many thumbnails can I generate at once?",

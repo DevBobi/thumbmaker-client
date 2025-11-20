@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import { Button } from "@/components/ui/button";
-import { useUser } from "@clerk/nextjs";
+import React from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { ChevronDown, PlayCircle, Sparkles } from "lucide-react";
-import Marquee from "react-fast-marquee";
+import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
+import { TRIAL_CREDIT_ALLOCATION } from "@/constants/credits";
 
+// Constants
 const carouselThumbnails = [
   "/carousel/The Satisfying Downfall of Ashton Hall.png",
   "/carousel/Trump's Tariff Plan Explained.png",
@@ -19,155 +18,207 @@ const carouselThumbnails = [
   "/carousel/How History's Biggest Idiot Accidentally Became a...png",
 ];
 
+// Reusable Button component styled like in the image
+const ActionButton = ({ children, href }: { children: React.ReactNode; href: string }) => (
+  <Link href={href}>
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="mt-8 px-8 py-3 rounded-full bg-red-500 text-white font-semibold shadow-lg transition-colors hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
+    >
+      {children}
+    </motion.button>
+  </Link>
+);
+
+// The main hero component
 export function Hero() {
   const { isSignedIn } = useUser();
-  const demoVideoUrl = "https://youtu.be/KrLj6nc516A";
-  const [animatedUserCount, setAnimatedUserCount] = useState(0);
 
-  useEffect(() => {
-    const targetCount = 524_906;
-    const duration = 1500; // ms
-    const startTime = performance.now();
+  // Animation variants for the text content
+  const FADE_IN_ANIMATION_VARIANTS = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100, damping: 20 } },
+  };
 
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+  // Data
+  const description = `Stop guessing what works. Add your card once and let AI create 20 high-converting thumbnails with ${TRIAL_CREDIT_ALLOCATION} free credits before you ever pick a plan.`;
+  const ctaText = "Unlock Free Trial";
+  const images = carouselThumbnails;
 
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easedProgress = easeOutCubic(progress);
-      setAnimatedUserCount(Math.floor(targetCount * easedProgress));
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    const rafId = requestAnimationFrame(animate);
-
-    return () => cancelAnimationFrame(rafId);
-  }, []);
+  // Duplicate images for a seamless loop
+  const duplicatedImages = [...images, ...images];
 
   return (
-    <section className="relative overflow-hidden bg-white pt-24 pb-16">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-white via-rose-50 to-white" />
-        <div className="absolute inset-x-0 top-10 h-[350px] bg-white/60 blur-[120px]" />
+    <section
+      className={cn(
+        "relative w-full h-screen overflow-hidden bg-background flex flex-col items-center justify-between text-center px-4 py-8"
+      )}
+    >
+      <div className="z-10 flex flex-col items-center pt-8 md:pt-12">
+        {/* Tagline */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={FADE_IN_ANIMATION_VARIANTS}
+          className="mb-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2 text-[13px] font-semibold text-white shadow-lg shadow-gray-900/20"
+        >
+          Trusted by{" "}
+          <span className="text-rose-200">
+            500,000+ Users
+          </span>
+        </motion.div>
+
+        {/* Main Title */}
+        <motion.h1
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: {},
+            show: {
+              transition: {
+                staggerChildren: 0.1,
+              },
+            },
+          }}
+          className="text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-[58px]"
+        >
+          <span className="block text-transparent bg-gradient-to-r from-[#E44491] to-[#121212] bg-clip-text">
+            Generate 20 Viral
+          </span>
+          Thumbnails in 2{" "}
+          <span className="relative inline-flex items-center">
+            <motion.span
+              className="text-4xl font-semibold text-rose-500 sm:text-[52px] drop-shadow-lg leading-none"
+              style={{ fontFamily: '"Caveat", "Comic Sans MS", cursive' }}
+              animate={{ rotate: [-3, 2, -3], scale: [1, 1.05, 1] }}
+              transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut" }}
+            >
+              Minute&apos;s
+            </motion.span>
+            <motion.span
+              className="absolute -top-3 -right-8 text-xl text-gray-400 line-through decoration-[3px] decoration-rose-500 sm:text-2xl leading-none"
+              style={{ fontFamily: '"Caveat", "Comic Sans MS", cursive' }}
+              animate={{ rotate: [2, -2, 2], scale: [1, 0.95, 1] }}
+              transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut", delay: 0.3 }}
+            >
+              Hours
+            </motion.span>
+          </span>
+        </motion.h1>
+
+        {/* Description */}
+        <motion.p
+          initial="hidden"
+          animate="show"
+          variants={FADE_IN_ANIMATION_VARIANTS}
+          transition={{ delay: 0.5 }}
+          className="mt-6 max-w-xl text-lg text-muted-foreground"
+        >
+          {description}
+        </motion.p>
+
+        {/* Call to Action Button */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={FADE_IN_ANIMATION_VARIANTS}
+          transition={{ delay: 0.6 }}
+          className="flex flex-col items-center gap-2"
+        >
+          <ActionButton href={isSignedIn ? "/dashboard" : "/sign-up"}>{ctaText}</ActionButton>
+          <p className="text-xs text-muted-foreground">
+            Card required to keep bots out. No charges until you choose a plan.
+          </p>
+        </motion.div>
+
+        {/* Animated Scroll Wheel Indicator */}
+        <motion.div
+          className="mt-6 flex flex-col items-center gap-2 text-xs text-muted-foreground"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+        >
+          <motion.div
+            className="h-10 w-6 rounded-full border border-border flex items-start justify-center py-1"
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+          >
+            <motion.div
+              className="h-2 w-2 rounded-full bg-foreground"
+              animate={{ y: [0, 16, 0] }}
+              transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+            />
+          </motion.div>
+          <span>Scroll</span>
+        </motion.div>
       </div>
 
-      <div className="mx-auto flex max-w-6xl flex-col items-center px-4 text-center sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="space-y-6"
-        >
-          <div className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2 text-[13px] font-semibold text-white shadow-lg shadow-gray-900/20">
-            Trusted by{" "}
-            <span className="text-rose-200">
-              {animatedUserCount.toLocaleString()} Users
-            </span>
-          </div>
+      {/* Animated Image Marquee - Two Rows */}
+      <div className="absolute bottom-0 left-0 w-full h-1/3 md:h-2/5 [mask-image:linear-gradient(to_bottom,transparent,black_20%,black_80%,transparent)]">
+        <div className="space-y-3 md:space-y-4">
+          {/* First Row - Scrolls Left */}
+          <motion.div
+            className="flex gap-6 md:gap-8"
+            animate={{
+              x: ["-50%", "0%"],
+              transition: {
+                ease: "linear",
+                duration: 40,
+                repeat: Infinity,
+              },
+            }}
+          >
+            {duplicatedImages.map((src, index) => (
+              <div
+                key={`row1-${index}`}
+                className="relative aspect-video h-32 md:h-40 flex-shrink-0"
+                style={{
+                  rotate: `${(index % 2 === 0 ? -2 : 5)}deg`,
+                }}
+              >
+                <Image
+                  src={src}
+                  alt={`Showcase image ${index + 1}`}
+                  className="object-cover rounded-2xl shadow-md"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
+              </div>
+            ))}
+          </motion.div>
 
-          <h1 className="text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-[58px]">
-            <span className="block text-transparent bg-gradient-to-r from-[#E44491] to-[#121212] bg-clip-text">
-              Generate 20 Viral
-            </span>
-            Thumbnails in 2{" "}
-            <span className="relative inline-flex flex-col items-center">
-              <span className="text-3xl font-semibold text-rose-500 sm:text-[42px]">Minute&apos;s</span>
-              <span className="absolute -bottom-6 text-2xl text-gray-400 line-through decoration-[3px] decoration-rose-500">
-                Hours
-              </span>
-            </span>
-          </h1>
-
-          <p className="text-base text-muted-foreground sm:text-lg">
-            Stop guessing what works. Let AI create 20 high-converting thumbnails at once for your
-            video idea or existing videos.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button
-              size="lg"
-              className="h-12 rounded-full bg-gray-900 px-8 text-base font-semibold text-white shadow-xl shadow-gray-900/15"
-              asChild
-            >
-              <Link href={isSignedIn ? "/dashboard" : "/sign-up"}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Start Free Trial
-              </Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="ghost"
-              className="h-12 rounded-full border border-black/10 px-6 text-base font-semibold text-gray-900 shadow-sm"
-              asChild
-            >
-              <Link href={demoVideoUrl} target="_blank">
-                <PlayCircle className="mr-2 h-5 w-5" />
-                Watch Demo
-                <span className="ml-2 text-sm text-muted-foreground">90 sec</span>
-              </Link>
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground">
-            <ChevronDown className="h-4 w-4" />
-            <span>Learn more</span>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="relative mt-16 w-full rounded-[40px] border border-black/5 bg-white/80 p-6 shadow-[0_30px_120px_rgba(15,23,42,0.12)]"
-        >
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-white via-white/80 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-white via-white/80 to-transparent" />
-
-          <div className="space-y-5">
-            <Marquee gradient={false} speed={25} pauseOnHover className="py-2">
-              {[...Array(2)].map((_, loopIndex) =>
-                carouselThumbnails.map((src, index) => (
-                  <div
-                    key={`top-${loopIndex}-${index}`}
-                    className="relative mx-2 h-32 w-48 overflow-hidden rounded-2xl border border-black/10 shadow-lg"
-                  >
-                    <Image
-                      src={src}
-                      alt={`Carousel thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 200px, 240px"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-                  </div>
-                )),
-              )}
-            </Marquee>
-
-            <Marquee gradient={false} speed={22} direction="right" pauseOnHover className="py-2">
-              {[...Array(2)].map((_, loopIndex) =>
-                carouselThumbnails.map((src, index) => (
-                  <div
-                    key={`bottom-${loopIndex}-${index}`}
-                    className="relative mx-2 h-32 w-48 overflow-hidden rounded-2xl border border-black/10 shadow-lg opacity-90"
-                  >
-                    <Image
-                      src={src}
-                      alt={`Carousel thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 200px, 240px"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-                  </div>
-                )),
-              )}
-            </Marquee>
-          </div>
-        </motion.div>
+          {/* Second Row - Scrolls Right */}
+          <motion.div
+            className="flex gap-6 md:gap-8"
+            animate={{
+              x: ["0%", "-50%"],
+              transition: {
+                ease: "linear",
+                duration: 40,
+                repeat: Infinity,
+              },
+            }}
+          >
+            {duplicatedImages.map((src, index) => (
+              <div
+                key={`row2-${index}`}
+                className="relative aspect-video h-32 md:h-40 flex-shrink-0"
+                style={{
+                  rotate: `${(index % 2 === 0 ? 5 : -2)}deg`,
+                }}
+              >
+                <Image
+                  src={src}
+                  alt={`Showcase image ${index + 1}`}
+                  className="object-cover rounded-2xl shadow-md opacity-90"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
+              </div>
+            ))}
+          </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -26,6 +26,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { TrialStatusCard } from "@/components/credits/TrialStatusCard";
+import { useCreditSummary } from "@/hooks/use-credit-summary";
 
 const Dashboard = () => {
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
@@ -33,6 +35,11 @@ const Dashboard = () => {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const { authFetch } = useAuthFetch();
+  const {
+    data: creditSummary,
+    isLoading: isCreditSummaryLoading,
+    refetch: refetchCreditSummary,
+  } = useCreditSummary();
 
   // Check if user is visiting dashboard for the first time
   useEffect(() => {
@@ -77,61 +84,72 @@ const Dashboard = () => {
     <div className="mx-auto space-y-6">
       <GuaranteePopup />
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Manage your YouTube thumbnails and projects</p>
+      {/* Header + trial overview */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] items-stretch">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-border bg-card/60 p-5 shadow-sm">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Manage your YouTube thumbnails and projects</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              variant="outline" 
+              className="relative gap-2 group overflow-hidden hover:border-primary transition-all duration-500 hover:scale-105 hover:shadow-lg hover:shadow-primary/20"
+              onClick={() => setIsTutorialOpen(true)}
+              style={{
+                animation: 'glow 2s ease-in-out infinite, breathe 3s ease-in-out infinite',
+              }}
+            >
+              {/* Rotating gradient glow */}
+              <div 
+                className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-500 to-primary rounded-md opacity-60 blur-sm -z-10"
+                style={{ animation: 'spin 3s linear infinite' }}
+              />
+              
+              {/* Animated gradient background */}
+              <div 
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-md"
+                style={{
+                  background: 'linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent)',
+                  animation: 'shimmer 2s infinite',
+                }}
+              />
+              
+              {/* Moving wave shimmer */}
+              <div 
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-md"
+                style={{
+                  animation: 'wave 3s ease-in-out infinite',
+                  transform: 'translateX(-100%)',
+                }}
+              />
+              
+              {/* Pulsing dot */}
+              <div 
+                className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
+                style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}
+              />
+              
+              <PlayCircle 
+                className="h-4 w-4 text-primary group-hover:text-primary/80 relative z-10 transition-all duration-300"
+                style={{ animation: 'bounce 2s ease-in-out infinite' }}
+              />
+              <span className="relative z-10 font-semibold text-primary">
+                Watch Tutorial
+              </span>
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Button 
-            variant="outline" 
-            className="relative gap-2 group overflow-hidden hover:border-primary transition-all duration-500 hover:scale-105 hover:shadow-lg hover:shadow-primary/20"
-            onClick={() => setIsTutorialOpen(true)}
-            style={{
-              animation: 'glow 2s ease-in-out infinite, breathe 3s ease-in-out infinite',
-            }}
-          >
-            {/* Rotating gradient glow */}
-            <div 
-              className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-500 to-primary rounded-md opacity-60 blur-sm -z-10"
-              style={{ animation: 'spin 3s linear infinite' }}
-            />
-            
-            {/* Animated gradient background */}
-            <div 
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-md"
-              style={{
-                background: 'linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent)',
-                animation: 'shimmer 2s infinite',
-              }}
-            />
-            
-            {/* Moving wave shimmer */}
-            <div 
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-md"
-              style={{
-                animation: 'wave 3s ease-in-out infinite',
-                transform: 'translateX(-100%)',
-              }}
-            />
-            
-            {/* Pulsing dot */}
-            <div 
-              className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
-              style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}
-            />
-            
-            <PlayCircle 
-              className="h-4 w-4 text-primary group-hover:text-primary/80 relative z-10 transition-all duration-300"
-              style={{ animation: 'bounce 2s ease-in-out infinite' }}
-            />
-            <span className="relative z-10 font-semibold text-primary">
-              Watch Tutorial
-            </span>
-          </Button>
-          
-          <style jsx>{`
+
+        <TrialStatusCard
+          summary={creditSummary}
+          isLoading={isCreditSummaryLoading}
+          onTrialUpdated={() => refetchCreditSummary()}
+          className="h-full"
+        />
+      </div>
+      
+      <style jsx>{`
             @keyframes glow {
               0%, 100% {
                 box-shadow: 0 0 5px hsl(var(--primary) / 0.3);
@@ -196,8 +214,7 @@ const Dashboard = () => {
               }
             }
           `}</style>
-        </div>
-      </div>
+        
 
       {/* Quick Actions */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

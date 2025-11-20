@@ -73,23 +73,29 @@ export function Features() {
                   <h3 className="text-2xl font-semibold text-gray-900 sm:text-3xl">{step.title}</h3>
                   <p className="text-base text-muted-foreground">{step.description}</p>
                   <Button asChild className="rounded-full px-5 shadow-sm">
-                    <Link href="/sign-up">Try For Free ✨</Link>
+                    <Link href="/sign-up">Unlock Free Trial ✨</Link>
                   </Button>
                 </div>
                 <div className="relative w-full flex justify-center">
                   <div
-                    className={`relative w-full max-w-[360px] ${
-                      index === 1
-                        ? ""
-                        : index === 2
+                    className={`relative w-full  ${
+                      index === steps.length - 1 ? "max-w-[320px]" : "max-w-[360px]"
+                    } ${
+                      index === 0
+                        ? " "
+                        : index === 1
                           ? ""
-                          : "rounded-md border border-black/5 bg-white shadow-xl p-3"
+                          : index === 2
+                            ? ""
+                            : "rounded-md border border-black/5 bg-white shadow-xl p-3"
                     }`}
                   >
                     <Image
                       src={step.image}
                       alt={step.title}
-                      className="h-auto w-full"
+                      className={`w-full h-auto ${
+                        index === steps.length - 1 ? "max-h-[300px] object-contain" : ""
+                      }${index === 0 ? " rounded-2xl" : ""}`}
                       priority={index === 0}
                       placeholder="blur"
                       quality={100}
