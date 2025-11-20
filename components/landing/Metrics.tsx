@@ -1,6 +1,8 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
+import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
 
 const stats = [
   { value: "17k+", label: "Thumbnails Generated" },
@@ -16,9 +18,9 @@ export function Metrics() {
   return (
     <section
       id="metrics"
-      className="bg-white px-4 py-20 sm:px-6 lg:py-24"
+      className="bg-white px-4 py-16 sm:px-6 lg:py-20"
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-12 lg:gap-14">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:gap-10">
         {/* Heading + Metrics */}
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)] lg:items-center">
           {/* Left: Copy */}
@@ -58,8 +60,18 @@ export function Metrics() {
           </div>
         </div>
 
-        {/* Demo video */}
-        <div className="rounded-[32px] border border-black/5 bg-gradient-to-br from-gray-950 via-black to-gray-900 p-3 shadow-[0_40px_120px_rgba(15,23,42,0.22)]">
+        <ContainerScroll
+          titleComponent={
+            <div className="space-y-4 text-center text-gray-900">
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-500">
+                Scroll demo
+              </p>
+              <h3 className="text-4xl font-bold leading-tight sm:text-5xl md:text-[4.5rem]">
+                <span className="text-rose-500">ThumbMaker</span> in Motion
+              </h3>
+            </div>
+          }
+        >
           <div className="relative overflow-hidden rounded-[28px] bg-black">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <iframe
@@ -83,8 +95,96 @@ export function Metrics() {
               <span aria-hidden>↗</span>
             </Link>
           </div>
-        </div>
+        </ContainerScroll>
       </div>
     </section>
   );
 }
+
+const ContainerScroll = ({
+  titleComponent,
+  children,
+}: {
+  titleComponent: string | React.ReactNode;
+  children: React.ReactNode;
+}) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start 75%", "end 25%"],
+  });
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
+
+  const scaleDimensions = () => {
+    return isMobile ? [0.9, 1] : [1.05, 1];
+  };
+
+  const rotate = useTransform(scrollYProgress, [0, 1], [18, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], scaleDimensions());
+  const translate = useTransform(scrollYProgress, [0, 1], [0, -120]);
+
+  return (
+    <div className="relative flex items-center justify-center p-2 md:p-6" ref={containerRef}>
+      <div className="w-full pt-4 pb-2 md:pt-8 md:pb-4" style={{ perspective: "1000px" }}>
+        <Header translate={translate} titleComponent={titleComponent} />
+        <Card rotate={rotate} translate={translate} scale={scale}>
+          {children}
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+const Header = ({
+  translate,
+  titleComponent,
+}: {
+  translate: MotionValue<number>;
+  titleComponent: React.ReactNode;
+}) => {
+  return (
+    <motion.div style={{ translateY: translate }} className="mx-auto max-w-4xl text-center">
+      {titleComponent}
+    </motion.div>
+  );
+};
+
+const Card = ({
+  rotate,
+  scale,
+  translate,
+  children,
+}: {
+  rotate: MotionValue<number>;
+  scale: MotionValue<number>;
+  translate: MotionValue<number>;
+  children: React.ReactNode;
+}) => {
+  return (
+    <motion.div
+      style={{
+        rotateX: rotate,
+        scale,
+        translateY: translate,
+        boxShadow:
+          "0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003",
+      }}
+      className="mx-auto -mt-10 h-[30rem] w-full max-w-5xl rounded-[30px] border-4 border-[#6C6C6C] bg-[#222222] p-3 shadow-2xl md:h-[40rem] md:p-6"
+    >
+      <div className="h-full w-full overflow-hidden rounded-2xl bg-gray-100 md:rounded-2xl md:p-4">
+        {children}
+      </div>
+    </motion.div>
+  );
+};
