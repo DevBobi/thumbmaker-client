@@ -57,11 +57,11 @@ export function Pricing() {
     <section id="pricing" className="bg-white px-4 py-24 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-12">
         <div className="text-center space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-500">
+          <p className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500">
             Pricing
           </p>
           <h2 className="text-3xl font-semibold text-gray-900 sm:text-5xl">
-            Simple, Transparent Pricing
+            Simple, transparent pricing
           </h2>
           <p className="mx-auto max-w-2xl text-base text-muted-foreground">
             Choose the plan that fits your team. Every tier includes unlimited template access and
@@ -70,41 +70,57 @@ export function Pricing() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-[32px] border border-black/5 bg-white p-8 shadow-[0_25px_90px_rgba(15,23,42,0.08)] ${
-                plan.badge ? "md:-mt-4" : ""
-              }`}
-            >
-              {plan.badge && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="rounded-full bg-gray-900 px-4 py-1 text-xs font-semibold text-white">
+          {plans.map((plan) => {
+            const isFeatured = plan.badge === "Most Popular";
+            return (
+              <div
+                key={plan.name}
+                className={`relative rounded-[32px] border bg-white p-8 shadow-[0_25px_100px_rgba(15,23,42,0.08)] ${
+                  isFeatured ? "border-rose-200 bg-gradient-to-b from-white to-rose-50/50" : "border-gray-200"
+                }`}
+              >
+                {plan.badge && (
+                  <div className="absolute -top-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-rose-200 bg-white px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-500 shadow-sm">
+                    <span className="h-2 w-2 rounded-full bg-rose-500" />
                     {plan.badge}
-                  </span>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-semibold text-gray-900">{plan.price}</span>
+                    <span className="text-sm font-medium text-muted-foreground">{plan.cadence}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{plan.description}</p>
                 </div>
-              )}
-              <div className="space-y-2">
-                <h3 className="text-2xl font-semibold text-gray-900">{plan.name}</h3>
-                <p className="text-muted-foreground">{plan.description}</p>
-                <div className="flex items-baseline gap-2 pt-4">
-                  <span className="text-4xl font-semibold text-gray-900">{plan.price}</span>
-                  <span className="text-sm font-medium text-muted-foreground">{plan.cadence}</span>
-                </div>
+
+                <div className="my-8 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
+                <ul className="space-y-4 text-sm text-gray-800">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full border border-rose-100 bg-white">
+                        <Check className="h-3.5 w-3.5 text-rose-500" />
+                      </span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  className={`mt-10 w-full rounded-full shadow-lg shadow-gray-900/20 hover:opacity-90 ${
+                    isFeatured
+                      ? "bg-gradient-to-br from-gray-900 to-black text-white"
+                      : "bg-white text-gray-900 border border-gray-200 shadow-none hover:bg-gray-50"
+                  }`}
+                  size="lg"
+                  asChild
+                >
+                  <Link href="/sign-up">Get Started</Link>
+                </Button>
               </div>
-              <ul className="mt-8 space-y-3 text-sm text-muted-foreground">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <Check className="mt-1 h-4 w-4 text-rose-500" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button className="mt-8 w-full rounded-full" size="lg" asChild>
-                <Link href="/sign-up">Get Started</Link>
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

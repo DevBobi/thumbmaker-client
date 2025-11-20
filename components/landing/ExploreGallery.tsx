@@ -76,39 +76,38 @@ export function ExploreGallery() {
   const filtersActive = selectedCreator !== "all" || tagQuery.trim().length > 0;
 
   return (
-    <section
-      id="gallery"
-      className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white overflow-hidden"
-    >
-      {/* Decorative background */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-brand-600 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-red-500 rounded-full blur-3xl"></div>
-      </div>
-      <div className="relative z-10">
+    <section id="gallery" className="bg-white px-4 py-24 sm:px-6">
+      <div className="mx-auto max-w-6xl space-y-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="max-w-6xl mx-auto"
+          className="text-center space-y-4"
         >
-          <h3 className="text-sm mb-4 font-medium text-gray-600">Example thumbnails generated</h3>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl text-gray-900 leading-tight mb-2 font-bold">
+          <p className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500">
+            See it in action
+          </p>
+          <h2 className="text-3xl font-semibold text-gray-900 sm:text-5xl">
             All these thumbnails were one-shot by{" "}
             <span className="bg-gradient-to-r from-[#FF0000] to-[#FF6B6B] bg-clip-text text-transparent">
-              THUMBMAKER
+              ThumbMaker
             </span>
-            . Try it to believe!
-          </h1>
+          </h2>
+          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
+            Filter by your favorite creators or search by topic to see how ThumbMaker adapts to any
+            style.
+          </p>
         </motion.div>
 
-        <div className="mt-8 space-y-6">
-          <div className="flex flex-col lg:flex-row gap-2 lg:items-end">
+        <div className="rounded-[32px] border border-gray-100 bg-white/60 p-6 shadow-lg shadow-gray-900/5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
             <div className="w-full sm:max-w-xs">
-              <p className="text-xs font-medium text-gray-700 mb-2">Creator</p>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                Creator
+              </p>
               <Select value={selectedCreator} onValueChange={setSelectedCreator}>
-                <SelectTrigger className="bg-white border-2 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 h-11">
+                <SelectTrigger className="h-11 rounded-2xl border border-gray-200 bg-white text-sm focus:border-rose-300 focus:ring-rose-100">
                   <SelectValue placeholder="Select creator" />
                 </SelectTrigger>
                 <SelectContent className="max-h-64">
@@ -123,20 +122,24 @@ export function ExploreGallery() {
             </div>
 
             <div className="w-full">
-              <p className="text-xs font-medium text-gray-700 mb-2">Search by tags or title keywords</p>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                Search tags or titles
+              </p>
               <Input
                 value={tagQuery}
                 onChange={(event) => setTagQuery(event.target.value)}
-                placeholder="e.g. motivation, finance, vlog"
-                className="h-11 border-2 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                placeholder="e.g. finance, vlog, story"
+                className="h-11 rounded-2xl border border-gray-200 focus:border-rose-300 focus:ring-rose-100"
               />
             </div>
 
             <div className="w-full sm:w-auto">
-              <p className="text-xs font-medium text-gray-500 mb-2 invisible">Clear filters</p>
+              <p className="invisible mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                Clear filters
+              </p>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto h-11 border-2 border-gray-300 hover:border-gray-400 disabled:opacity-50"
+                className="h-11 w-full rounded-2xl border border-gray-200 hover:border-gray-300 sm:w-auto"
                 disabled={!filtersActive}
                 onClick={() => {
                   setSelectedCreator("all");
@@ -148,49 +151,44 @@ export function ExploreGallery() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visibleThumbnails.map((item) => {
-              return (
-                <div
-                  key={item.id}
-                  className="group cursor-pointer"
-                >
-                  <Link href={item.video_link} target="_blank" rel="noopener noreferrer">
-                    <div className="relative w-full aspect-[16/9] bg-gray-100 rounded-lg overflow-hidden mb-2">
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-                        quality={90}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                        {item.title}
-                      </h3>
-                      <p className="text-xs text-gray-600">
-                        {item.creator}
-                      </p>
-                    </div>
-                  </Link>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleThumbnails.map((item) => (
+              <Link
+                key={item.id}
+                href={item.video_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group space-y-2 rounded-2xl border border-gray-100 bg-white/80 p-3 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-lg"
+              >
+                <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-gray-100">
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    quality={90}
+                  />
                 </div>
-              );
-            })}
+                <div className="space-y-1 text-left">
+                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-gray-600">{item.creator}</p>
+                </div>
+              </Link>
+            ))}
           </div>
 
           {filteredThumbnails.length === 0 && (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center">
+            <div className="mt-8 rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-12 text-center">
               <p className="text-base font-semibold text-gray-900">No thumbnails found</p>
-              <p className="text-sm text-gray-600 mt-2">
-                Try a different creator, tag, or title keyword.
-              </p>
+              <p className="mt-2 text-sm text-gray-600">Try a different creator, tag, or keyword.</p>
             </div>
           )}
 
           {filteredThumbnails.length > MAX_RESULTS && (
-            <p className="text-center text-sm text-gray-500">
+            <p className="mt-4 text-center text-sm text-gray-500">
               Showing {MAX_RESULTS} of {filteredThumbnails.length} matching thumbnails. Refine your
               search to narrow the results.
             </p>
