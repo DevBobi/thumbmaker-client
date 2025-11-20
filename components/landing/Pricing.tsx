@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Link from "next/link";
-import { TRIAL_CREDIT_ALLOCATION } from "@/constants/credits";
 
 const plans = [
   {
@@ -66,7 +65,7 @@ export function Pricing() {
           </h2>
           <p className="mx-auto max-w-2xl text-base text-muted-foreground">
             Choose the plan that fits your team. Every tier includes unlimited template access and
-            YouTube imports, plus {TRIAL_CREDIT_ALLOCATION} free credits the moment you add your card.
+            YouTube imports.
           </p>
         </div>
 

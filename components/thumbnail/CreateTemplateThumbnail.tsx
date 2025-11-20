@@ -6,8 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ManualThumbnailCreationForm from "./ManualThumbnailCreationForm";
 import AutomatedThumbnailCreationForm from "./AutomatedThumbnailCreationForm";
 import { FormSheet } from "@/components/ui/form-sheet";
-import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { CREDIT_BLOCK_MESSAGE } from "@/constants/credits";
 
 interface CreateTemplateThumbnailProps {
   isOpen: boolean;
@@ -27,7 +25,6 @@ const CreateTemplateThumbnail = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("manual");
-  const { authFetch } = useAuthFetch();
 
   const handleManualSubmit = async (formData: any) => {
     setIsSubmitting(true);
@@ -58,19 +55,19 @@ const CreateTemplateThumbnail = ({
         projectId: selectedProject?.id,
       };
 
-      const response = await authFetch("/api/thumbnails/create", {
-        method: "POST",
+      const response = await fetch('/api/thumbnails/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(thumbnailData),
       });
-      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const message =
-          response.status === 402
-            ? data.error || CREDIT_BLOCK_MESSAGE
-            : data.error || "Failed to create thumbnail";
-        throw new Error(message);
+        throw new Error('Failed to create thumbnail');
       }
+
+      const data = await response.json();
       
       toast({
         title: "Success!",
@@ -87,12 +84,9 @@ const CreateTemplateThumbnail = ({
       }, 300);
     } catch (error) {
       console.error('Error creating thumbnail:', error);
-      const message = error instanceof Error
-        ? error.message
-        : "Failed to create thumbnail. Please try again.";
       toast({
         title: "Error",
-        description: message,
+        description: "Failed to create thumbnail. Please try again.",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -127,19 +121,19 @@ const CreateTemplateThumbnail = ({
         projectId: selectedProject?.id,
       };
 
-      const response = await authFetch("/api/thumbnails/create", {
-        method: "POST",
+      const response = await fetch('/api/thumbnails/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(thumbnailData),
       });
-      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const message =
-          response.status === 402
-            ? data.error || CREDIT_BLOCK_MESSAGE
-            : data.error || "Failed to create thumbnail";
-        throw new Error(message);
+        throw new Error('Failed to create thumbnail');
       }
+
+      const data = await response.json();
       
       toast({
         title: "Success!",
@@ -156,12 +150,9 @@ const CreateTemplateThumbnail = ({
       }, 300);
     } catch (error) {
       console.error('Error starting thumbnail generation:', error);
-      const message = error instanceof Error
-        ? error.message
-        : "Failed to start thumbnail generation. Please try again.";
       toast({
         title: "Error",
-        description: message,
+        description: "Failed to start thumbnail generation. Please try again.",
         variant: "destructive",
       });
       setIsSubmitting(false);

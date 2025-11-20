@@ -16,19 +16,12 @@ import { BillingButton } from "@/components/BillingButton";
 import Breadcrumb from "@/components/Breadcrumb";
 import { pricingPlans } from "@/lib/plans";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { useCreditSummary } from "@/hooks/use-credit-summary";
-import { TrialStatusCard } from "@/components/credits/TrialStatusCard";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface BillingProps {}
 
 const Billing = ({}: BillingProps) => {
   const { authFetch } = useAuthFetch();
-  const {
-    data: creditSummary,
-    isLoading: isCreditSummaryLoading,
-    refetch: refetchCreditSummary,
-  } = useCreditSummary();
   const [subscriptionData, setSubscriptionData] = useState<any>({
     credits: 0,
     isActive: false,
@@ -60,7 +53,6 @@ const Billing = ({}: BillingProps) => {
 
   const handleRefresh = () => {
     fetchSubscription();
-    refetchCreditSummary();
   };
 
   return (
@@ -88,16 +80,6 @@ const Billing = ({}: BillingProps) => {
           Refresh
         </Button>
       </div>
-
-      <TrialStatusCard
-        summary={creditSummary}
-        isLoading={isCreditSummaryLoading}
-        onTrialUpdated={() => {
-          refetchCreditSummary();
-          fetchSubscription();
-        }}
-        className="mb-6"
-      />
 
       {isActive ? (
         <Card>

@@ -73,7 +73,7 @@ export function Features() {
                   <h3 className="text-2xl font-semibold text-gray-900 sm:text-3xl">{step.title}</h3>
                   <p className="text-base text-muted-foreground">{step.description}</p>
                   <Button asChild className="rounded-full px-5 shadow-sm">
-                    <Link href="/sign-up">Unlock Free Trial ✨</Link>
+                    <Link href="/sign-up">Try For Free ✨</Link>
                   </Button>
                 </div>
                 <div className="relative w-full flex justify-center">

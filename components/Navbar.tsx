@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useAuth, useUser } from "@clerk/nextjs";
 import {
   CreditCardIcon,
@@ -20,7 +21,8 @@ import {
   UserCircleIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useCreditSummary } from "@/hooks/use-credit-summary";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const NavbarItems = [
   {
@@ -43,10 +45,22 @@ const NavbarItems = [
 export default function Navbar() {
   const { user } = useUser();
   const { signOut } = useAuth();
-  const { data: creditSummary } = useCreditSummary();
-  const paidCredits = creditSummary?.credits ?? 0;
-  const trialCredits =
-    creditSummary?.trialStatus === "ACTIVE" ? creditSummary.trialCredits : 0;
+  const { authFetch } = useAuthFetch();
+  const pathname = usePathname();
+  const [credits, setCredits] = useState(0);
+
+  useEffect(() => {
+    const getCredits = async () => {
+      const response = await authFetch("/api/user/credits");
+      const data = await response.json();
+      setCredits(data.credits);
+    };
+
+    getCredits();
+  }, [pathname, authFetch]);
+
+  // Get sidebar state to check if it's open
+  const { open } = useSidebar();
 
   return (
     <header className="border-b border-border bg-background">
@@ -60,26 +74,11 @@ export default function Navbar() {
 
         {/* Credits section at top right */}
         <div className="flex items-center gap-6">
-          <div className="text-sm text-muted-foreground text-right">
-            <span className="font-medium block">Credits</span>
-            <div className="flex items-center gap-2 justify-end mt-1">
-              <span className="bg-muted px-2 py-1 rounded-md text-foreground font-semibold min-w-[48px] text-center">
-                {creditSummary ? paidCredits : "—"}
-              </span>
-              {trialCredits > 0 && (
-                <Badge variant="secondary" className="text-[11px]">
-                  {trialCredits} trial
-                </Badge>
-              )}
-            </div>
-            {!creditSummary?.hasCredits && (
-              <Link
-                href="/dashboard/billing"
-                className="text-xs text-primary font-medium mt-1 inline-flex justify-end w-full"
-              >
-                Add more credits →
-              </Link>
-            )}
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">Credits:</span>
+            <span className="ml-2 bg-muted px-2 py-1 rounded-md text-foreground">
+              {credits}
+            </span>
           </div>
 
           <div className="flex items-center gap-4">

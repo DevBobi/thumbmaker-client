@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useFreeCredits } from "@/hooks/use-free-credits";
 import { cn } from "@/lib/utils";
 import {
   FolderPlus,
@@ -83,6 +84,7 @@ export function AppSidebar({
   subscription: Subscription;
 }) {
   const pathname = usePathname();
+  const { } = useFreeCredits();
   const { theme, setTheme } = useTheme();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -190,28 +192,28 @@ export function AppSidebar({
           isCollapsed && "flex flex-col items-center w-full"
         )}>
         {!subscription.isActive && subscription.credits === 0 && !isCollapsed && (
-            <div className="relative overflow-hidden bg-gradient-to-br from-rose-50 to-purple-50 dark:from-rose-950/30 dark:to-purple-950/30 p-5 rounded-2xl border border-rose-100 dark:border-rose-900/40 mb-4">
+            <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/50 mb-4">
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 rounded-xl bg-primary shadow-lg shadow-primary/25">
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Free trial</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">Unlock 7 credits</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Current plan:</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">Pro trial</p>
                   </div>
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
-                  Add a payment method once to activate your trial credits. You won&apos;t be charged until you choose a plan.
+                  Upgrade to Pro to get the latest and exclusive features
                 </p>
                 <Button 
                   size="sm" 
                   className="w-full bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200" 
                   asChild
                 >
-                  <Link href="/dashboard/billing" className="flex items-center justify-center gap-2">
+                  <Link href="/pricing" className="flex items-center justify-center gap-2">
                     <Zap className="h-4 w-4" />
-                    Activate free trial
+                    Upgrade to Pro
                   </Link>
                 </Button>
               </div>

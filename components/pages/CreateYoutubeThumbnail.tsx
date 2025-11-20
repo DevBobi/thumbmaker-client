@@ -30,7 +30,6 @@ import TemplateSelector from "@/components/thumbnail/TemplateSelector";
 import { uploadToStorage } from "@/actions/upload";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { CREDIT_BLOCK_MESSAGE } from "@/constants/credits";
 import Link from "next/link";
 
 type GenerationMode = "template" | "youtube";
@@ -921,10 +920,6 @@ export default function CreateYoutubeThumbnail() {
         if (response.status === 429) {
           const retryAfter = errorData.retryAfter || 10;
           throw new Error(`Please wait ${retryAfter} seconds before creating another thumbnail.`);
-        }
-        
-        if (response.status === 402) {
-          throw new Error(errorData.error || CREDIT_BLOCK_MESSAGE);
         }
         
         const errorMessage = errorData.error || errorData.message || `Server error (${response.status})`;

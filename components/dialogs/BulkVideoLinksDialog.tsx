@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Link2, Video, CheckCircle2, XCircle, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { CREDIT_BLOCK_MESSAGE } from "@/constants/credits";
 import { extractYouTubeThumbnail } from "@/lib/youtube";
 import Image from "next/image";
 import { TemplateSelector } from "./TemplateSelector";
@@ -214,19 +213,14 @@ export const BulkVideoLinksDialog: React.FC<BulkVideoLinksDialogProps> = ({
             succeeded++;
             setGenerationProgress((prev) => ({ ...prev, succeeded }));
           } else {
-            const errorData = await response.json().catch(() => ({}));
+            const errorData = await response.json();
             console.error("Failed to generate thumbnail:", errorData);
             failed++;
             setGenerationProgress((prev) => ({ ...prev, failed }));
             
-            const message =
-              response.status === 402
-                ? errorData.error || CREDIT_BLOCK_MESSAGE
-                : errorData.error || `Failed: ${video.title} + ${template.brand}`;
-
             toast({
               title: "Generation failed",
-              description: message,
+              description: errorData.error || `Failed: ${video.title} + ${template.brand}`,
               variant: "destructive",
             });
           }

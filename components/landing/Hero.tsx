@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
-import { TRIAL_CREDIT_ALLOCATION } from "@/constants/credits";
 
 // Constants
 const carouselThumbnails = [
@@ -42,8 +41,8 @@ export function Hero() {
   };
 
   // Data
-  const description = `Stop guessing what works. Add your card once and let AI create 20 high-converting thumbnails with ${TRIAL_CREDIT_ALLOCATION} free credits before you ever pick a plan.`;
-  const ctaText = "Unlock Free Trial";
+  const description = "Stop guessing what works. Let AI create 20 high-converting thumbnails at once for your video idea or existing videos.";
+  const ctaText = "Start Free Trial";
   const images = carouselThumbnails;
 
   // Duplicate images for a seamless loop
@@ -124,12 +123,8 @@ export function Hero() {
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
           transition={{ delay: 0.6 }}
-          className="flex flex-col items-center gap-2"
         >
           <ActionButton href={isSignedIn ? "/dashboard" : "/sign-up"}>{ctaText}</ActionButton>
-          <p className="text-xs text-muted-foreground">
-            Card required to keep bots out. No charges until you choose a plan.
-          </p>
         </motion.div>
 
         {/* Animated Scroll Wheel Indicator */}
