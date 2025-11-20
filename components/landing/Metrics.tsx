@@ -18,9 +18,9 @@ export function Metrics() {
   return (
     <section
       id="metrics"
-      className="bg-white px-4 py-16 sm:px-6 lg:py-20"
+      className="bg-white px-4 pt-16 pb-10 sm:px-6 sm:pb-12 lg:pt-20 lg:pb-14"
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:gap-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:gap-8">
         {/* Heading + Metrics */}
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)] lg:items-center">
           {/* Left: Copy */}
@@ -72,10 +72,10 @@ export function Metrics() {
             </div>
           }
         >
-          <div className="relative overflow-hidden rounded-[28px] bg-black">
+          <div className="relative h-full w-full overflow-hidden rounded-[28px] bg-black">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <iframe
-              className="h-full w-full aspect-video rounded-[28px] border border-white/5"
+              className="w-full aspect-video rounded-[28px] border border-white/5"
               src={embedUrl}
               title="ThumbMaker demo"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -132,13 +132,13 @@ const ContainerScroll = ({
 
   const rotate = useTransform(scrollYProgress, [0, 1], [18, 0]);
   const scale = useTransform(scrollYProgress, [0, 1], scaleDimensions());
-  const translate = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const translate = useTransform(scrollYProgress, [0, 1], [0, -50]);
 
   return (
     <div className="relative flex items-center justify-center p-2 md:p-6" ref={containerRef}>
-      <div className="w-full pt-4 pb-2 md:pt-8 md:pb-4" style={{ perspective: "1000px" }}>
+      <div className="w-full pt-2 pb-1 md:pt-6 md:pb-3" style={{ perspective: "1000px" }}>
         <Header translate={translate} titleComponent={titleComponent} />
-        <Card rotate={rotate} translate={translate} scale={scale}>
+        <Card rotate={rotate} translate={translate} scale={scale} isMobile={isMobile}>
           {children}
         </Card>
       </div>
@@ -164,11 +164,13 @@ const Card = ({
   rotate,
   scale,
   translate,
+  isMobile,
   children,
 }: {
   rotate: MotionValue<number>;
   scale: MotionValue<number>;
   translate: MotionValue<number>;
+  isMobile: boolean;
   children: React.ReactNode;
 }) => {
   return (
@@ -177,13 +179,17 @@ const Card = ({
         rotateX: rotate,
         scale,
         translateY: translate,
+        minHeight: isMobile ? "18rem" : "32rem",
         boxShadow:
           "0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003",
       }}
-      className="mx-auto -mt-10 h-[30rem] w-full max-w-5xl rounded-[30px] border-4 border-[#6C6C6C] bg-[#222222] p-3 shadow-2xl md:h-[40rem] md:p-6"
+      className="mx-auto mt-2 w-full max-w-5xl rounded-[30px] border-4 border-[#6C6C6C] bg-[#222222] p-3 shadow-2xl md:mt-4 md:p-6"
     >
-      <div className="h-full w-full overflow-hidden rounded-2xl bg-gray-100 md:rounded-2xl md:p-4">
-        {children}
+      <div
+        className="w-full overflow-hidden rounded-2xl bg-gray-100 md:rounded-2xl md:p-4"
+        style={{ aspectRatio: "16 / 9" }}
+      >
+        <div className="h-full w-full">{children}</div>
       </div>
     </motion.div>
   );

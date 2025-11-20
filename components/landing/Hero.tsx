@@ -19,11 +19,11 @@ const carouselThumbnails = [
 
 // Reusable Button component styled like in the image
 const ActionButton = ({ children, href }: { children: React.ReactNode; href: string }) => (
-  <Link href={href}>
+  <Link href={href} className="w-full sm:w-auto">
     <motion.button
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="mt-8 px-8 py-3 rounded-full bg-red-500 text-white font-semibold shadow-lg transition-colors hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
+      className="mt-6 w-full rounded-full bg-red-500 px-6 py-3 text-base font-semibold text-white shadow-lg transition-colors hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75 sm:mt-8 sm:w-auto sm:px-8"
     >
       {children}
     </motion.button>
@@ -51,10 +51,10 @@ export function Hero() {
   return (
     <section
       className={cn(
-        "relative w-full h-screen overflow-hidden bg-background flex flex-col items-center justify-between text-center px-4 py-8"
+        "relative flex w-full min-h-[100svh] flex-col items-center justify-between overflow-hidden bg-background px-4 pt-12 pb-28 text-center sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-16"
       )}
     >
-      <div className="z-10 flex flex-col items-center pt-8 md:pt-12">
+      <div className="z-10 flex w-full max-w-3xl flex-col items-center gap-4 pt-2 sm:pt-4 md:pt-10">
         {/* Tagline */}
         <motion.div
           initial="hidden"
@@ -112,13 +112,14 @@ export function Hero() {
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
           transition={{ delay: 0.5 }}
-          className="mt-6 max-w-xl text-lg text-muted-foreground"
+          className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg"
         >
           {description}
         </motion.p>
 
         {/* Call to Action Button */}
         <motion.div
+          className="w-full"
           initial="hidden"
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
@@ -129,7 +130,7 @@ export function Hero() {
 
         {/* Animated Scroll Wheel Indicator */}
         <motion.div
-          className="mt-6 flex flex-col items-center gap-2 text-xs text-muted-foreground"
+          className="mt-4 flex flex-col items-center gap-2 text-xs text-muted-foreground sm:mt-6"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
@@ -150,8 +151,8 @@ export function Hero() {
       </div>
 
       {/* Animated Image Marquee - Two Rows */}
-      <div className="absolute bottom-0 left-0 w-full h-1/3 md:h-2/5 [mask-image:linear-gradient(to_bottom,transparent,black_20%,black_80%,transparent)]">
-        <div className="space-y-3 md:space-y-4">
+      <div className="pointer-events-none absolute bottom-0 left-0 w-full h-1/3 md:h-2/5 [mask-image:linear-gradient(to_bottom,transparent,black_20%,black_80%,transparent)]">
+        <div className="space-y-3 sm:space-y-4">
           {/* First Row - Scrolls Left */}
           <motion.div
             className="flex gap-6 md:gap-8"
