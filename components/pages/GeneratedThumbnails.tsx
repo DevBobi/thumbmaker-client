@@ -280,32 +280,33 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
 
   if (isProcessing || isLoading) {
     return (
-      <div className="mx-auto max-w-md space-y-6 py-12">
-        <div className="space-y-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex min-h-[calc(100vh-180px)] w-full items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="w-full max-w-4xl rounded-2xl border bg-card p-6 shadow-sm sm:p-10">
+          <div className="space-y-4 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+            
+            <div className="space-y-2">
+              <h1 className="text-2xl font-semibold">Generating Thumbnails</h1>
+              <p className="text-sm text-muted-foreground">
+                This may take a moment. You can leave this page and check back later.
+              </p>
+            </div>
+            
+            <div className="pt-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => router.push('/dashboard/history')}
+                className="text-sm"
+              >
+                View History
+              </Button>
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <h1 className="text-xl font-semibold">Generating Thumbnails</h1>
-            <p className="text-sm text-muted-foreground">
-              This may take a moment. You can leave this page and check back later.
-            </p>
-          </div>
-          
-          <div className="pt-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push('/dashboard/history')}
-              className="text-sm"
-            >
-              View History
-            </Button>
-          </div>
-        </div>
 
-        <div className="space-y-8">
+          <div className="mt-10 space-y-8">
           {thumbnails.length > 0 ? (
             Object.entries(
               thumbnails.reduce(
@@ -334,7 +335,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
                       ? "Original"
                       : `Thumbnails ${ratio}`}
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {ratioThumbnails.map((thumbnail) => (
                       <div key={thumbnail.id}>
                         {thumbnail.status && thumbnail.status.toUpperCase() !== "COMPLETED" ? (
@@ -366,7 +367,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             // Show placeholder skeletons when no thumbnails are loaded yet
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Your thumbnails will appear here</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {[...Array(1)].map((_, i) => (
                   <div key={i} className="space-y-3">
                     <div className="relative overflow-hidden rounded-lg bg-muted">
@@ -382,6 +383,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     );
@@ -389,7 +391,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
 
   if (error) {
     return (
-      <div className="mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <Breadcrumb
           items={[
             { label: "Dashboard", href: "/dashboard" },
@@ -425,7 +427,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
   }
 
   return (
-    <div className="mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6 lg:px-8">
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
@@ -447,7 +449,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {thumbnails.map((thumbnail) => (
             <GeneratedThumbnailCard
               download={() => handleDownload(thumbnail.image, thumbnail.title)}
