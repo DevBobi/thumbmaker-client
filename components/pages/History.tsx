@@ -15,6 +15,9 @@ import {
   FolderOpen,
   ChevronRight,
   ArrowLeft,
+  Wand2,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -25,6 +28,7 @@ import Image from "next/image";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,6 +82,11 @@ const History = () => {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'project'>('list'); // 'list' shows grouped projects, 'project' shows thumbnails in selected project
   const [historyTab, setHistoryTab] = useState<'projects' | 'timeline'>('projects');
+  
+  // States for image editing feature
+  const [editPrompt, setEditPrompt] = useState<string>('');
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   // Debounce search term to avoid excessive API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -93,6 +102,8 @@ const History = () => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && selectedThumbnail) {
         setSelectedThumbnail(null);
+        setIsEditing(false);
+        setEditPrompt('');
       }
     };
     
@@ -305,8 +316,69 @@ const History = () => {
 
   const handleViewThumbnail = (thumbnail: any) => {
     setSelectedThumbnail(thumbnail);
+    setIsEditing(false);
+    setEditPrompt('');
   };
 
+  // Function to handle image editing with AI
+  const handleEditImage = async () => {
+    if (!selectedThumbnail || !editPrompt.trim() || isGenerating) return;
+    
+    setIsGenerating(true);
+    
+    try {
+      const response = await authFetch(`/api/thumbnails/${selectedThumbnail.id}/edit`, {
+        method: 'POST',
+        body: JSON.stringify({
+          prompt: editPrompt,
+          sourceImageUrl: selectedThumbnail.image
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      toast({
+        title: 'Image Updated',
+        description: 'Your thumbnail has been successfully edited',
+      });
+      
+      // Update the thumbnail data in the UI
+      if (data.thumbnail) {
+        setSelectedThumbnail(data.thumbnail);
+        
+        // Also update in the local campaigns data
+        setCampaigns(prev => 
+          prev.map(item => 
+            item.id === data.thumbnail.id ? data.thumbnail : item
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Edit failed:', error);
+      toast({
+        title: 'Edit failed',
+        description: 'An error occurred while editing the thumbnail',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+      setIsEditing(false);
+      setEditPrompt('');
+    }
+  };
+  
+  // Toggle edit mode
+  const toggleEditMode = () => {
+    setIsEditing(!isEditing);
+    if (!isEditing) {
+      setEditPrompt(''); // Reset the prompt when entering edit mode
+    }
+  };
+  
   // Function to handle thumbnail download
   const handleDownload = async (imageUrl: string, thumbnailTitle: string, thumbnailId?: string) => {
     if (!imageUrl) {
@@ -1154,12 +1226,15 @@ const History = () => {
           onClick={() => setSelectedThumbnail(null)}
         >
           <div 
-            className="relative max-w-7xl w-full max-h-[90vh] flex items-center justify-center"
+            className="relative max-w-7xl w-full max-h-[90vh] flex flex-col items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
-              onClick={() => setSelectedThumbnail(null)}
+              onClick={() => {
+                setSelectedThumbnail(null);
+                setIsEditing(false);
+              }}
               className="absolute top-4 right-4 z-10 bg-white/10 hover:bg-white/20 backdrop-blur-md p-3 rounded-full transition-all hover:scale-110 group"
               title="Close (Esc)"
             >
@@ -1184,20 +1259,19 @@ const History = () => {
               >
                 <Trash2 className="h-5 w-5 text-white" />
               </button>
+              <button
+                onClick={toggleEditMode}
+                disabled={isGenerating}
+                className={`backdrop-blur-md p-3 rounded-full transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group ${isEditing ? 'bg-purple-600/80 hover:bg-purple-600' : 'bg-white/10 hover:bg-white/20'}`}
+                title="Edit with AI"
+              >
+                <Wand2 className="h-5 w-5 text-white" />
+              </button>
             </div>
 
             {/* Thumbnail Image */}
             <div className="relative max-w-full max-h-full">
-              <Zoom
-                zoomImg={{
-                  src: selectedThumbnail.image,
-                  alt: selectedThumbnail.title || "Thumbnail preview",
-                  width: 1920,
-                  height: 1080,
-                }}
-                zoomMargin={40}
-                classDialog="custom-zoom"
-              >
+              {!isGenerating ? (
                 <Image
                   src={selectedThumbnail.image}
                   alt={selectedThumbnail.title || "Thumbnail preview"}
@@ -1207,60 +1281,71 @@ const History = () => {
                   unoptimized
                   priority
                 />
-              </Zoom>
-            </div>
-
-            {/* Info Overlay - Bottom */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
-              <div className="flex items-end justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-bold text-xl mb-2 truncate">
-                    {selectedThumbnail.title || `Thumbnail ${selectedThumbnail.id.slice(-8).toUpperCase()}`}
-                  </h3>
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="h-4 w-4" />
-                      <span suppressHydrationWarning>{getTimeAgo(new Date(selectedThumbnail.createdAt))}</span>
-                    </div>
-                    {selectedThumbnail.templateId && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/dashboard/templates?template=${selectedThumbnail.templateId}`);
-                          setSelectedThumbnail(null);
-                        }}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all"
-                      >
-                        <Palette className="h-3.5 w-3.5" />
-                        <span className="text-xs font-medium">Template #{selectedThumbnail.templateId.toString().padStart(2, '0')}</span>
-                      </button>
-                    )}
-                    {selectedThumbnail.projectId && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/dashboard/projects?edit=${selectedThumbnail.projectId}`);
-                          setSelectedThumbnail(null);
-                        }}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all"
-                      >
-                        <Video className="h-3.5 w-3.5" />
-                        <span className="text-xs font-medium">Open Project</span>
-                      </button>
-                    )}
+              ) : (
+                <div className="w-[1280px] h-[720px] max-w-full max-h-[85vh] flex items-center justify-center bg-black/40 rounded-lg">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-12 w-12 animate-spin text-purple-500" />
+                    <p className="text-lg font-medium text-white">Generating your edited thumbnail...</p>
                   </div>
                 </div>
-                <Badge 
-                  className={`shrink-0 ${
-                    selectedThumbnail.status === "COMPLETED" 
-                      ? "bg-green-500/90 text-white border-0" 
-                      : "bg-gray-500/90 text-white border-0"
-                  }`}
-                >
-                  {selectedThumbnail.status === "COMPLETED" ? "✓ Complete" : "⏳ Pending"}
-                </Badge>
-              </div>
+              )}
             </div>
+
+            {/* Edit UI or Info Footer */}
+            {isEditing ? (
+              <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm p-6 rounded-b-lg animate-in slide-in-from-bottom duration-300">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-400" />
+                    <h3 className="text-white font-medium text-lg">Edit your thumbnail with AI</h3>
+                  </div>
+                  <Textarea
+                    value={editPrompt}
+                    onChange={(e) => setEditPrompt(e.target.value)}
+                    placeholder="Describe how you want to edit the image (e.g., 'Remove the background', 'Change text to green', 'Add a mountain in background')"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 min-h-[80px]"
+                    disabled={isGenerating}
+                  />
+                  <div className="flex justify-end gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                      disabled={isGenerating}
+                      className="border-white/20 text-white hover:bg-white/10 hover:text-white"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleEditImage}
+                      disabled={!editPrompt.trim() || isGenerating}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="mr-2 h-4 w-4" />
+                          Generate
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
+                <div className="flex items-end justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-bold text-xl mb-2 truncate">
+                      {selectedThumbnail.title || `Thumbnail ${selectedThumbnail.id.slice(-8).toUpperCase()}`}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

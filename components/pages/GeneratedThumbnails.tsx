@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Breadcrumb from "@/components/Breadcrumb";
 import { GeneratedThumbnailCard } from "../cards/GeneratedThumbnailCard";
 import { io, Socket } from "socket.io-client";
+import { useGenerationProgress } from "@/hooks/use-generation-progress";
+import { Progress } from "@/components/ui/progress";
 
 interface GeneratedThumbnail {
   id: string;
@@ -31,6 +33,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
   const [setStatus, setSetStatus] = useState<string>("");
   const socketRef = useRef<Socket | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { progress: genProgress, loading: genProgressLoading } = useGenerationProgress(id);
 
   useEffect(() => {
     const fetchThumbnails = async () => {
@@ -289,9 +292,20 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             
             <div className="space-y-2">
               <h1 className="text-2xl font-semibold">Generating Thumbnails</h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 This may take a moment. You can leave this page and check back later.
               </p>
+              
+              <div className="w-full max-w-xs mx-auto space-y-2">
+                <Progress 
+                  value={genProgress.percent} 
+                  className="h-2 w-full" 
+                />
+                <p className="text-xs text-center text-muted-foreground">
+                  {genProgress.status === 'PENDING' ? 'Starting generation...' : 
+                   `Generating thumbnail ${genProgress.completed} of ${genProgress.total}`}
+                </p>
+              </div>
             </div>
             
             <div className="pt-2">
