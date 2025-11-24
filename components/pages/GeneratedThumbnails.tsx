@@ -101,10 +101,22 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
         
         // Show processing UI for any non-completed, non-failed status (e.g., QUEUED, PENDING, PROCESSING)
         let shouldProcess = status !== "COMPLETED" && status !== "FAILED";
-        // If we have no thumbnails yet and not failed, we are still processing
-        if (formattedThumbnails.length === 0 && status !== "FAILED") {
-          shouldProcess = true;
+        
+        // Also check if we're expecting more thumbnails based on progress
+        // If we have progress data, use it to determine if we're still processing
+        if (genProgress && genProgress.total > 0) {
+          shouldProcess = genProgress.completed < genProgress.total && !genProgress.isCompleted;
+        } else {
+          // If we have no thumbnails yet and not failed, we are still processing
+          if (formattedThumbnails.length === 0 && status !== "FAILED") {
+            shouldProcess = true;
+          }
+          // If status is PENDING or PROCESSING, we're still processing
+          if (status === "PENDING" || status === "PROCESSING") {
+            shouldProcess = true;
+          }
         }
+        
         setIsProcessing(shouldProcess);
         setIsLoading(false);
 
@@ -283,122 +295,104 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
 
   if (isProcessing || isLoading) {
     return (
-      <div className="flex min-h-[calc(100vh-180px)] w-full items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <div className="w-full max-w-4xl rounded-2xl border bg-card p-6 shadow-sm sm:p-10">
-          <div className="space-y-4 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-            
-            <div className="space-y-2">
-              <h1 className="text-2xl font-semibold">Generating Thumbnails</h1>
-              <p className="text-sm text-muted-foreground mb-4">
-                This may take a moment. You can leave this page and check back later.
-              </p>
-              
-              <div className="w-full max-w-xs mx-auto space-y-2">
-                <Progress 
-                  value={genProgress.percent} 
-                  className="h-2 w-full" 
-                />
-                <p className="text-xs text-center text-muted-foreground">
-                  {genProgress.status === 'PENDING' ? 'Starting generation...' : 
-                   `Generating thumbnail ${genProgress.completed} of ${genProgress.total}`}
-                </p>
-              </div>
-            </div>
-            
-            <div className="pt-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => router.push('/dashboard/history')}
-                className="text-sm"
-              >
-                View History
-              </Button>
-            </div>
+      <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6 lg:px-8">
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            {
+              label: "Generated Thumbnails",
+              href: `/dashboard/generated-thumbnails`,
+            },
+          ]}
+        />
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Generating Thumbnails</h1>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push('/dashboard/history')}
+            >
+              View History
+            </Button>
           </div>
+          
+          <div className="space-y-2">
+            <Progress 
+              value={genProgress.percent} 
+              className="h-2 w-full" 
+            />
+            <p className="text-sm text-muted-foreground">
+              {genProgress.status === 'PENDING' ? 'Starting generation...' : 
+               `Generating thumbnail ${genProgress.completed} of ${genProgress.total}`}
+            </p>
+          </div>
+        </div>
 
-          <div className="mt-10 space-y-8">
-          {thumbnails.length > 0 ? (
-            Object.entries(
-              thumbnails.reduce(
-                (acc: Record<string, GeneratedThumbnail[]>, thumbnail) => {
-                  const ratio = thumbnail.aspectRatio || "";
-                  if (!acc[ratio]) acc[ratio] = [];
-                  acc[ratio].push(thumbnail);
-                  return acc;
-                },
-                {}
-              )
-            )
-              .sort(([ratioA], [ratioB]) => {
-                // Define the order of aspect ratios
-                const order: Record<string, number> = {
-                  "1:1": 1,
-                  "2:3": 2,
-                  "3:2": 3,
-                };
-                return (order[ratioA] || 999) - (order[ratioB] || 999);
-              })
-              .map(([ratio, ratioThumbnails]) => (
-                <div key={ratio} className="space-y-4">
-                  <h2 className="text-lg font-semibold">
-                    {ratio === "1:1" || ratio === "2:3" || ratio === "3:2"
-                      ? "Original"
-                      : `Thumbnails ${ratio}`}
-                  </h2>
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {ratioThumbnails.map((thumbnail) => (
-                      <div key={thumbnail.id}>
-                        {thumbnail.status && thumbnail.status.toUpperCase() !== "COMPLETED" ? (
-                          <div className="space-y-3">
-                            <div className="relative overflow-hidden rounded-lg bg-muted">
-                              <Skeleton className="aspect-video w-full" />
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                              </div>
-                            </div>
-                            <Skeleton className="h-4 w-3/4" />
-                            <Skeleton className="h-3 w-1/2" />
-                          </div>
-                        ) : (
-                          <GeneratedThumbnailCard
-                            download={() =>
-                              handleDownload(thumbnail.image, thumbnail.title)
-                            }
-                            key={thumbnail.id}
-                            ad={thumbnail}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-          ) : (
-            // Show placeholder skeletons when no thumbnails are loaded yet
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Your thumbnails will appear here</h2>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {[...Array(1)].map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <div className="relative overflow-hidden rounded-lg bg-muted">
-                      <Skeleton className="aspect-video w-full" />
+        {/* Show thumbnails in the same grid layout as completed state */}
+        {thumbnails.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {thumbnails.map((thumbnail) => (
+              <div key={thumbnail.id}>
+                {thumbnail.status && thumbnail.status.toUpperCase() !== "COMPLETED" ? (
+                  <div className="relative border rounded-md overflow-hidden bg-muted">
+                    <div className="relative w-full aspect-[4/3]">
+                      <Skeleton className="w-full h-full" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       </div>
                     </div>
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
+                    <div className="p-3 bg-background">
+                      <Skeleton className="h-10 w-10 rounded-md" />
+                    </div>
                   </div>
-                ))}
+                ) : (
+                  <GeneratedThumbnailCard
+                    download={() =>
+                      handleDownload(thumbnail.image, thumbnail.title)
+                    }
+                    key={thumbnail.id}
+                    ad={thumbnail}
+                  />
+                )}
               </div>
-            </div>
-          )}
+            ))}
+            {/* Show remaining skeleton placeholders for thumbnails not yet generated */}
+            {thumbnails.length < (genProgress.total || 1) && 
+              [...Array((genProgress.total || 1) - thumbnails.length)].map((_, i) => (
+                <div key={`skeleton-${i}`} className="relative border rounded-md overflow-hidden bg-muted">
+                  <div className="relative w-full aspect-[4/3]">
+                    <Skeleton className="w-full h-full" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  </div>
+                  <div className="p-3 bg-background">
+                    <Skeleton className="h-10 w-10 rounded-md" />
+                  </div>
+                </div>
+              ))
+            }
           </div>
-        </div>
+        ) : (
+          // Show placeholder skeletons when no thumbnails are loaded yet
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(Math.max(genProgress.total || 1, 1))].map((_, i) => (
+              <div key={i} className="relative border rounded-md overflow-hidden bg-muted">
+                <div className="relative w-full aspect-[4/3]">
+                  <Skeleton className="w-full h-full" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                </div>
+                <div className="p-3 bg-background">
+                  <Skeleton className="h-10 w-10 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
