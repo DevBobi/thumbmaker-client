@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -10,18 +10,27 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Shield, RefreshCw } from "lucide-react";
+import { Check, Shield, RefreshCw, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { BillingButton } from "@/components/BillingButton";
 import Breadcrumb from "@/components/Breadcrumb";
 import { pricingPlans } from "@/lib/plans";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { useTrialActions } from "@/hooks/use-free-credits";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface BillingProps {}
 
 const Billing = ({}: BillingProps) => {
   const { authFetch } = useAuthFetch();
+  const {
+    startTrial,
+    convertTrial,
+    isStarting,
+    isConverting,
+    error: trialError,
+    setError: setTrialError,
+  } = useTrialActions();
   const [subscriptionData, setSubscriptionData] = useState<any>({
     credits: 0,
     isActive: false,
@@ -50,6 +59,66 @@ const Billing = ({}: BillingProps) => {
 
   const { credits, isActive, stripeCurrentPeriodEnd, stripeCustomerId, isCancelled, stripePriceId } = subscriptionData;
   const plan = pricingPlans.find((p) => p.priceId === stripePriceId);
+  const defaultTrialPriceId =
+    process.env.NEXT_PUBLIC_STRIPE_FREE_PLAN_ID ||
+    process.env.NEXT_PUBLIC_STRIPE_STARTER_PLAN_ID ||
+    process.env.NEXT_PUBLIC_STRIPE_STANDARD_PLAN_ID ||
+    process.env.NEXT_PUBLIC_STRIPE_BASIC_PLAN_ID ||
+    "";
+
+  const DEFAULT_TRIAL_CREDITS = 4;
+
+  const trialState = useMemo(() => {
+    const rawTrialCredits = subscriptionData?.trialCredits;
+    const trialCredits =
+      typeof rawTrialCredits === "number" && rawTrialCredits > 0
+        ? rawTrialCredits
+        : DEFAULT_TRIAL_CREDITS;
+    const trialCreditsUsed = subscriptionData?.trialCreditsUsed ?? 0;
+    const remainingCredits = Math.max(0, trialCredits - trialCreditsUsed);
+    const trialEndsAt = subscriptionData?.trialEndsAt
+      ? new Date(subscriptionData.trialEndsAt)
+      : null;
+    const daysRemaining = trialEndsAt
+      ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / 86400000))
+      : null;
+    const isTrialing = ["trialing", "ending"].includes(
+      subscriptionData?.trialStatus ?? ""
+    );
+    const hasUsedTrial = Boolean(subscriptionData?.trialCreditsAwarded);
+
+    return {
+      trialCredits,
+      remainingCredits,
+      daysRemaining,
+      trialEndsAt,
+      isTrialing,
+      hasUsedTrial,
+    };
+  }, [subscriptionData]);
+
+  const handleStartTrial = async () => {
+    if (!defaultTrialPriceId) {
+      setTrialError("Trial plan is not configured yet.");
+      return;
+    }
+
+    try {
+      await startTrial(defaultTrialPriceId);
+      await fetchSubscription();
+    } catch {
+      // Error handled by hook
+    }
+  };
+
+  const handleConvertTrial = async () => {
+    try {
+      await convertTrial();
+      await fetchSubscription();
+    } catch {
+      // Error handled by hook
+    }
+  };
 
   const handleRefresh = () => {
     fetchSubscription();
@@ -79,6 +148,76 @@ const Billing = ({}: BillingProps) => {
           <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
+      </div>
+
+      <div className="mb-8 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-blue-500">Free trial</p>
+            {trialState.isTrialing ? (
+              <h2 className="text-xl font-semibold text-foreground">
+                {trialState.remainingCredits} credit
+                {trialState.remainingCredits === 1 ? "" : "s"} left •{" "}
+                {trialState.daysRemaining !== null
+                  ? `${trialState.daysRemaining} day${
+                      trialState.daysRemaining === 1 ? "" : "s"
+                    } remaining`
+                  : "trial ending soon"}
+              </h2>
+            ) : trialState.hasUsedTrial ? (
+              <h2 className="text-xl font-semibold text-foreground">
+                Trial completed
+              </h2>
+            ) : (
+              <h2 className="text-xl font-semibold text-foreground">
+                Start your {trialState.trialCredits}-credit trial
+              </h2>
+            )}
+            <p className="text-sm text-muted-foreground">
+              {trialState.hasUsedTrial
+                ? "Your trial credits have been used. Pick a plan to keep generating thumbnails."
+                : "Test the full workflow with complimentary credits before upgrading."}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {!trialState.hasUsedTrial && (
+              <Button
+                onClick={handleStartTrial}
+                disabled={isStarting}
+                className="sm:min-w-[180px]"
+              >
+                {isStarting ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Starting trial...
+                  </div>
+                ) : (
+                  `Start free trial (${trialState.trialCredits} credits)`
+                )}
+              </Button>
+            )}
+            {trialState.isTrialing && (
+              <Button
+                variant="secondary"
+                onClick={handleConvertTrial}
+                disabled={isConverting}
+                className="sm:min-w-[150px]"
+              >
+                {isConverting ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Converting...
+                  </div>
+                ) : (
+                  "Upgrade now"
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+        {trialError && (
+          <p className="mt-3 text-sm text-red-500">{trialError}</p>
+        )}
       </div>
 
       {isActive ? (

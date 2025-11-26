@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import TemplateSelector from "@/components/thumbnail/TemplateSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Upload, Loader2, Sparkles, Check, LayoutTemplate, Youtube, Video, CheckSquare, Info } from "lucide-react";
+import { X, Upload, Loader2, Sparkles, Check, LayoutTemplate, Youtube, Video, CheckSquare, Info, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -23,11 +24,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FormSheet } from "@/components/ui/form-sheet";
 import { uploadToStorage } from "@/actions/upload";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 const channelStyles = [
   {
@@ -89,11 +92,22 @@ interface ThumbnailCreationSheetProps {
   onClose: () => void;
   selectedTemplates: any[];
   selectedProject: any;
-  onProjectChange?: (project: any) => void; // New callback to change project
-  availableProjects?: any[]; // Pass projects from parent
+  onProjectChange?: (project: any) => void;
+  availableProjects?: any[];
   youtubeLinks?: string[];
-  maxSelections?: number; // Make configurable
-  initialMode?: "template" | "youtube"; // Explicitly set the initial mode
+  maxSelections?: number;
+  initialMode?: "template" | "youtube";
+  mode?: "create" | "edit";
+  showCreditReminder?: boolean;
+  creditReminderMessage?: string;
+  onGenerateComplete?: (data: any) => void;
+  initialInspirationUrl?: string;
+  existingAssetUrls?: string[];
+  initialChannelStyle?: string;
+  initialThumbnailGoal?: string;
+  initialVariations?: number;
+  initialInstructions?: string;
+  lockedTemplateIds?: string[];
 }
 
 export default function ThumbnailCreationSheet({
@@ -106,10 +120,24 @@ export default function ThumbnailCreationSheet({
   youtubeLinks = [],
   maxSelections = 5, // Default to match CreateYoutubeThumbnail page
   initialMode = "youtube", // Default to YouTube mode
+  mode = "create",
+  showCreditReminder = false,
+  creditReminderMessage = "Each edit or regeneration consumes credits.",
+  onGenerateComplete,
+  initialInspirationUrl = "",
+  existingAssetUrls = [],
+  initialChannelStyle = "",
+  initialThumbnailGoal = "",
+  initialVariations = 1,
+  initialInstructions = "",
+  lockedTemplateIds: lockedTemplateIdsProp,
 }: ThumbnailCreationSheetProps) {
   const router = useRouter();
   const { authFetch } = useAuthFetch();
   const { toast } = useToast();
+  const isEditMode = mode === "edit";
+  const primaryIdleLabel = isEditMode ? "Apply Prompt Fix" : "Generate Thumbnails";
+  const generatingLabel = isEditMode ? "Submitting Fix..." : "Generating Thumbnails... (Please wait)";
   const [allSelectedTemplates, setAllSelectedTemplates] = useState<string[]>([]);
   const [inspirationUrl, setInspirationUrl] = useState("");
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
@@ -126,6 +154,54 @@ export default function ThumbnailCreationSheet({
     channelStyle?: boolean;
     thumbnailGoal?: boolean;
   }>({});
+  const hasExistingAssets = existingAssetUrls.length > 0;
+  const lockedTemplateIds = useMemo(() => {
+    if (isEditMode && lockedTemplateIdsProp && lockedTemplateIdsProp.length > 0) {
+      return lockedTemplateIdsProp.map(String);
+    }
+    return (preSelectedTemplates || []).map((t: any) => String(t.id));
+  }, [isEditMode, lockedTemplateIdsProp, preSelectedTemplates]);
+  const lockedYoutubeLinks = useMemo(() => youtubeLinks || [], [youtubeLinks]);
+  const channelStyleLabel = useMemo(() => {
+    const match = channelStyles.find((style) => style.value === channelStyle);
+    return match?.label || channelStyle || "Not specified";
+  }, [channelStyle]);
+  const thumbnailGoalLabel = useMemo(() => {
+    const match = thumbnailGoals.find((goal) => goal.value === thumbnailGoal);
+    return match?.label || thumbnailGoal || "Not specified";
+  }, [thumbnailGoal]);
+
+  const {
+    data: subscription,
+    isLoading: isSubscriptionLoading,
+    error: subscriptionError,
+  } = useQuery({
+    queryKey: ["thumbnail-subscription"],
+    queryFn: async () => {
+      const response = await authFetch("/api/user/subscription");
+      if (!response.ok) {
+        throw new Error("Failed to load subscription details");
+      }
+      return response.json();
+    },
+    enabled: isOpen,
+    staleTime: 30_000,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (subscriptionError) {
+      toast({
+        title: "Unable to verify credits",
+        description: "We couldn't confirm your credit balance. Please refresh the page.",
+        variant: "destructive",
+      });
+    }
+  }, [subscriptionError, toast]);
+
+  const isTrialingUser = ["trialing", "ending"].includes(subscription?.trialStatus ?? "");
+  const hasCredits = (subscription?.credits ?? 0) > 0;
+  const showGenerationLocked = !isSubscriptionLoading && !hasCredits && !isTrialingUser;
 
   // Use projects passed from parent
   const projects = availableProjects;
@@ -143,11 +219,11 @@ export default function ThumbnailCreationSheet({
       if (preSelectedTemplates && preSelectedTemplates.length > 0) {
         console.log("📋 Pre-selected templates:", preSelectedTemplates);
         // Ensure template IDs are strings
-        const preSelectedIds = preSelectedTemplates.map(t => String(t.id));
+        const preSelectedIds = preSelectedTemplates.map((t) => String(t.id));
         console.log("📋 Converted template IDs:", preSelectedIds);
         setAllSelectedTemplates(preSelectedIds);
       }
-      
+
       if (youtubeLinks && youtubeLinks.length > 0) {
         // Store all YouTube links
         setAllYoutubeLinks(youtubeLinks);
@@ -159,7 +235,23 @@ export default function ThumbnailCreationSheet({
           /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
         )?.[1];
         if (videoId) {
-          setInspirationPreview(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+          setInspirationPreview(
+            `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+          );
+        }
+      }
+
+      if (initialInspirationUrl) {
+        setInspirationUrl(initialInspirationUrl);
+        const videoId = initialInspirationUrl.match(
+          /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+        )?.[1];
+        if (videoId) {
+          setInspirationPreview(
+            `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+          );
+        } else {
+          setInspirationPreview(null);
         }
       }
     } else {
@@ -169,7 +261,33 @@ export default function ThumbnailCreationSheet({
       setInspirationPreview(null);
       setAllYoutubeLinks([]);
     }
-  }, [isOpen, preSelectedTemplates, youtubeLinks, initialMode]);
+  }, [isOpen, preSelectedTemplates, youtubeLinks, initialMode, initialInspirationUrl, existingAssetUrls]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (isEditMode) {
+      setChannelStyle(initialChannelStyle || "");
+      setThumbnailGoal(initialThumbnailGoal || "");
+      setTemplateVariations(initialVariations || 1);
+      setAdditionalInstructions(initialInstructions || "");
+    } else {
+      if (!channelStyle && initialChannelStyle) {
+        setChannelStyle(initialChannelStyle);
+      }
+      if (!thumbnailGoal && initialThumbnailGoal) {
+        setThumbnailGoal(initialThumbnailGoal);
+      }
+      if (!additionalInstructions && initialInstructions) {
+        setAdditionalInstructions(initialInstructions);
+      }
+      if (!templateVariations && initialVariations) {
+        setTemplateVariations(initialVariations);
+      }
+    }
+    // We intentionally omit the state setters from deps so user edits aren’t reset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isEditMode, initialChannelStyle, initialThumbnailGoal, initialVariations, initialInstructions]);
 
   const handleInspirationUrlChange = (url: string) => {
     setInspirationUrl(url);
@@ -216,6 +334,17 @@ export default function ThumbnailCreationSheet({
       setIsGenerating(true);
       setHasSubmitted(true);
 
+      if (showGenerationLocked) {
+        toast({
+          title: "Add credits to continue",
+          description: "Start your free trial or upgrade your plan to generate new thumbnails.",
+          variant: "destructive",
+        });
+        setIsGenerating(false);
+        setHasSubmitted(false);
+        return;
+      }
+
       // Validation
       if (!selectedProject) {
         toast({
@@ -228,10 +357,15 @@ export default function ThumbnailCreationSheet({
         return;
       }
 
+      const effectiveTemplateIds = isEditMode ? lockedTemplateIds : allSelectedTemplates;
+      const effectiveYoutubeLinks = isEditMode ? lockedYoutubeLinks : allYoutubeLinks;
+      const requestInspirationUrl = isEditMode ? initialInspirationUrl : inspirationUrl;
+      const effectiveVariations = isEditMode ? 1 : templateVariations;
+
       // Check if we have at least one template or YouTube link
-      const hasTemplates = allSelectedTemplates && allSelectedTemplates.length > 0;
-      const hasYoutubeLinks = allYoutubeLinks && allYoutubeLinks.length > 0;
-      const hasInspirationUrl = inspirationUrl && inspirationUrl.trim().length > 0;
+      const hasTemplates = effectiveTemplateIds && effectiveTemplateIds.length > 0;
+      const hasYoutubeLinks = effectiveYoutubeLinks && effectiveYoutubeLinks.length > 0;
+      const hasInspirationUrl = requestInspirationUrl && requestInspirationUrl.trim().length > 0;
       
       console.log("🔍 Validation check:");
       console.log("  - Has templates:", hasTemplates, "Count:", allSelectedTemplates?.length);
@@ -260,7 +394,7 @@ export default function ThumbnailCreationSheet({
       }
 
       // Edge case: Check if we exceed maximum selections
-      if (hasTemplates && allSelectedTemplates.length > maxSelections) {
+      if (!isEditMode && hasTemplates && effectiveTemplateIds.length > maxSelections) {
         toast({
           title: "Too many templates",
           description: `You can only select up to ${maxSelections} templates at a time.`,
@@ -308,35 +442,48 @@ export default function ThumbnailCreationSheet({
       // Clear validation errors if all is good
       setValidationErrors({});
 
-      // Upload all media files first
-      const uploadPromises = thumbnailAssets.map(async (asset) => {
-        const formData = new FormData();
-        formData.append("file", asset.file);
+      // Upload all media files first (only allowed in create mode)
+      const uploadPromises = isEditMode
+        ? []
+        : thumbnailAssets.map(async (asset) => {
+            const formData = new FormData();
+            formData.append("file", asset.file);
 
-        const uploadResult = await uploadToStorage(formData);
+            const uploadResult = await uploadToStorage(formData);
 
-        if (!uploadResult.success) {
-          throw new Error(
-            `Failed to upload ${asset.file.name}: ${uploadResult.error}`
-          );
-        }
+            if (!uploadResult.success) {
+              throw new Error(
+                `Failed to upload ${asset.file.name}: ${uploadResult.error}`
+              );
+            }
 
-        return {
-          ...asset,
-          url: uploadResult.fileUrl,
-        };
-      });
+            return {
+              ...asset,
+              url: uploadResult.fileUrl,
+            };
+          });
 
       const uploadedAssets = await Promise.all(uploadPromises);
 
-      // Collect all media files: project image + uploaded assets
+      // Collect all media files: existing assets + project image + uploaded assets
       const allMediaFiles: string[] = [];
+
+      const appendMediaFile = (url?: string | null) => {
+        if (!url) return;
+        if (allMediaFiles.includes(url)) return;
+        allMediaFiles.push(url);
+      };
+
+      // Include existing assets captured during the original generation (user uploads, reference shots, etc.)
+      if (existingAssetUrls.length > 0) {
+        existingAssetUrls.forEach((assetUrl) => appendMediaFile(assetUrl));
+      }
       
-      // CRITICAL: Add project image first if it exists (this will be the base/primary image)
+      // CRITICAL: Add project image if it exists and wasn't already part of the asset list
       if (selectedProject.image) {
-        allMediaFiles.push(selectedProject.image);
-        console.log("✅ Project image added as primary asset:", selectedProject.image);
-      } else if (hasTemplates) {
+        appendMediaFile(selectedProject.image);
+        console.log("✅ Project image retained for regeneration:", selectedProject.image);
+      } else if (hasTemplates && existingAssetUrls.length === 0) {
         // If using templates but no project image, warn the user
         console.warn("⚠️ No project image found - template will be applied with uploaded assets only");
         
@@ -349,11 +496,9 @@ export default function ThumbnailCreationSheet({
       }
       
       // Add any manually uploaded assets (these will be additional reference images)
-      uploadedAssets.forEach((asset) => {
-        if (asset.url) {
-          allMediaFiles.push(asset.url);
-        }
-      });
+      if (!isEditMode) {
+        uploadedAssets.forEach((asset) => appendMediaFile(asset.url));
+      }
       
       console.log(`📸 Total media files: ${allMediaFiles.length} (${selectedProject.image ? 'with' : 'without'} project image)`);
 
@@ -364,18 +509,17 @@ export default function ThumbnailCreationSheet({
         channelStyle,
         thumbnailGoal,
         additionalInstructions,
-        variations: templateVariations,
+        variations: effectiveVariations,
       };
 
       // Handle different generation methods
       if (hasTemplates) {
         // Template-based generation
         console.log("📋 Has templates:", hasTemplates);
-        console.log("📋 All selected templates:", allSelectedTemplates);
-        console.log("📋 Template count:", allSelectedTemplates.length);
-        console.log("📋 Template IDs:", allSelectedTemplates);
+        console.log("📋 Locked template IDs:", effectiveTemplateIds);
+        console.log("📋 Template count:", effectiveTemplateIds.length);
         
-        if (!allSelectedTemplates || allSelectedTemplates.length === 0) {
+        if (!effectiveTemplateIds || effectiveTemplateIds.length === 0) {
           toast({
             title: "No templates selected",
             description: "Please select at least one template to generate thumbnails.",
@@ -387,22 +531,22 @@ export default function ThumbnailCreationSheet({
         }
         
         // Convert template IDs to strings (API expects string IDs)
-        const templateIds = allSelectedTemplates.map(id => String(id));
+        const templateIds = effectiveTemplateIds.map((id) => String(id));
         
         console.log("📋 Final template IDs being sent:", templateIds);
         requestBody.templates = templateIds;
       } else if (hasYoutubeLinks || hasInspirationUrl) {
         // YouTube-based generation - DON'T send templates field, backend handles this
         console.log("🎥 Using YouTube/Inspiration URL generation");
-        console.log("🎥 YouTube links:", allYoutubeLinks);
-        console.log("🎥 Inspiration URL:", inspirationUrl);
+        console.log("🎥 YouTube links:", effectiveYoutubeLinks);
+        console.log("🎥 Inspiration URL:", requestInspirationUrl);
         
         // Only send youtubeLinks or inspirationUrl, NOT templates
-        if (allYoutubeLinks.length > 0) {
-          requestBody.youtubeLinks = allYoutubeLinks;
+        if (effectiveYoutubeLinks.length > 0) {
+          requestBody.youtubeLinks = effectiveYoutubeLinks;
         }
-        if (inspirationUrl && inspirationUrl.trim()) {
-          requestBody.inspirationUrl = inspirationUrl;
+        if (requestInspirationUrl && requestInspirationUrl.trim()) {
+          requestBody.inspirationUrl = requestInspirationUrl;
         }
       }
 
@@ -433,14 +577,20 @@ export default function ThumbnailCreationSheet({
         console.error("❌ API Error Response:", errorData);
         console.error("❌ API Error Status:", response.status);
         console.error("❌ Request that failed:", JSON.stringify(requestBody, null, 2));
-        
-        // Handle rate limiting
+
+        if (response.status === 400 && (errorData?.error || "").toLowerCase().includes("credit")) {
+          const creditError = new Error(
+            "You don't have enough credits to run this edit. Please upgrade your plan or refill credits."
+          );
+          (creditError as Error & { code?: string }).code = "INSUFFICIENT_CREDITS";
+          throw creditError;
+        }
+
         if (response.status === 429) {
           const retryAfter = errorData.retryAfter || 10;
           throw new Error(`Please wait ${retryAfter} seconds before creating another thumbnail.`);
         }
-        
-        // More descriptive error message
+
         const errorMessage = errorData.error || errorData.message || `Server error (${response.status})`;
         throw new Error(errorMessage);
       }
@@ -453,18 +603,21 @@ export default function ThumbnailCreationSheet({
       }
 
       console.log(`✅ Request ${requestId} completed successfully, redirecting...`);
-      
-      // Keep loading state and navigate
-      // Don't set isGenerating to false - let it stay in loading state
-      
-      // Navigate immediately (router.push is non-blocking)
-      router.push(`/dashboard/generated-thumbnails/${data.id}`);
-      
-      // Close sheet after a brief delay to allow navigation to start
-      setTimeout(() => {
-        onClose();
-        setIsGenerating(false); // Reset state after closing
-      }, 300);
+
+      if (onGenerateComplete) {
+        onGenerateComplete(data);
+        setIsGenerating(false);
+        setHasSubmitted(false);
+      } else {
+        // Navigate immediately (router.push is non-blocking)
+        router.push(`/dashboard/generated-thumbnails/${data.id}`);
+
+        // Close sheet after a brief delay to allow navigation to start
+        setTimeout(() => {
+          onClose();
+          setIsGenerating(false); // Reset state after closing
+        }, 300);
+      }
     } catch (error) {
       console.error("Error generating thumbnail:", error);
       
@@ -477,9 +630,18 @@ export default function ThumbnailCreationSheet({
         errorMessage += "\n\nTip: Make sure you have selected a project.";
       }
       
+      const creditHelp = error instanceof Error && ((error as Error & { code?: string }).code === "INSUFFICIENT_CREDITS" || error.message.toLowerCase().includes("credit"));
+
       toast({
         title: "Generation failed",
-        description: errorMessage,
+        description: creditHelp ? (
+          <div className="space-y-1">
+            <p>{errorMessage}</p>
+            <a href="/dashboard/support" className="text-primary underline font-medium" target="_blank" rel="noreferrer">
+              Contact support
+            </a>
+          </div>
+        ) : errorMessage,
         variant: "destructive",
       });
       
@@ -499,6 +661,34 @@ export default function ThumbnailCreationSheet({
       size="lg"
     >
       <div className="space-y-6">
+        {showGenerationLocked && (
+          <Alert className="border-red-300 bg-red-50 text-red-900 dark:bg-red-500/10 dark:text-red-100">
+            <AlertTriangle className="text-red-500 dark:text-red-200" />
+            <AlertTitle>Generation locked</AlertTitle>
+            <AlertDescription>
+              <p className="mb-3 text-sm">
+                You’ve run out of credits. Start your free trial or upgrade your plan to continue generating thumbnails.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button size="sm" className="w-full sm:w-auto" asChild>
+                  <Link href="/dashboard/billing">Start Free Trial</Link>
+                </Button>
+                <Button size="sm" variant="outline" className="w-full sm:w-auto" asChild>
+                  <Link href="/pricing">View Plans</Link>
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+        {isEditMode && showCreditReminder && !showGenerationLocked && (
+          <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+            <Sparkles className="text-amber-500 dark:text-amber-200" />
+            <AlertTitle>Reminder</AlertTitle>
+            <AlertDescription>
+              {creditReminderMessage}
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Generation Method Indicator */}
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
           <div className="flex items-center gap-3">
@@ -593,18 +783,20 @@ export default function ThumbnailCreationSheet({
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowProjectSelector(!showProjectSelector)}
-                    className="h-8"
-                  >
-                    Change
-                  </Button>
+                  {!isEditMode && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowProjectSelector(!showProjectSelector)}
+                      className="h-8"
+                    >
+                      Change
+                    </Button>
+                  )}
                 </div>
 
                 {/* Project Selector Dropdown */}
-                {showProjectSelector && (
+                {showProjectSelector && !isEditMode && (
                   <div className="border rounded-lg p-3 bg-background max-h-[300px] overflow-y-auto">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-medium">Choose a different project:</p>
@@ -670,7 +862,7 @@ export default function ThumbnailCreationSheet({
                   </div>
                 )}
               </div>
-            ) : (
+            ) : !isEditMode ? (
               /* Show project list when no project selected */
               <div className="border rounded-lg p-3 bg-background max-h-[400px] overflow-y-auto">
                 <div className="flex items-center justify-between mb-3">
@@ -728,6 +920,10 @@ export default function ThumbnailCreationSheet({
                   </div>
                 )}
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Project details unavailable. Open this thumbnail directly from your project list to edit further.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -801,95 +997,164 @@ export default function ThumbnailCreationSheet({
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">
-                      {allYoutubeLinks.length > 0 ? "Additional YouTube Video URL" : "YouTube Video URL"}
-                    </h3>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="https://youtube.com/watch?v=..."
-                        value={inspirationUrl}
-                        onChange={(e) =>
-                          handleInspirationUrlChange(e.target.value)
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0"
-                        onClick={() => {
-                          setInspirationUrl("");
-                          setInspirationPreview(null);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                {!isEditMode && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">
+                        {allYoutubeLinks.length > 0 ? "Additional YouTube Video URL" : "YouTube Video URL"}
+                      </h3>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="https://youtube.com/watch?v=..."
+                          value={inspirationUrl}
+                          onChange={(e) =>
+                            handleInspirationUrlChange(e.target.value)
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => {
+                            setInspirationUrl("");
+                            setInspirationPreview(null);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Paste a YouTube video URL to use its thumbnail as
+                        inspiration
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Paste a YouTube video URL to use its thumbnail as
-                      inspiration
-                    </p>
-                  </div>
 
-                  {inspirationPreview && (
-                    <div className="relative aspect-video rounded-lg overflow-hidden border">
-                      <Image
-                        src={inspirationPreview}
-                        alt="Inspiration thumbnail preview"
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 600px"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="text-white text-center p-4">
-                          <p className="text-sm">Inspiration Thumbnail</p>
+                    {inspirationPreview && (
+                      <div className="relative aspect-video rounded-lg overflow-hidden border">
+                        <Image
+                          src={inspirationPreview}
+                          alt="Inspiration thumbnail preview"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 600px"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="text-white text-center p-4">
+                            <p className="text-sm">Inspiration Thumbnail</p>
+                          </div>
                         </div>
                       </div>
+                    )}
+                  </div>
+                )}
+                {isEditMode && inspirationPreview && (
+                  <div className="relative aspect-video rounded-lg overflow-hidden border">
+                    <Image
+                      src={inspirationPreview}
+                      alt="Inspiration thumbnail preview"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 600px"
+                    />
+                    <div className="absolute inset-0 bg-black/60 text-white flex items-center justify-center text-sm">
+                      Original inspiration thumbnail
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Template Mode */}
             {initialMode === "template" && (
               <div className="space-y-4">
-                {/* Template Selection */}
-                <TemplateSelector
-                  selectedTemplateIds={allSelectedTemplates}
-                  onSelect={setAllSelectedTemplates}
-                  maxSelections={maxSelections}
-                  preSelectedTemplates={preSelectedTemplates}
-                />
-                
-                {/* Variations and Summary */}
-                {allSelectedTemplates.length > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">
-                        {allSelectedTemplates.length} template{allSelectedTemplates.length > 1 ? 's' : ''} selected
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {templateVariations} variation{templateVariations > 1 ? 's' : ''} each = {allSelectedTemplates.length * templateVariations} total thumbnail{allSelectedTemplates.length * templateVariations > 1 ? 's' : ''}
-                      </p>
+                {isEditMode ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      The same template set from your original generation will be reused.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {preSelectedTemplates && preSelectedTemplates.length > 0 ? (
+                        preSelectedTemplates
+                          .filter((template: any) =>
+                            lockedTemplateIds.includes(String(template.id))
+                          )
+                          .map((template: any) => (
+                          <div
+                            key={template.id}
+                            className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3"
+                          >
+                            <div className="relative w-16 h-12 rounded-md overflow-hidden bg-muted">
+                              {template.image ? (
+                                <Image
+                                  src={template.image}
+                                  alt={template.title || "Template"}
+                                  fill
+                                  className="object-cover"
+                                  sizes="128px"
+                                />
+                              ) : (
+                                <LayoutTemplate className="w-5 h-5 text-muted-foreground absolute inset-0 m-auto" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium line-clamp-1">
+                                {template.title || "Template"}
+                              </p>
+                              {template.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-1">
+                                  {template.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Templates unavailable. Open the original generation detail page to view more info.
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Variations:</span>
-                      {[1, 2, 3].map((num) => (
-                        <Button
-                          key={num}
-                          variant={templateVariations === num ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setTemplateVariations(num)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {num}
-                        </Button>
-                      ))}
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Variations: 1 (single cleanup run)
+                    </p>
                   </div>
+                ) : (
+                  <>
+                    <TemplateSelector
+                      selectedTemplateIds={allSelectedTemplates}
+                      onSelect={setAllSelectedTemplates}
+                      maxSelections={maxSelections}
+                      preSelectedTemplates={preSelectedTemplates}
+                    />
+                    
+                    {allSelectedTemplates.length > 0 && (
+                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">
+                            {allSelectedTemplates.length} template{allSelectedTemplates.length > 1 ? 's' : ''} selected
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {templateVariations} variation{templateVariations > 1 ? 's' : ''} each = {allSelectedTemplates.length * templateVariations} total thumbnail{allSelectedTemplates.length * templateVariations > 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Variations:</span>
+                          {[1, 2, 3].map((num) => (
+                            <Button
+                              key={num}
+                              variant={templateVariations === num ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setTemplateVariations(num)}
+                              className="h-8 w-8 p-0"
+                            >
+                              {num}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -901,79 +1166,116 @@ export default function ThumbnailCreationSheet({
           <CardHeader>
             <CardTitle>Thumbnail Assets</CardTitle>
             <CardDescription>
-              Upload images to use in your thumbnail
+              Keep your original upload or add new reference images
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="border-2 border-dashed rounded-lg p-6">
-              <div className="flex flex-col items-center">
-                <Upload className="h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">
-                  Click to upload additional assets (optional)
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  JPG, PNG, SVG formats accepted (max 4 files)
-                </p>
-                {selectedProject?.image && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    ℹ️ Project image will be used automatically
+          <CardContent className="space-y-6">
+            {hasExistingAssets && (
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Original uploads (person shots, props, etc.)
                   </p>
-                )}
-              </div>
-                <Input
-                  type="file"
-                  className="hidden"
-                  multiple
-                  accept="image/jpeg,image/png,image/svg+xml"
-                  onChange={handleFileChange}
-                  id="thumbnail-assets"
-                  disabled={thumbnailAssets.length >= 4}
-                />
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() =>
-                    document.getElementById("thumbnail-assets")?.click()
-                  }
-                  disabled={thumbnailAssets.length >= 4}
-                >
-                  {thumbnailAssets.length >= 4
-                    ? "Maximum files reached"
-                    : "Upload Files"}
-                </Button>
-              </div>
-              {thumbnailAssets.length > 0 && (
-                <div>
-                  <p className="text-muted-foreground">
-                    {thumbnailAssets.length} files selected
+                  <p className="text-xs text-muted-foreground">
+                    These are locked to ensure we edit the same photo. Update instructions below to describe the cleanup you need.
                   </p>
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {thumbnailAssets.map((asset, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-video rounded-lg overflow-hidden border group"
-                      >
-                        <div className="relative aspect-video">
-                          <Image
-                            src={URL.createObjectURL(asset.file)}
-                            alt={asset.file.name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                            sizes="(max-width: 768px) 100vw, 300px"
-                          />
-                          <button
-                            onClick={() => handleRemoveFile(index)}
-                            className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                          >
-                            <X className="h-4 w-4 text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              )}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {existingAssetUrls.map((assetUrl) => (
+                    <div
+                      key={assetUrl}
+                      className="relative aspect-video rounded-lg overflow-hidden border bg-muted/20"
+                    >
+                      <Image
+                        src={assetUrl}
+                        alt="Existing asset"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                        sizes="(max-width: 768px) 100vw, 300px"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <Badge className="text-[10px]">Included</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!isEditMode && (
+              <>
+                <div className="border-2 border-dashed rounded-lg p-6">
+                  <div className="flex flex-col items-center">
+                    <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">
+                      Click to upload additional assets (optional)
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      JPG, PNG, SVG formats accepted (max 4 files)
+                    </p>
+                    {selectedProject?.image && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                        ℹ️ Project image will be used automatically
+                      </p>
+                    )}
+                  </div>
+                  <Input
+                    type="file"
+                    className="hidden"
+                    multiple
+                    accept="image/jpeg,image/png,image/svg+xml"
+                    onChange={handleFileChange}
+                    id="thumbnail-assets"
+                    disabled={thumbnailAssets.length >= 4}
+                  />
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() =>
+                      document.getElementById("thumbnail-assets")?.click()
+                    }
+                    disabled={thumbnailAssets.length >= 4}
+                  >
+                    {thumbnailAssets.length >= 4
+                      ? "Maximum files reached"
+                      : "Upload Files"}
+                  </Button>
+                </div>
+                {thumbnailAssets.length > 0 && (
+                  <div>
+                    <p className="text-muted-foreground">
+                      {thumbnailAssets.length} file{thumbnailAssets.length !== 1 ? "s" : ""} selected
+                    </p>
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {thumbnailAssets.map((asset, index) => (
+                        <div
+                          key={`${asset.file.name}-${index}`}
+                          className="relative aspect-video rounded-lg overflow-hidden border group"
+                        >
+                          <div className="relative aspect-video">
+                            <Image
+                              src={URL.createObjectURL(asset.file)}
+                              alt={asset.file.name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                              sizes="(max-width: 768px) 100vw, 300px"
+                            />
+                            <button
+                              onClick={() => handleRemoveFile(index)}
+                              className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                            >
+                              <X className="h-4 w-4 text-white" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -1004,29 +1306,38 @@ export default function ThumbnailCreationSheet({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select 
-              value={channelStyle} 
-              onValueChange={(value) => {
-                setChannelStyle(value);
-                setValidationErrors(prev => ({ ...prev, channelStyle: false }));
-              }}
-            >
-              <SelectTrigger className={`w-full text-left py-6 ${validationErrors.channelStyle ? "border-destructive" : ""}`}>
-                <SelectValue placeholder="Select channel style" />
-              </SelectTrigger>
-              <SelectContent>
-                {channelStyles.map((style) => (
-                  <SelectItem key={style.value} value={style.value}>
-                    <div>
-                      <div className="font-medium">{style.label}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {style.description}
+            {isEditMode ? (
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-sm font-medium">{channelStyleLabel}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Locked to your original generation.
+                </p>
+              </div>
+            ) : (
+              <Select 
+                value={channelStyle} 
+                onValueChange={(value) => {
+                  setChannelStyle(value);
+                  setValidationErrors(prev => ({ ...prev, channelStyle: false }));
+                }}
+              >
+                <SelectTrigger className={`w-full text-left py-6 ${validationErrors.channelStyle ? "border-destructive" : ""}`}>
+                  <SelectValue placeholder="Select channel style" />
+                </SelectTrigger>
+                <SelectContent>
+                  {channelStyles.map((style) => (
+                    <SelectItem key={style.value} value={style.value}>
+                      <div>
+                        <div className="font-medium">{style.label}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {style.description}
+                        </div>
                       </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </CardContent>
         </Card>
 
@@ -1057,75 +1368,115 @@ export default function ThumbnailCreationSheet({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select 
-              value={thumbnailGoal} 
-              onValueChange={(value) => {
-                setThumbnailGoal(value);
-                setValidationErrors(prev => ({ ...prev, thumbnailGoal: false }));
-              }}
-            >
-              <SelectTrigger className={`w-full text-left py-6 ${validationErrors.thumbnailGoal ? "border-destructive" : ""}`}>
-                <SelectValue placeholder="Select thumbnail goal" />
-              </SelectTrigger>
-              <SelectContent>
-                {thumbnailGoals.map((goal) => (
-                  <SelectItem key={goal.value} value={goal.value}>
-                    <div>
-                      <div className="font-medium">{goal.label}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {goal.description}
+            {isEditMode ? (
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-sm font-medium">{thumbnailGoalLabel}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Locked to your original generation.
+                </p>
+              </div>
+            ) : (
+              <Select 
+                value={thumbnailGoal} 
+                onValueChange={(value) => {
+                  setThumbnailGoal(value);
+                  setValidationErrors(prev => ({ ...prev, thumbnailGoal: false }));
+                }}
+              >
+                <SelectTrigger className={`w-full text-left py-6 ${validationErrors.thumbnailGoal ? "border-destructive" : ""}`}>
+                  <SelectValue placeholder="Select thumbnail goal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {thumbnailGoals.map((goal) => (
+                    <SelectItem key={goal.value} value={goal.value}>
+                      <div>
+                        <div className="font-medium">{goal.label}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {goal.description}
+                        </div>
                       </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </CardContent>
         </Card>
 
-        {/* Additional Instructions */}
+        {/* Prompt Instructions */}
         <Card>
           <CardHeader>
-            <CardTitle>Additional Instructions</CardTitle>
+            <CardTitle>{isEditMode ? "Fix Prompt" : "Additional Instructions"}</CardTitle>
             <CardDescription>
-              Add any specific requirements or preferences
+              {isEditMode
+                ? "Explain the cleanup you need (e.g., “Remove the brown door behind me and soften shadows”)."
+                : "Add any specific requirements or preferences"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
-              placeholder="Enter any additional instructions or requirements for the thumbnail generation..."
+              placeholder={
+                isEditMode
+                  ? "Describe what to fix. Example: “Remove the wooden door behind me and blur the background slightly.”"
+                  : "Enter any additional instructions or requirements for the thumbnail generation..."
+              }
               value={additionalInstructions}
               onChange={(e) => setAdditionalInstructions(e.target.value)}
               rows={4}
             />
+            {isEditMode && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Each fix still consumes a credit. Need bigger changes? Generate a brand new thumbnail instead.
+              </p>
+            )}
           </CardContent>
         </Card>
 
-        {/* Generate Button */}
-        <Button
-          onClick={handleGenerate}
-          variant="brand"
-          className="px-8 w-full text-center"
-          disabled={!selectedProject || isGenerating || hasSubmitted}
-          type="button"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating Thumbnails... (Please wait)
-            </>
-          ) : hasSubmitted ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Redirecting...
-            </>
-          ) : (
-            <>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Thumbnails
-            </>
+        {/* Generate Actions */}
+        <div className="space-y-3">
+          <Button
+            onClick={handleGenerate}
+            variant="brand"
+            className="px-8 w-full text-center"
+            disabled={!selectedProject || isGenerating || hasSubmitted || showGenerationLocked}
+            type="button"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {generatingLabel}
+              </>
+            ) : hasSubmitted ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Redirecting...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                {primaryIdleLabel}
+              </>
+            )}
+          </Button>
+
+          {!isEditMode && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full text-center"
+                  disabled
+                >
+                  Replace Existing (Coming Soon)
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-sm">
+                Direct replacement requires a backend update. Generate a new version instead, then manage it from History.
+              </TooltipContent>
+            </Tooltip>
           )}
-        </Button>
+        </div>
         {(isGenerating || hasSubmitted) && (
           <p className="text-sm text-center text-muted-foreground">
             Please do not refresh or close this page

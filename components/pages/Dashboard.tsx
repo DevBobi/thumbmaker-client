@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
+const ONBOARDING_VERSION = "force";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,13 +27,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { UserOnboarding } from "@/components/onboarding/UserOnboarding";
+import { useUser } from "@clerk/nextjs";
 
 const Dashboard = () => {
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const { authFetch } = useAuthFetch();
+  const { user, isLoaded } = useUser();
+
+  const onboardingKey = useMemo(() => {
+    if (user?.id) return `hasCompletedOnboarding_${ONBOARDING_VERSION}_${user.id}`;
+    return null;
+  }, [user?.id]);
 
   // Check if user is visiting dashboard for the first time
   useEffect(() => {
@@ -42,6 +52,21 @@ const Dashboard = () => {
       localStorage.setItem("hasVisitedDashboard", "true");
     }
   }, []);
+
+  // Commented out onboarding after login
+  // useEffect(() => {
+  //   if (!isLoaded || !user || !onboardingKey) return;
+
+  //   localStorage.removeItem(onboardingKey);
+  //   setIsOnboardingOpen(true);
+  // }, [isLoaded, user?.id, onboardingKey]);
+
+  const handleOnboardingFinish = () => {
+    if (typeof window !== "undefined" && onboardingKey) {
+      localStorage.setItem(onboardingKey, "true");
+    }
+    setIsOnboardingOpen(false);
+  };
 
   // Fetch projects using React Query
   const fetchProjects = async (): Promise<Project[]> => {
@@ -407,6 +432,13 @@ const Dashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Commented out onboarding after login */}
+      {/* <UserOnboarding
+        open={isOnboardingOpen}
+        onOpenChange={setIsOnboardingOpen}
+        onFinish={handleOnboardingFinish}
+      /> */}
 
     </div>
   );

@@ -14,3 +14,6 @@ API_URL=http://localhost:8000/api
 # Optional - Stripe
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
 STRIPE_API_KEY=your_stripe_secret_key
+NEXT_PUBLIC_STRIPE_STARTER_PLAN_ID=your_stripe_starter_plan_id
+NEXT_PUBLIC_STRIPE_BASIC_PLAN_ID=your_stripe_basic_plan_id
+NEXT_PUBLIC_STRIPE_STANDARD_PLAN_ID=your_stripe_standard_plan_id

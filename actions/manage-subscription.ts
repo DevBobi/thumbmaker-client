@@ -10,6 +10,14 @@ export async function manageSubscription(
   stripeCustomerId: string
 ): Promise<{ status: string; url?: string; message?: string }> {
   try {
+    if (!process.env.STRIPE_API_KEY) {
+      console.error("Stripe API key is not configured. Billing portal is unavailable.");
+      return {
+        status: "error",
+        message: "Billing portal is not configured",
+      };
+    }
+
     const user = await currentUser();
 
     if (!user) {
