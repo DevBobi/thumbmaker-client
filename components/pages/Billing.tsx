@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Shield, RefreshCw, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BillingButton } from "@/components/BillingButton";
 import Breadcrumb from "@/components/Breadcrumb";
 import { pricingPlans } from "@/lib/plans";
@@ -25,12 +26,11 @@ const Billing = ({}: BillingProps) => {
   const { authFetch } = useAuthFetch();
   const {
     startTrial,
-    convertTrial,
     isStarting,
-    isConverting,
     error: trialError,
     setError: setTrialError,
   } = useTrialActions();
+  const router = useRouter();
   const [subscriptionData, setSubscriptionData] = useState<any>({
     credits: 0,
     isActive: false,
@@ -112,12 +112,7 @@ const Billing = ({}: BillingProps) => {
   };
 
   const handleConvertTrial = async () => {
-    try {
-      await convertTrial();
-      await fetchSubscription();
-    } catch {
-      // Error handled by hook
-    }
+    router.push("/pricing");
   };
 
   const handleRefresh = () => {
@@ -200,17 +195,9 @@ const Billing = ({}: BillingProps) => {
               <Button
                 variant="secondary"
                 onClick={handleConvertTrial}
-                disabled={isConverting}
                 className="sm:min-w-[150px]"
               >
-                {isConverting ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Converting...
-                  </div>
-                ) : (
-                  "Upgrade now"
-                )}
+                {"Upgrade now"}
               </Button>
             )}
           </div>

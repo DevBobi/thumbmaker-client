@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { PricingCard } from "@/components/cards/PricingCard";
-import { CustomPricingCard } from "@/components/cards/CustomPricingCard";
 import { pricingPlans, type PricingPlan } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { useTrialActions } from "@/hooks/use-free-credits";
@@ -19,9 +18,7 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
   const [subscription, setSubscription] = useState(currentPlan);
   const {
     startTrial,
-    convertTrial,
     isStarting,
-    isConverting,
     error: trialError,
     setError: setTrialError,
   } = useTrialActions();
@@ -126,15 +123,7 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
       router.push("/sign-in?redirect_url=/pricing");
       return;
     }
-
-    setTrialError(null);
-
-    try {
-      await convertTrial();
-      await refreshSubscription();
-    } catch {
-      // handled by hook
-    }
+    router.push("/dashboard/billing");
   };
 
   const handleUpgradeOrDowngrade = async (
@@ -247,17 +236,9 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
                 <Button
                   variant="outline"
                   onClick={handleConvertTrial}
-                  disabled={isConverting}
                   className="sm:min-w-[160px]"
                 >
-                  {isConverting ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Converting...
-                    </div>
-                  ) : (
-                    "Upgrade now"
-                  )}
+                  Manage billing
                 </Button>
               )}
             </div>
@@ -268,7 +249,9 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-8 max-w-7xl mx-auto">
-          {pricingPlans.map((plan) => (
+          {pricingPlans
+            .filter((plan) => !(plan.isFree || plan.tier === "free"))
+            .map((plan) => (
             <div key={plan.name}>
                 <PricingCard
                   plan={plan}
@@ -283,7 +266,6 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
               />
             </div>
           ))}
-          <CustomPricingCard />
         </div>
 
         {/* FAQ Section */}
