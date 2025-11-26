@@ -7,6 +7,14 @@ const RETURN_URL = absoluteUrl("/dashboard");
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.STRIPE_API_KEY) {
+      console.error("Stripe API key is not configured. Billing portal is unavailable.");
+      return NextResponse.json(
+        { status: "error", message: "Billing portal is not configured" },
+        { status: 500 }
+      );
+    }
+
     const user = await currentUser();
 
     if (!user) {

@@ -1,4 +1,5 @@
 "use client";
+import { useCallback, useEffect, useState } from "react";
 import { NavUser } from "@/components/NavUser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useFreeCredits } from "@/hooks/use-free-credits";
 import { cn } from "@/lib/utils";
 import {
   FolderPlus,
@@ -31,11 +31,14 @@ import {
   Moon,
   Sparkles,
   Sun,
-  Zap
+  Zap,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { useTrialActions } from "@/hooks/use-free-credits";
 
 type User = {
   name: string;
@@ -43,9 +46,12 @@ type User = {
   avatar: string;
 };
 type Subscription = {
+  plan?: string | null;
   credits: number;
   isActive: boolean;
   gotFreeCredits: boolean;
+  trialStatus?: string | null;
+  trialCreditsAwarded?: boolean;
 };
 
 const navigationItems = [
@@ -84,10 +90,87 @@ export function AppSidebar({
   subscription: Subscription;
 }) {
   const pathname = usePathname();
-  const { } = useFreeCredits();
   const { theme, setTheme } = useTheme();
   const { state } = useSidebar();
+  const { authFetch } = useAuthFetch();
+  const [subscriptionState, setSubscriptionState] = useState<Subscription>(subscription);
+  const {
+    startTrial,
+    isStarting,
+    error: trialError,
+    setError: setTrialError,
+  } = useTrialActions();
+  const defaultTrialPriceId =
+    process.env.NEXT_PUBLIC_STRIPE_FREE_PLAN_ID ||
+    process.env.NEXT_PUBLIC_STRIPE_STARTER_PLAN_ID ||
+    process.env.NEXT_PUBLIC_STRIPE_STANDARD_PLAN_ID ||
+    process.env.NEXT_PUBLIC_STRIPE_BASIC_PLAN_ID ||
+    "";
+
+  useEffect(() => {
+    setSubscriptionState(subscription);
+  }, [subscription]);
+
+  const refreshSubscription = useCallback(async () => {
+    try {
+      const response = await authFetch("/api/user/subscription");
+      if (!response.ok) return;
+      const data = await response.json();
+
+      setSubscriptionState((prev) => ({
+        ...prev,
+        ...data,
+      }));
+    } catch (error) {
+      console.error("Failed to refresh subscription", error);
+    }
+  }, [authFetch]);
+
+  useEffect(() => {
+    refreshSubscription();
+  }, [refreshSubscription]);
+
+  const handleStartTrial = async () => {
+    if (!defaultTrialPriceId) {
+      setTrialError("Trial plan is not configured. Please contact support.");
+      return;
+    }
+
+    try {
+      await startTrial(defaultTrialPriceId);
+      await refreshSubscription();
+    } catch {
+      // handled inside hook
+    }
+  };
+
   const isCollapsed = state === "collapsed";
+  const normalizedCredits =
+    typeof subscriptionState.credits === "number" ? subscriptionState.credits : 0;
+  const isTrialing = ["trialing", "ending"].includes(subscriptionState.trialStatus || "");
+  const hasUsedTrial = Boolean(subscriptionState.trialCreditsAwarded);
+  const eligibleForTrial = !subscriptionState.isActive && !isTrialing && !hasUsedTrial;
+  const showUpgradeCTA =
+    eligibleForTrial || !subscriptionState.isActive || normalizedCredits <= 0;
+  const upgradeMessage = eligibleForTrial
+    ? "Start your free trial to unlock 4 complimentary credits."
+    : !subscriptionState.isActive
+      ? "Unlock premium features with a paid plan."
+      : normalizedCredits <= 0 && isTrialing
+        ? "You’ve used your trial credits. Upgrade to keep generating thumbnails."
+        : "You’re out of credits. Upgrade to keep generating thumbnails.";
+  const upgradeLink = eligibleForTrial
+    ? undefined
+    : !subscriptionState.isActive
+      ? "/pricing"
+      : "/dashboard/billing";
+  const upgradeLabel = eligibleForTrial
+    ? "Start free trial"
+    : !subscriptionState.isActive
+      ? "Choose a plan"
+      : isTrialing
+        ? "Upgrade now"
+        : "Upgrade to Pro";
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -191,7 +274,7 @@ export function AppSidebar({
           "space-y-4",
           isCollapsed && "flex flex-col items-center w-full"
         )}>
-        {!subscription.isActive && subscription.credits === 0 && !isCollapsed && (
+        {showUpgradeCTA && (
             <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/50 mb-4">
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-3">
@@ -200,22 +283,48 @@ export function AppSidebar({
                   </div>
                   <div>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Current plan:</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">Pro trial</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      {subscriptionState.plan || (subscriptionState.isActive ? "Starter" : "Free")}
+                    </p>
                   </div>
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
-                  Upgrade to Pro to get the latest and exclusive features
+                  {upgradeMessage}
                 </p>
-                <Button 
-                  size="sm" 
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200" 
-                  asChild
-                >
-                  <Link href="/pricing" className="flex items-center justify-center gap-2">
-                    <Zap className="h-4 w-4" />
-                    Upgrade to Pro
-                  </Link>
-                </Button>
+                {eligibleForTrial ? (
+                  <Button
+                    size="sm"
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200"
+                    onClick={handleStartTrial}
+                    disabled={isStarting}
+                  >
+                    {isStarting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Starting trial...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-1" />
+                        {upgradeLabel}
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200"
+                    asChild
+                  >
+                    <Link href={upgradeLink!} className="flex items-center justify-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      {upgradeLabel}
+                    </Link>
+                  </Button>
+                )}
+                {eligibleForTrial && trialError && (
+                  <p className="mt-2 text-xs text-red-500">{trialError}</p>
+                )}
               </div>
             </div>
           )}

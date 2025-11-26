@@ -26,7 +26,9 @@ export async function AppLayout({ children }: LayoutProps) {
   let subscription = {
     isActive: false,
     credits: 0,
-    gotFreeCredits: false
+    gotFreeCredits: false,
+    trialStatus: null as string | null,
+    trialCreditsAwarded: false,
   };
 
   try {
@@ -35,8 +37,10 @@ export async function AppLayout({ children }: LayoutProps) {
       const subscriptionData = await subscriptionResponse.json();
       subscription = {
         isActive: subscriptionData.isActive || false,
-        credits: subscriptionData.credits || 0,
-        gotFreeCredits: subscriptionData.gotFreeCredits || false
+        credits: subscriptionData.credits ?? 0,
+        gotFreeCredits: subscriptionData.gotFreeCredits || false,
+        trialStatus: subscriptionData.trialStatus ?? null,
+        trialCreditsAwarded: subscriptionData.trialCreditsAwarded || false,
       };
     }
   } catch (error) {
@@ -57,6 +61,8 @@ export async function AppLayout({ children }: LayoutProps) {
             isActive: subscription.isActive,
             credits: subscription.credits,
             gotFreeCredits: subscription.gotFreeCredits,
+            trialStatus: subscription.trialStatus,
+            trialCreditsAwarded: subscription.trialCreditsAwarded,
           }}
         />
         <div className="flex flex-col flex-1 overflow-x-hidden">

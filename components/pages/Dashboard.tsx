@@ -53,12 +53,13 @@ const Dashboard = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (!isLoaded || !user || !onboardingKey) return;
+  // Commented out onboarding after login
+  // useEffect(() => {
+  //   if (!isLoaded || !user || !onboardingKey) return;
 
-    localStorage.removeItem(onboardingKey);
-    setIsOnboardingOpen(true);
-  }, [isLoaded, user?.id, onboardingKey]);
+  //   localStorage.removeItem(onboardingKey);
+  //   setIsOnboardingOpen(true);
+  // }, [isLoaded, user?.id, onboardingKey]);
 
   const handleOnboardingFinish = () => {
     if (typeof window !== "undefined" && onboardingKey) {
@@ -432,11 +433,12 @@ const Dashboard = () => {
         </DialogContent>
       </Dialog>
 
-      <UserOnboarding
+      {/* Commented out onboarding after login */}
+      {/* <UserOnboarding
         open={isOnboardingOpen}
         onOpenChange={setIsOnboardingOpen}
         onFinish={handleOnboardingFinish}
-      />
+      /> */}
 
     </div>
   );

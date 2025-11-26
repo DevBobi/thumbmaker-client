@@ -15,6 +15,9 @@ import {
   FolderOpen,
   ChevronRight,
   ArrowLeft,
+  Pencil,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -57,9 +60,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
+import ThumbnailCreationSheet from "@/components/thumbnail/ThumbnailCreationSheet";
+import { Project } from "@/types";
 
 const ITEMS_PER_PAGE = 50; // Fetch more thumbnails to group properly
 const PROJECTS_PER_PAGE = 5; // Show 5 projects per page
+const RECENT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 const History = () => {
   const router = useRouter();
@@ -78,6 +84,36 @@ const History = () => {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'project'>('list'); // 'list' shows grouped projects, 'project' shows thumbnails in selected project
   const [historyTab, setHistoryTab] = useState<'projects' | 'timeline'>('projects');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [editingThumbnail, setEditingThumbnail] = useState<any | null>(null);
+  const [editingSetDetails, setEditingSetDetails] = useState<any | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const [activeEditThumbnailId, setActiveEditThumbnailId] = useState<string | null>(null);
+  const [clientNow, setClientNow] = useState<number | null>(null);
+  const NewBadge = () => (
+    <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 animate-pulse flex items-center gap-1">
+      <Sparkles className="h-3 w-3" />
+      New
+    </Badge>
+  );
+  useEffect(() => {
+    setClientNow(Date.now());
+    const interval = setInterval(() => {
+      setClientNow(Date.now());
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isThumbnailNew = useCallback(
+    (createdAt?: string | Date) => {
+      if (!clientNow || !createdAt) return false;
+      const createdTime = new Date(createdAt).getTime();
+      if (Number.isNaN(createdTime)) return false;
+      return clientNow - createdTime <= RECENT_WINDOW_MS;
+    },
+    [clientNow]
+  );
 
   // Debounce search term to avoid excessive API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -87,6 +123,26 @@ const History = () => {
     setIsLoading(true);
     setCampaigns([]);
   }, []);
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      const response = await authFetch("/api/projects");
+      if (response.ok) {
+        const data = await response.json();
+        const projectsArray = Array.isArray(data) ? data : data.projects || [];
+        setProjects(projectsArray);
+      } else {
+        setProjects([]);
+      }
+    } catch (error) {
+      console.error("Error fetching projects for edit flow:", error);
+      setProjects([]);
+    }
+  }, [authFetch]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   // Handle escape key to close lightbox and prevent body scroll
   useEffect(() => {
@@ -154,6 +210,46 @@ const History = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, filterBy]);
+
+  const closeEditSheet = useCallback(() => {
+    setIsEditSheetOpen(false);
+    setEditingThumbnail(null);
+    setEditingSetDetails(null);
+  }, []);
+
+  const handleEditThumbnail = useCallback(async (thumbnail: any) => {
+    if (!thumbnail?.setId) {
+      toast({
+        title: "Original settings unavailable",
+        description: "We couldn't find the original generation data for this thumbnail.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setActiveEditThumbnailId(thumbnail.id);
+    setIsLoadingEdit(true);
+    try {
+      const response = await authFetch(`/api/thumbnails/${thumbnail.setId}`);
+      if (!response.ok) {
+        throw new Error("Failed to load original settings");
+      }
+      const data = await response.json();
+      setEditingSetDetails(data);
+      setEditingThumbnail(thumbnail);
+      setIsEditSheetOpen(true);
+    } catch (error) {
+      console.error("Failed to load edit data:", error);
+      toast({
+        title: "Unable to load",
+        description: "Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingEdit(false);
+      setActiveEditThumbnailId(null);
+    }
+  }, [authFetch, toast]);
 
   // Helpers
   const getTimeAgo = (date: Date): string => {
@@ -293,6 +389,47 @@ const History = () => {
   // Calculate total pages for projects
   const totalProjectPages = Math.ceil(groupedProjects.length / PROJECTS_PER_PAGE);
 
+  // Keep current page within bounds when data shrinks after updates like deletes
+  useEffect(() => {
+    setCurrentPage((prevPage) => {
+      const totalPages = Math.ceil(groupedProjects.length / PROJECTS_PER_PAGE);
+      const nextPage = totalPages === 0 ? 1 : Math.min(prevPage, totalPages);
+      return nextPage === prevPage ? prevPage : nextPage;
+    });
+  }, [groupedProjects]);
+
+  const editingProject = useMemo(() => {
+    if (editingSetDetails?.project) return editingSetDetails.project;
+    if (editingSetDetails?.projectId) {
+      const found = projects.find((project) => project.id === editingSetDetails.projectId);
+      if (found) return found;
+    }
+    return editingThumbnail?.project || null;
+  }, [editingSetDetails, projects, editingThumbnail]);
+
+  const availableProjectsForEdit = useMemo(() => {
+    if (projects.length > 0) {
+      return projects;
+    }
+    if (editingSetDetails?.project) {
+      return [editingSetDetails.project];
+    }
+    if (editingThumbnail?.project) {
+      return [editingThumbnail.project];
+    }
+    return [];
+  }, [projects, editingSetDetails, editingThumbnail]);
+
+  const editInitialMode = editingSetDetails?.templates?.length ? "template" : "youtube";
+  const editYoutubeLinks = editingSetDetails?.youtubeLinks || [];
+  const editLockedTemplateIds = useMemo(() => {
+    if (editingThumbnail?.templateId) return [editingThumbnail.templateId];
+    if (editingSetDetails?.templates) {
+      return editingSetDetails.templates.map((template: any) => template.id);
+    }
+    return [];
+  }, [editingThumbnail?.templateId, editingSetDetails?.templates]);
+
   const handleViewProject = (project: any) => {
     setSelectedProject(project);
     setViewMode('project');
@@ -374,20 +511,37 @@ const History = () => {
       });
 
       if (response.ok) {
+        const deletedId = thumbnailToDelete.id;
+
         toast({
           title: "Thumbnail deleted",
           description: "The thumbnail has been successfully deleted",
         });
+
+        // Optimistically remove the deleted thumbnail so UI updates immediately
+        setCampaigns((prev) =>
+          prev.filter((thumbnail: any) => thumbnail.id !== deletedId)
+        );
+
+        setSelectedProject((prevSelected: any) => {
+          if (!prevSelected) return prevSelected;
+          return {
+            ...prevSelected,
+            thumbnails: prevSelected.thumbnails.filter(
+              (thumb: any) => thumb.id !== deletedId
+            ),
+          };
+        });
         
         // Close the detail sheet if this thumbnail was open
-        if (selectedThumbnail?.id === thumbnailToDelete.id) {
+        if (selectedThumbnail?.id === deletedId) {
           setSelectedThumbnail(null);
         }
         
         // If deleting from project view, check if project becomes empty
         if (selectedProject && viewMode === 'project') {
           const updatedThumbnails = selectedProject.thumbnails.filter(
-            (t: any) => t.id !== thumbnailToDelete.id
+            (t: any) => t.id !== deletedId
           );
           
           if (updatedThumbnails.length === 0) {
@@ -396,16 +550,8 @@ const History = () => {
           }
         }
         
-        // Refetch to update the list
+        // Refetch to ensure local state matches server
         await fetchCampaigns();
-        
-        // After refetch, check if current page is now empty
-        setTimeout(() => {
-          const newTotalPages = Math.ceil(groupedProjects.length / PROJECTS_PER_PAGE);
-          if (currentPage > newTotalPages && newTotalPages > 0) {
-            setCurrentPage(newTotalPages);
-          }
-        }, 100);
       } else {
         const data = await response.json();
         toast({
@@ -427,6 +573,18 @@ const History = () => {
       setThumbnailToDelete(null);
     }
   };
+
+  const handleEditSuccess = useCallback((data?: { id?: string }) => {
+    toast({
+      title: "Regeneration in progress",
+      description: "We’re creating a new thumbnail with your updated instructions.",
+    });
+    closeEditSheet();
+    fetchCampaigns();
+    if (data?.id) {
+      router.push(`/dashboard/generated-thumbnails/${data.id}`);
+    }
+  }, [toast, closeEditSheet, fetchCampaigns, router]);
 
   // Handle search with debounce
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -716,12 +874,23 @@ const History = () => {
             ) : (
               <>
                 <div className="space-y-4 mt-6">
-                  {paginatedProjects.map((project: any) => (
+                  {paginatedProjects.map((project: any) => {
+                    const hasRecent =
+                      Array.isArray(project.thumbnails) &&
+                      project.thumbnails.some((thumbnail: any) =>
+                        isThumbnailNew(thumbnail.createdAt)
+                      );
+                    return (
                     <div
                       key={project.id}
                       className="bg-card border rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer"
                       onClick={() => handleViewProject(project)}
                     >
+                      {hasRecent && (
+                        <div className="absolute right-4 top-4">
+                          <NewBadge />
+                        </div>
+                      )}
                       <div className="p-6">
                         <div className="flex items-start gap-6">
                           {/* Thumbnail Preview - Left Side */}
@@ -820,7 +989,8 @@ const History = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Pagination controls */}
@@ -913,7 +1083,9 @@ const History = () => {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {group.thumbnails.map((thumbnail: any) => (
+                        {group.thumbnails.map((thumbnail: any) => {
+                          const thumbnailIsNew = isThumbnailNew(thumbnail.createdAt);
+                          return (
                           <div
                             key={thumbnail.id}
                             className="border rounded-xl p-4 bg-card/60 hover:bg-card transition-all cursor-pointer group/timeline-card"
@@ -927,6 +1099,7 @@ const History = () => {
                               >
                                 {thumbnail.status === "COMPLETED" ? "Completed" : "In progress"}
                               </Badge>
+                              {thumbnailIsNew && <NewBadge />}
                             </div>
 
                             <div className="mt-3 flex gap-3">
@@ -966,6 +1139,31 @@ const History = () => {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2 mt-3">
+                                  {thumbnailIsNew && <NewBadge />}
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="h-8"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditThumbnail(thumbnail);
+                                    }}
+                                    disabled={
+                                      isLoadingEdit && activeEditThumbnailId === thumbnail.id
+                                    }
+                                  >
+                                    {isLoadingEdit && activeEditThumbnailId === thumbnail.id ? (
+                                      <>
+                                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                        Loading...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                                        Edit / Reprompt
+                                      </>
+                                    )}
+                                  </Button>
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1014,7 +1212,8 @@ const History = () => {
                               </div>
                             </div>
                           </div>
-                        ))}
+                        );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -1086,6 +1285,23 @@ const History = () => {
                         >
                           <Trash2 className="h-4 w-4 text-white" />
                         </button>
+
+                        {/* Edit Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditThumbnail(thumbnail);
+                          }}
+                          disabled={isLoadingEdit && activeEditThumbnailId === thumbnail.id}
+                          className="bg-black/80 hover:bg-black backdrop-blur-sm p-2 rounded-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Edit / Reprompt"
+                        >
+                          {isLoadingEdit && activeEditThumbnailId === thumbnail.id ? (
+                            <Loader2 className="h-4 w-4 text-white animate-spin" />
+                          ) : (
+                            <Pencil className="h-4 w-4 text-white" />
+                          )}
+                        </button>
                       </div>
                       
                       {/* Duration badge (YouTube style) - Bottom Right */}
@@ -1122,6 +1338,7 @@ const History = () => {
                           <span suppressHydrationWarning>{getTimeAgo(new Date(thumbnail.createdAt))}</span>
                           <span>•</span>
                           <span className="font-mono">#{thumbnail.id.slice(-6).toUpperCase()}</span>
+                          {isThumbnailNew(thumbnail.createdAt) && <NewBadge />}
                         </div>
 
                         {/* Template Badge */}
@@ -1238,6 +1455,29 @@ const History = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editingSetDetails && editingProject && (
+        <ThumbnailCreationSheet
+          isOpen={isEditSheetOpen}
+          onClose={closeEditSheet}
+          selectedTemplates={editingSetDetails.templates || []}
+          selectedProject={editingProject}
+          availableProjects={availableProjectsForEdit}
+          youtubeLinks={editYoutubeLinks}
+          initialMode={editInitialMode}
+          initialInspirationUrl={editingSetDetails.inspirationUrl || ""}
+          mode="edit"
+          existingAssetUrls={editingSetDetails.assets || []}
+          initialChannelStyle={editingSetDetails.channelStyle || ""}
+          initialThumbnailGoal={editingSetDetails.thumbnailGoal || ""}
+          initialVariations={editingSetDetails.variations || 1}
+          initialInstructions={editingSetDetails.additionalInstructions || ""}
+          lockedTemplateIds={editLockedTemplateIds}
+          showCreditReminder
+          creditReminderMessage="Each edit or regeneration deducts credits from your balance."
+          onGenerateComplete={handleEditSuccess}
+        />
+      )}
     </div>
   );
 };

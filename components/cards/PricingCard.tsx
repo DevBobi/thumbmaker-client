@@ -3,16 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BillingButton } from "../BillingButton";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-
-interface PricingPlan {
-  name: string;
-  price: string | null;
-  credits: number | null;
-  description: string;
-  features: string[];
-  popular: boolean;
-  priceId: string | undefined | null;
-}
+import type { PricingPlan } from "@/lib/plans";
 
 interface PricingCardProps {
   plan: PricingPlan;
@@ -54,6 +45,7 @@ export function PricingCard({
 
   const getButtonText = () => {
     if (isCurrentPlan) return "Current Plan";
+    if (plan.isFree) return "Start for Free";
     if (!currentPlanCredits) return "Get Started";
 
     const isUpgrade = plan.credits && plan.credits > currentPlanCredits;
@@ -82,9 +74,11 @@ export function PricingCard({
         {/* Price Section */}
         <div className="mt-4 flex items-baseline justify-center">
           <span className="text-5xl font-bold tracking-tight text-foreground">
-            ${plan.price}
+            {plan.isFree ? "Free" : `$${plan.price}`}
           </span>
-          <span className="ml-1 text-xl text-muted-foreground">/month</span>
+          {!plan.isFree && (
+            <span className="ml-1 text-xl text-muted-foreground">/month</span>
+          )}
         </div>
 
         {/* Description */}
