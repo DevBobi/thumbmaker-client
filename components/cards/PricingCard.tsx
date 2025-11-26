@@ -120,9 +120,7 @@ export function PricingCard({
           <Button
             size="lg"
             disabled={isLoading}
-            onClick={
-              stripeCustomerId ? handleUpgradeOrDowngrade : handleGetStarted
-            }
+            onClick={handleGetStarted}
             variant={plan.popular ? "default" : "secondary"}
             className="w-full cursor-pointer"
           >
