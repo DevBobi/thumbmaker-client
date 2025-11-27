@@ -100,13 +100,13 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
-      <div className="container mx-auto px-4 py-28">
+      <div className="container mx-auto max-w-6xl px-4 py-16 lg:py-20">
         {/* Header Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-foreground mb-4">
+        <div className="text-center mb-10 lg:mb-14">
+          <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-3">
             Start free, upgrade when you&apos;re ready
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto">
             Every plan begins with 4 complimentary credits—enough to ship a full thumbnail so you can feel the workflow before paying a dollar.
           </p>
         </div>
@@ -117,11 +117,11 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
           </Alert>
         )}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-8 max-w-7xl mx-auto">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
           {pricingPlans
             .filter((plan) => !(plan.isFree || plan.tier === "free"))
             .map((plan) => (
-              <div key={plan.name}>
+              <div key={plan.name} className="h-full">
                 <PricingCard
                   plan={plan}
                   isLoading={loadingPlans[plan.name] || false}

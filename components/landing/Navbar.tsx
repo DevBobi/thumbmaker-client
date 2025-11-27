@@ -1,10 +1,14 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import {
+  landingPrimaryButton,
+  landingSecondaryButton,
+  landingGhostButton,
+} from "./buttonStyles";
 
 const navItems = [
   { label: "Features", href: "/#how-it-works" },
@@ -17,13 +21,13 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const primaryCta = isSignedIn ? (
-    <Button className="rounded-full px-5" asChild>
-      <Link href="/dashboard">Dashboard</Link>
-    </Button>
+    <Link href="/dashboard" className={`${landingSecondaryButton} px-5 py-2`}>
+      Dashboard
+    </Link>
   ) : (
-    <Button className="rounded-full px-5 shadow-lg shadow-black/5" asChild>
-      <Link href="/sign-up">Sign Up</Link>
-    </Button>
+    <Link href="/sign-up" className={`${landingPrimaryButton} px-5 py-2`}>
+      Sign Up
+    </Link>
   );
 
   return (
@@ -47,9 +51,9 @@ export function Navbar() {
 
         <div className="hidden md:flex items-center gap-3">
           {!isSignedIn && (
-            <Button variant="ghost" className="rounded-full px-4 text-sm font-medium" asChild>
-              <Link href="/sign-in">Log In</Link>
-            </Button>
+            <Link href="/sign-in" className={`${landingGhostButton} px-4`}>
+              Log In
+            </Link>
           )}
           {primaryCta}
         </div>
@@ -80,18 +84,18 @@ export function Navbar() {
             </div>
             <div className="flex flex-col gap-3">
               {!isSignedIn && (
-                <Button variant="ghost" className="w-full rounded-full" asChild>
-                  <Link href="/sign-in">Log In</Link>
-                </Button>
+                <Link href="/sign-in" className={`${landingGhostButton} w-full text-base`}>
+                  Log In
+                </Link>
               )}
               {isSignedIn ? (
-                <Button className="w-full rounded-full" asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button>
+                <Link href="/dashboard" className={`${landingSecondaryButton} w-full`}>
+                  Dashboard
+                </Link>
               ) : (
-                <Button className="w-full rounded-full shadow-md" asChild>
-                  <Link href="/sign-up">Sign Up</Link>
-                </Button>
+                <Link href="/sign-up" className={`${landingPrimaryButton} w-full text-base`}>
+                  Sign Up
+                </Link>
               )}
             </div>
           </div>

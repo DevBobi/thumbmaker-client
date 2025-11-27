@@ -29,6 +29,7 @@ import { FormSheet } from "@/components/ui/form-sheet";
 import { uploadToStorage } from "@/actions/upload";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { emitCreditsUpdated } from "@/lib/credit-events";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
@@ -600,6 +601,8 @@ export default function ThumbnailCreationSheet({
       if (!data.id) {
         throw new Error("Invalid response from server");
       }
+
+      emitCreditsUpdated();
 
       console.log(`✅ Request ${requestId} completed successfully, redirecting...`);
 

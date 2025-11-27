@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
+import { landingPrimaryButton } from "./buttonStyles";
 
 // Constants
 const carouselThumbnails = [
@@ -23,7 +24,7 @@ const ActionButton = ({ children, href }: { children: React.ReactNode; href: str
     <motion.button
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="mt-6 w-full rounded-full bg-red-500 px-6 py-3 text-base font-semibold text-white shadow-lg transition-colors hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75 sm:mt-8 sm:w-auto sm:px-8"
+      className={`${landingPrimaryButton} mt-6 w-full px-6 py-3 text-base sm:mt-8 sm:w-auto sm:px-8`}
     >
       {children}
     </motion.button>

@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { CREDIT_EVENT_NAME } from "@/lib/credit-events";
 
 const NavbarItems = [
   {
@@ -49,15 +50,36 @@ export default function Navbar() {
   const pathname = usePathname();
   const [credits, setCredits] = useState(0);
 
-  useEffect(() => {
-    const getCredits = async () => {
+  const refreshCredits = useCallback(async () => {
+    try {
       const response = await authFetch("/api/user/credits");
+      if (!response.ok) return;
       const data = await response.json();
-      setCredits(data.credits);
-    };
+      setCredits(typeof data.credits === "number" ? data.credits : 0);
+    } catch (error) {
+      console.error("Failed to refresh credits", error);
+    }
+  }, [authFetch]);
 
-    getCredits();
-  }, [pathname, authFetch]);
+  useEffect(() => {
+    refreshCredits();
+  }, [refreshCredits, pathname]);
+
+  useEffect(() => {
+    const handleFocus = () => refreshCredits();
+
+    if (typeof window === "undefined") return;
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener(CREDIT_EVENT_NAME, handleFocus);
+    const interval = setInterval(handleFocus, 15000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener(CREDIT_EVENT_NAME, handleFocus);
+      clearInterval(interval);
+    };
+  }, [refreshCredits]);
 
   // Get sidebar state to check if it's open
   const { open } = useSidebar();

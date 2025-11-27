@@ -12,8 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import thumbnailsData from "@/data/thumbnails.json";
+import { landingSecondaryButton } from "./buttonStyles";
 
 type ThumbnailRecord = {
   creator: string;
@@ -137,17 +137,17 @@ export function ExploreGallery() {
               <p className="invisible mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
                 Clear filters
               </p>
-              <Button
-                variant="outline"
-                className="h-11 w-full rounded-2xl border border-gray-200 hover:border-gray-300 sm:w-auto"
+              <button
+                type="button"
                 disabled={!filtersActive}
                 onClick={() => {
                   setSelectedCreator("all");
                   setTagQuery("");
                 }}
+                className={`${landingSecondaryButton} h-11 w-full px-6 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:shadow-none sm:w-auto`}
               >
                 Clear filters
-              </Button>
+              </button>
             </div>
           </div>
 

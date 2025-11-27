@@ -75,7 +75,7 @@ export function VideoProjectSheet({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   // New states for creation methods
-  const [creationMethod, setCreationMethod] = useState<"manual" | "text" | "youtube" | "document">("manual");
+  const [creationMethod, setCreationMethod] = useState<"manual" | "text" | "youtube" | "document">("text");
   const [textContent, setTextContent] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);

@@ -83,7 +83,7 @@ const History = () => {
   const [selectedThumbnail, setSelectedThumbnail] = useState<any>(null);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'project'>('list'); // 'list' shows grouped projects, 'project' shows thumbnails in selected project
-  const [historyTab, setHistoryTab] = useState<'projects' | 'timeline'>('projects');
+  const [historyTab, setHistoryTab] = useState<'projects' | 'timeline'>('timeline');
   const [projects, setProjects] = useState<Project[]>([]);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [editingThumbnail, setEditingThumbnail] = useState<any | null>(null);

@@ -38,6 +38,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
+import { CREDIT_EVENT_NAME } from "@/lib/credit-events";
 
 type User = {
   name: string;
@@ -115,6 +116,24 @@ export function AppSidebar({
 
   useEffect(() => {
     refreshSubscription();
+  }, [refreshSubscription]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleRefresh = () => {
+      refreshSubscription();
+    };
+
+    window.addEventListener("focus", handleRefresh);
+    window.addEventListener(CREDIT_EVENT_NAME, handleRefresh);
+    const interval = setInterval(handleRefresh, 15000);
+
+    return () => {
+      window.removeEventListener("focus", handleRefresh);
+      window.removeEventListener(CREDIT_EVENT_NAME, handleRefresh);
+      clearInterval(interval);
+    };
   }, [refreshSubscription]);
 
   const isCollapsed = state === "collapsed";

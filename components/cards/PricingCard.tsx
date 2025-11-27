@@ -53,67 +53,55 @@ export function PricingCard({
     return isUpgrade ? "Upgrade Plan" : "Downgrade Plan";
   };
 
+  const isFeatured = plan.popular;
+  const badgeLabel = plan.badge || (isFeatured ? "Most Popular" : null);
+  const formattedPrice = plan.isFree ? "Free" : `$${plan.price}`;
+
   return (
     <div
-      className={`relative rounded-2xl bg-card p-8 shadow-lg ${
-        plan.popular
-          ? "border-2 border-primary scale-105"
-          : "border border-border"
+      className={`relative flex h-full flex-col rounded-[32px] border bg-white p-8 shadow-[0_25px_100px_rgba(15,23,42,0.08)] ${
+        isFeatured ? "border-rose-200 bg-gradient-to-b from-white to-rose-50/60" : "border-gray-200"
       }`}
     >
-      {plan.popular && (
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-          <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium shadow-sm">
-            Most Popular
-          </span>
+      {badgeLabel && (
+        <div className="absolute -top-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-rose-200 bg-white px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-500 shadow-sm">
+          <span className="h-2 w-2 rounded-full bg-rose-500" />
+          {badgeLabel}
         </div>
       )}
 
-      <div className="text-center">
-        <h3 className="text-2xl font-bold text-foreground">{plan.name}</h3>
-
-        {/* Price Section */}
-        <div className="mt-4 flex items-baseline justify-center">
-          <span className="text-5xl font-bold tracking-tight text-foreground">
-            {plan.isFree ? "Free" : `$${plan.price}`}
-          </span>
-          {!plan.isFree && (
-            <span className="ml-1 text-xl text-muted-foreground">/month</span>
-          )}
+      <div className="space-y-2 text-gray-900">
+        <h3 className="text-lg font-semibold">{plan.name}</h3>
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-semibold">{formattedPrice}</span>
+          {!plan.isFree && <span className="text-sm font-medium text-gray-500">/ month</span>}
         </div>
-
-        {/* Description */}
-        <p className="mt-4 text-muted-foreground">{plan.description}</p>
+        <p className="text-sm text-gray-500">{plan.description}</p>
       </div>
 
-      {/* Credits Display */}
-      {plan.credits !== null && (
-        <div className="mt-8">
-          <div className="flex items-center justify-center">
-            <span className="text-xl font-semibold text-primary">
-              {plan.credits.toLocaleString()} Credits
-            </span>
-          </div>
-        </div>
-      )}
+      <div className="my-8 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
-      {/* Features */}
-      <ul className="mt-8 space-y-4">
+      <ul className="flex-1 space-y-4 text-sm text-gray-800">
         {plan.features.map((feature) => (
-          <li key={feature} className="flex items-center">
-            <Check className="h-5 w-5 text-primary mr-3" />
-            <span className="text-muted-foreground">{feature}</span>
+          <li key={feature} className="flex items-center gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-rose-100 bg-white">
+              <Check className="h-3.5 w-3.5 text-rose-500" />
+            </span>
+            <span>{feature}</span>
           </li>
         ))}
       </ul>
 
-      {/* Button Section */}
-      <div className="mt-8">
+      <div className="mt-10">
         {isCurrentPlan ? (
           <BillingButton
-            variant="default"
+            variant={isFeatured ? "default" : "outline"}
             stripeCustomerId={stripeCustomerId}
-            className="w-full cursor-pointer"
+            className={`w-full rounded-full text-sm font-semibold ${
+              isFeatured
+                ? "bg-gradient-to-br from-gray-900 to-black text-white hover:opacity-90"
+                : "border border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
+            }`}
             size="lg"
             text="Manage Billing"
           />
@@ -122,14 +110,13 @@ export function PricingCard({
             size="lg"
             disabled={isLoading}
             onClick={handleGetStarted}
-            variant={plan.popular ? "default" : "secondary"}
-            className="w-full cursor-pointer"
+            className={`w-full rounded-full text-sm font-semibold shadow-lg shadow-gray-900/10 ${
+              isFeatured
+                ? "bg-gradient-to-br from-gray-900 to-black text-white hover:opacity-90"
+                : "border border-gray-200 bg-white text-gray-900 shadow-none hover:bg-gray-50"
+            }`}
           >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              getButtonText()
-            )}
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : getButtonText()}
           </Button>
         )}
       </div>

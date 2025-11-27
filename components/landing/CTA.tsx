@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { landingPrimaryButton } from "./buttonStyles";
 
 const ctaThumbnails = [
   {
@@ -78,9 +78,9 @@ export function CTA() {
         </div>
 
         <div className="flex flex-col items-center gap-4">
-          <Button className="h-12 rounded-full px-10 text-base font-semibold shadow-lg" size="lg" asChild>
-            <Link href="/sign-up">Start Free Trial</Link>
-          </Button>
+          <Link href="/sign-up" className={`${landingPrimaryButton} h-12 px-10 text-base`}>
+            Start Free Trial
+          </Link>
           <p className="text-sm text-muted-foreground">
             No credit card required. Get 3 free generations to start.
           </p>
