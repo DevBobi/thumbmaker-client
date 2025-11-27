@@ -33,7 +33,7 @@ const GeneratedAdsPage = () => {
   useEffect(() => {
     const fetchAds = async () => {
       try {
-        const response = await authFetch(`/api/ads/${campaignId}`);
+        const response = await authFetch(`/ads/${campaignId}`);
         const data = await response.json();
 
         const formattedAds = data.ads.map((ad: any) => ({

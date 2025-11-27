@@ -32,7 +32,7 @@ export async function AppLayout({ children }: LayoutProps) {
   };
 
   try {
-    const subscriptionResponse = await serverAuthFetch("/api/user/subscription");
+    const subscriptionResponse = await serverAuthFetch("/user/subscription");
     if (subscriptionResponse.ok) {
       const subscriptionData = await subscriptionResponse.json();
       subscription = {

@@ -111,7 +111,7 @@ const AutomatedGeneration = () => {
           // Logo uploaded successfully but not used in this flow
         }
 
-        const response = await authFetch("/api/projects/create-with-text", {
+        const response = await authFetch("/projects/create-with-text", {
           method: "POST",
           body: JSON.stringify({
             title: values.productName,
@@ -161,7 +161,7 @@ const AutomatedGeneration = () => {
           // Logo uploaded successfully but not used in this flow
         }
 
-        const response = await authFetch("/api/projects/create-with-youtube", {
+        const response = await authFetch("/projects/create-with-youtube", {
           method: "POST",
           body: JSON.stringify({
             title: values.productName,
@@ -233,7 +233,7 @@ const AutomatedGeneration = () => {
           throw new Error("Failed to upload document");
         }
 
-        const response = await authFetch("/api/projects/create-with-document", {
+        const response = await authFetch("/projects/create-with-document", {
           method: "POST",
           body: JSON.stringify({
             title: values.productName,

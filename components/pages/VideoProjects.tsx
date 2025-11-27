@@ -96,7 +96,7 @@ const VideoProjects = () => {
 
   // Function to fetch projects from the API
   const fetchVideoProjects = async (): Promise<VideoProject[]> => {
-    const response = await authFetch("/api/projects");
+    const response = await authFetch("/projects");
     if (!response.ok) {
       throw new Error("Failed to fetch projects");
     }

@@ -80,7 +80,7 @@ export function ProductSheet({
   const loadProductData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await authFetch(`/api/projects/${productId}`);
+      const response = await authFetch(`/projects/${productId}`);
       if (!response.ok) {
         throw new Error("Failed to load product");
       }
@@ -146,8 +146,8 @@ export function ProductSheet({
 
       const url =
         mode === "edit"
-          ? `/api/projects/${productId}`
-          : "/api/projects/create";
+          ? `/projects/${productId}`
+          : "/projects/create";
       const method = mode === "edit" ? "PUT" : "POST";
 
       const response = await authFetch(url, {

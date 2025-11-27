@@ -34,7 +34,7 @@ export function useTrialActions() {
       setError(null);
 
       try {
-        const response = await authFetch("/api/stripe/create-checkout-session", {
+        const response = await authFetch("/stripe/create-checkout-session", {
           method: "POST",
           body: JSON.stringify({ priceId: resolvedPriceId }),
         });

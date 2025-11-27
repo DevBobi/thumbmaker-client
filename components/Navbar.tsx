@@ -48,16 +48,20 @@ export default function Navbar() {
   const { signOut } = useAuth();
   const { authFetch } = useAuthFetch();
   const pathname = usePathname();
-  const [credits, setCredits] = useState(0);
+  const [credits, setCredits] = useState<number | null>(null); // null = loading, number = loaded
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true);
 
   const refreshCredits = useCallback(async () => {
     try {
-      const response = await authFetch("/api/user/credits");
+      setIsLoadingCredits(true);
+      const response = await authFetch("/user/credits");
       if (!response.ok) return;
       const data = await response.json();
       setCredits(typeof data.credits === "number" ? data.credits : 0);
     } catch (error) {
       console.error("Failed to refresh credits", error);
+    } finally {
+      setIsLoadingCredits(false);
     }
   }, [authFetch]);
 
@@ -96,12 +100,18 @@ export default function Navbar() {
 
         {/* Credits section at top right */}
         <div className="flex items-center gap-6">
-          <div className="text-sm text-muted-foreground">
-            <span className="font-medium">Credits:</span>
-            <span className="ml-2 bg-muted px-2 py-1 rounded-md text-foreground">
-              {credits}
-            </span>
-          </div>
+          {isLoadingCredits ? (
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">Credits:</span> <span className="ml-1">...</span>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">Credits:</span>
+              <span className="ml-2 bg-muted px-2 py-1 rounded-md text-foreground">
+                {credits ?? 0}
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center gap-4">
             <DropdownMenu>

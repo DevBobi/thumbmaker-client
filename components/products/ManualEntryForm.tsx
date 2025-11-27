@@ -87,7 +87,7 @@ const ManualEntryForm = () => {
         image: imageUrl,
       };
 
-      const response = await authFetch("/api/projects/create", {
+      const response = await authFetch("/projects/create", {
         method: "POST",
         body: JSON.stringify(projectData),
       });

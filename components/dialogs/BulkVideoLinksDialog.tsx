@@ -195,7 +195,7 @@ export const BulkVideoLinksDialog: React.FC<BulkVideoLinksDialogProps> = ({
           setGenerationProgress((prev) => ({ ...prev, current }));
 
           // Call API to generate thumbnail for this specific video-template pair
-          const response = await authFetch("/api/thumbnails/create", {
+          const response = await authFetch("/thumbnails/create", {
             method: "POST",
             body: JSON.stringify({
               projectId,

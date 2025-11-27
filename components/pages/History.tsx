@@ -126,7 +126,7 @@ const History = () => {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const response = await authFetch("/api/projects");
+      const response = await authFetch("/projects");
       if (response.ok) {
         const data = await response.json();
         const projectsArray = Array.isArray(data) ? data : data.projects || [];
@@ -183,7 +183,7 @@ const History = () => {
         params.append("timeFilter", timeFilter);
       }
 
-      const apiUrl = `/api/thumbnails?${params.toString()}`;
+      const apiUrl = `/thumbnails?${params.toString()}`;
       
       const response = await authFetch(apiUrl);
       const data = await response.json();
@@ -230,7 +230,7 @@ const History = () => {
     setActiveEditThumbnailId(thumbnail.id);
     setIsLoadingEdit(true);
     try {
-      const response = await authFetch(`/api/thumbnails/${thumbnail.setId}`);
+      const response = await authFetch(`/thumbnails/${thumbnail.setId}`);
       if (!response.ok) {
         throw new Error("Failed to load original settings");
       }
@@ -506,7 +506,7 @@ const History = () => {
     setIsDeleting(thumbnailToDelete.id);
     
     try {
-      const response = await authFetch(`/api/thumbnails/${thumbnailToDelete.id}`, {
+      const response = await authFetch(`/thumbnails/${thumbnailToDelete.id}`, {
         method: "DELETE",
       });
 
@@ -829,20 +829,20 @@ const History = () => {
           <div className="flex flex-wrap items-center gap-3 mt-4">
             <div className="inline-flex items-center rounded-full border bg-muted/40 p-1">
               <Button
-                variant={historyTab === 'projects' ? "default" : "ghost"}
-                size="sm"
-                className={`rounded-full ${historyTab === 'projects' ? 'shadow-sm' : ''}`}
-                onClick={() => setHistoryTab('projects')}
-              >
-                Projects
-              </Button>
-              <Button
                 variant={historyTab === 'timeline' ? "default" : "ghost"}
                 size="sm"
                 className={`rounded-full ${historyTab === 'timeline' ? 'shadow-sm' : ''}`}
                 onClick={() => setHistoryTab('timeline')}
               >
                 Timeline
+              </Button>
+              <Button
+                variant={historyTab === 'projects' ? "default" : "ghost"}
+                size="sm"
+                className={`rounded-full ${historyTab === 'projects' ? 'shadow-sm' : ''}`}
+                onClick={() => setHistoryTab('projects')}
+              >
+                Projects
               </Button>
             </div>
           </div>
@@ -1093,26 +1093,35 @@ const History = () => {
                           >
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                               <span suppressHydrationWarning>{formatTimeLabel(new Date(thumbnail.createdAt))}</span>
-                              <Badge
-                                variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
-                                className={thumbnail.status === "COMPLETED" ? "bg-green-500/20 text-green-700 border border-green-200" : ""}
-                              >
-                                {thumbnail.status === "COMPLETED" ? "Completed" : "In progress"}
-                              </Badge>
                               {thumbnailIsNew && <NewBadge />}
                             </div>
 
                             <div className="mt-3 flex gap-3">
                               <div className="relative w-32 aspect-video rounded-lg overflow-hidden bg-muted flex-shrink-0">
                                 {thumbnail.image ? (
-                                  <Image
-                                    src={thumbnail.image}
-                                    alt={thumbnail.title || "Thumbnail preview"}
-                                    fill
-                                    sizes="128px"
-                                    className="object-cover"
-                                    unoptimized
-                                  />
+                                  <>
+                                    <Image
+                                      src={thumbnail.image}
+                                      alt={thumbnail.title || "Thumbnail preview"}
+                                      fill
+                                      sizes="128px"
+                                      className="object-cover"
+                                      unoptimized
+                                    />
+                                    {/* Status Badge Overlay - Top Right */}
+                                    <div className="absolute top-2 right-2">
+                                      <Badge
+                                        variant={thumbnail.status === "COMPLETED" ? "default" : "secondary"}
+                                        className={`${
+                                          thumbnail.status === "COMPLETED" 
+                                            ? "bg-green-500/95 text-white border-green-400 shadow-lg backdrop-blur-sm" 
+                                            : "bg-yellow-500/95 text-white border-yellow-400 shadow-lg backdrop-blur-sm"
+                                        } text-[10px] font-semibold px-2 py-0.5`}
+                                      >
+                                        {thumbnail.status === "COMPLETED" ? "✓ Completed" : "In progress"}
+                                      </Badge>
+                                    </div>
+                                  </>
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
                                     <ImageIcon className="h-6 w-6 text-muted-foreground" />
@@ -1139,7 +1148,6 @@ const History = () => {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2 mt-3">
-                                  {thumbnailIsNew && <NewBadge />}
                                   <Button
                                     variant="secondary"
                                     size="sm"

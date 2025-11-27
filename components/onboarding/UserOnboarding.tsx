@@ -263,7 +263,7 @@ export function UserOnboarding({
 
     setIsProjectSaving(true);
     try {
-      const response = await authFetch("/api/projects/create", {
+      const response = await authFetch("/projects/create", {
         method: "POST",
         body: JSON.stringify({
           title: projectForm.title,
@@ -321,7 +321,7 @@ export function UserOnboarding({
         throw new Error(uploadResult.error || "Failed to upload image");
       }
 
-      const response = await authFetch(`/api/projects/${project.id}`, {
+      const response = await authFetch(`/projects/${project.id}`, {
         method: "PUT",
         body: JSON.stringify({
           title: project.title,
@@ -468,7 +468,7 @@ export function UserOnboarding({
         body.inspirationUrl = inspirationUrl;
       }
 
-      const response = await authFetch("/api/thumbnails/create", {
+      const response = await authFetch("/thumbnails/create", {
         method: "POST",
         body: JSON.stringify(body),
       });

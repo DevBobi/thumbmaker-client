@@ -103,10 +103,10 @@ export function FreeCreditsCard({ subscription, onRefresh }: FreeCreditsCardProp
                 ? "Trial in progress"
                 : "Trial completed"}
             </h3>
-          </div>
+        </div>
           <div className="rounded-full bg-blue-500/20 p-3 text-blue-500">
             <Sparkles className="h-5 w-5" />
-          </div>
+      </div>
         </div>
 
         {showStartCTA && (
@@ -129,7 +129,7 @@ export function FreeCreditsCard({ subscription, onRefresh }: FreeCreditsCardProp
             <div className="text-sm text-blue-100">
               {remainingCredits} of {trialCredits} trial credits remaining
             </div>
-          </div>
+        </div>
         )}
 
         {showTrialExpired && (
@@ -159,21 +159,21 @@ export function FreeCreditsCard({ subscription, onRefresh }: FreeCreditsCardProp
         )}
 
         {showTrialActive && (
-          <Button
+        <Button
             variant="secondary"
             onClick={handleConvertTrial}
             disabled={isConverting}
             className="w-full"
-          >
+        >
             {isConverting ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
                 Activating plan...
-              </div>
-            ) : (
+            </div>
+          ) : (
               "Upgrade now"
-            )}
-          </Button>
+          )}
+        </Button>
         )}
 
         {showTrialExpired && (

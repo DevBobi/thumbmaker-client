@@ -160,7 +160,7 @@ export const AdCreationProvider: React.FC<{ children: ReactNode }> = ({
       };
 
       // Submit the data to your API endpoint
-      const response = await authFetch("/api/ads/create", {
+      const response = await authFetch("/ads/create", {
         method: "POST",
         body: JSON.stringify(submissionData),
       });

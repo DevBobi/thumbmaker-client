@@ -123,7 +123,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
       }
 
       // Submit to API endpoint
-      const response = await authFetch(`/api/templates/${template.id}`, {
+      const response = await authFetch(`/templates/${template.id}`, {
         method: "PUT",
         body: JSON.stringify({
           image: imageUrl,

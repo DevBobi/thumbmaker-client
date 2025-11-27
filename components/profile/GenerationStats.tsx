@@ -23,7 +23,7 @@ export const GenerationStats = () => {
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
-      const response = await authFetch("/api/projects");
+      const response = await authFetch("/projects");
       if (!response.ok) throw new Error("Failed to fetch projects");
       return response.json();
     },
@@ -33,7 +33,7 @@ export const GenerationStats = () => {
   const { data: thumbnailsData, isLoading: thumbnailsLoading } = useQuery({
     queryKey: ["thumbnails-stats"],
     queryFn: async () => {
-      const response = await authFetch("/api/thumbnails?limit=1000");
+      const response = await authFetch("/thumbnails?limit=1000");
       if (!response.ok) throw new Error("Failed to fetch thumbnails");
       const data = await response.json();
       return data.data || [];
