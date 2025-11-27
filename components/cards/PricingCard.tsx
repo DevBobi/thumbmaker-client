@@ -27,7 +27,19 @@ export function PricingCard({
 
   const handleGetStarted = () => {
     if (!isSignedIn) {
-      router.push("/sign-in?redirect_url=/pricing");
+      if (!plan.priceId) {
+        router.push("/sign-in?redirect_url=/pricing");
+        return;
+      }
+
+      const targetParams = new URLSearchParams();
+      targetParams.set("plan", plan.tier);
+      targetParams.set("priceId", plan.priceId);
+
+      const redirectParams = new URLSearchParams();
+      redirectParams.set("redirect_url", `/pricing?${targetParams.toString()}`);
+
+      router.push(`/sign-in?${redirectParams.toString()}`);
       return;
     }
     onSelect(plan);

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { PricingCard } from "@/components/cards/PricingCard";
 import { pricingPlans, type PricingPlan } from "@/lib/plans";
@@ -9,60 +9,89 @@ import { useAuth } from "@clerk/nextjs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Pricing({ currentPlan }: { currentPlan: any }) {
-  const router = useRouter();
   const { isSignedIn } = useAuth();
   const { authFetch } = useAuthFetch();
+  const searchParams = useSearchParams();
   const [loadingPlans, setLoadingPlans] = useState<Record<string, boolean>>({});
   const [subscription, setSubscription] = useState(currentPlan);
   const [pricingError, setPricingError] = useState<string | null>(null);
-  const handleSubscribe = async (priceId: string, planName: string) => {
-    setLoadingPlans((prev) => ({ ...prev, [planName]: true }));
-    setPricingError(null);
 
-    try {
-      const response = await authFetch("/api/stripe/create-checkout-session", {
-        method: "POST",
-        body: JSON.stringify({ priceId }),
-      });
+  const handleSubscribe = useCallback(
+    async (priceId: string, planName: string) => {
+      setLoadingPlans((prev) => ({ ...prev, [planName]: true }));
+      setPricingError(null);
 
-      if (response.ok) {
-        const data = await response.json();
-        window.location.href = data.url;
-      } else {
-        const data = await response.json().catch(() => ({}));
-        setPricingError(data?.message || "Failed to start checkout.");
+      try {
+        const response = await authFetch("/api/stripe/create-checkout-session", {
+          method: "POST",
+          body: JSON.stringify({ priceId }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          window.location.href = data.url;
+        } else {
+          const data = await response.json().catch(() => ({}));
+          setPricingError(data?.message || "Failed to start checkout.");
+          setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
+        }
+      } catch {
+        setPricingError("Failed to start checkout. Please try again.");
         setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
       }
-    } catch {
-      setPricingError("Failed to start checkout. Please try again.");
-      setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
-    }
-  };
-
-  const refreshSubscription = useCallback(async () => {
-    try {
-      const response = await authFetch("/api/user/subscription");
-      if (response.ok) {
-        const data = await response.json();
-        setSubscription(data);
-      }
-    } catch (error) {
-      console.error("Error refreshing subscription:", error);
-    }
-  }, [authFetch]);
+    },
+    [authFetch]
+  );
 
   useEffect(() => {
     setSubscription(currentPlan);
   }, [currentPlan]);
 
-  const handlePlanSelection = async (plan: PricingPlan) => {
-    if (!plan.priceId) {
-      setPricingError("Plan is not available right now.");
+  const handlePlanSelection = useCallback(
+    async (plan: PricingPlan) => {
+      if (!plan.priceId) {
+        setPricingError("Plan is not available right now.");
+        return;
+      }
+
+      await handleSubscribe(plan.priceId, plan.name);
+    },
+    [handleSubscribe]
+  );
+
+  const selectedPlanTier = searchParams?.get("plan");
+  const selectedPriceId = searchParams?.get("priceId");
+
+  const pendingPlan = useMemo(() => {
+    if (!selectedPlanTier && !selectedPriceId) {
+      return null;
+    }
+
+    return (
+      pricingPlans.find((plan) => {
+        if (selectedPriceId && plan.priceId === selectedPriceId) return true;
+        if (selectedPlanTier && plan.tier === selectedPlanTier) return true;
+        return false;
+      }) ?? null
+    );
+  }, [selectedPlanTier, selectedPriceId]);
+
+  const autoCheckoutTriggered = useRef(false);
+
+  useEffect(() => {
+    if (
+      !isSignedIn ||
+      !pendingPlan ||
+      pendingPlan.isFree ||
+      !pendingPlan.priceId ||
+      autoCheckoutTriggered.current
+    ) {
       return;
     }
 
-    await handleSubscribe(plan.priceId, plan.name);
-  };
+    autoCheckoutTriggered.current = true;
+    handlePlanSelection(pendingPlan);
+  }, [handlePlanSelection, isSignedIn, pendingPlan]);
 
   // Find current plan's credits
   const currentPlanDetails = pricingPlans.find(
