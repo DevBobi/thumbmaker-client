@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuthFetch } from "@/hooks/use-auth-fetch";
 
 export const BillingButton = ({
   variant,
@@ -14,32 +14,32 @@ export const BillingButton = ({
   text = "Manage Billing",
 }: {
   variant: "outline" | "default" | "link" | "brand";
-  stripeCustomerId: string;
+  stripeCustomerId?: string | null;
   className?: string;
   size?: "default" | "sm" | "lg";
   text?: string;
 }) => {
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const { authFetch } = useAuthFetch();
 
   const handleBilling = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/billing-portal", {
+      const response = await authFetch("/stripe/billing-portal", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ stripeCustomerId }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Unable to open billing portal.");
+      }
 
       if (data.url) {
-        router.push(data.url);
+        window.location.href = data.url;
       }
     } catch (error) {
-      setLoading(false);
       console.error("Error managing subscription:", error);
     } finally {
       setTimeout(() => {

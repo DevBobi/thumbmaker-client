@@ -671,32 +671,43 @@ const AllTemplates = () => {
               </CardContent>
             </Card>
           ) : loadedTemplates.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-lg font-medium mb-2">No templates found</p>
-              {hasActiveFilters ? (
-                <div className="space-y-2">
+            <div className="text-center py-10 space-y-4">
+              <div>
+                <p className="text-lg font-medium mb-1">No templates found</p>
+                {hasActiveFilters ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      No templates match your current filters.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="mt-3"
+                    >
+                      <FilterX className="h-4 w-4 mr-2" />
+                      Clear all filters
+                    </Button>
+                  </>
+                ) : activeTab === "user-templates" ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      You haven&apos;t created any custom templates yet.
+                    </p>
+                    <Button
+                      onClick={() => setOpenTemplateCreator(true)}
+                      className="inline-flex items-center gap-2 px-5"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Template
+                    </Button>
+                  </div>
+                ) : (
                   <p className="text-sm text-muted-foreground">
-                    No templates match your current filters.
+                    No preset templates available at the moment.
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="mt-3"
-                  >
-                    <FilterX className="h-4 w-4 mr-2" />
-                    Clear all filters
-                  </Button>
-                </div>
-              ) : activeTab === "user-templates" ? (
-                <p className="text-sm text-muted-foreground">
-                  You haven't created any custom templates yet.
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No preset templates available at the moment.
-                </p>
-              )}
+                )}
+              </div>
             </div>
           ) : (
             <>

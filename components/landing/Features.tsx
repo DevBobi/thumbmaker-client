@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import feature1 from "@/public/features/feature-1.png";
 import feature2 from "@/public/features/feature-2.png";
 import feature3 from "@/public/features/feature-3.png";
+import { landingPrimaryButton } from "./buttonStyles";
 
 const steps = [
   {
@@ -23,7 +23,7 @@ const steps = [
       "AI creates 20 thumbnail variations instantly. Pick your top 3, upload to YouTube, and let the data choose your winner.",
     tag: "Template library",
     image: feature2,
-    bg: "bg-transparent !border-none",
+    bg: "bg-[#FFF4F4]",
   },
   {
     title: "Generate & Test",
@@ -59,10 +59,10 @@ export function Features() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`rounded-[32px] border border-black/5 ${step.bg} px-6 py-8 sm:px-10`}
+              className={`rounded-[32px] border border-black/5 ${step.bg} px-6 py-8 sm:px-10 h-full`}
             >
               <div
-                className={`grid items-center gap-8 lg:grid-cols-2 ${
+                className={`grid grid-cols-1 items-center gap-8 lg:grid-cols-2 ${
                   index % 2 === 1 ? "lg:[&>*:first-child]:order-2 lg:[&>*:last-child]:order-1" : ""
                 }`}
               >
@@ -72,14 +72,14 @@ export function Features() {
                   </span>
                   <h3 className="text-2xl font-semibold text-gray-900 sm:text-3xl">{step.title}</h3>
                   <p className="text-base text-muted-foreground">{step.description}</p>
-                  <Button asChild className="rounded-full px-5 shadow-sm">
-                    <Link href="/sign-up">Try For Free ✨</Link>
-                  </Button>
+                  <Link href="/sign-up" className={`${landingPrimaryButton} px-5 py-2 text-sm`}>
+                    Try For Free ✨
+                  </Link>
                 </div>
-                <div className="relative w-full flex justify-center">
+                <div className="relative w-full flex justify-center min-h-[240px] sm:min-h-[280px] lg:min-h-[320px]">
                   <div
-                    className={`relative w-full  ${
-                      index === steps.length - 1 ? "max-w-[320px]" : "max-w-[360px]"
+                    className={`relative w-full max-w-[360px] sm:max-w-[420px] lg:max-w-[460px] ${
+                      index === steps.length - 1 ? "lg:max-w-[400px]" : ""
                     } ${
                       index === 0
                         ? " "
