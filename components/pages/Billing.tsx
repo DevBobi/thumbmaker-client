@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -11,25 +11,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Shield, RefreshCw, Loader2 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BillingButton } from "@/components/BillingButton";
 import Breadcrumb from "@/components/Breadcrumb";
 import { pricingPlans } from "@/lib/plans";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { useTrialActions } from "@/hooks/use-free-credits";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface BillingProps {}
 
 const Billing = ({}: BillingProps) => {
   const { authFetch } = useAuthFetch();
-  const {
-    startTrial,
-    isStarting,
-    error: trialError,
-    setError: setTrialError,
-  } = useTrialActions();
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const router = useRouter();
   const [subscriptionData, setSubscriptionData] = useState<any>({
     credits: 0,
@@ -59,65 +54,72 @@ const Billing = ({}: BillingProps) => {
 
   const { credits, isActive, stripeCurrentPeriodEnd, stripeCustomerId, isCancelled, stripePriceId } = subscriptionData;
   const plan = pricingPlans.find((p) => p.priceId === stripePriceId);
-  const defaultTrialPriceId =
-    process.env.NEXT_PUBLIC_STRIPE_FREE_PLAN_ID ||
+  const defaultPaidPriceId =
     process.env.NEXT_PUBLIC_STRIPE_STARTER_PLAN_ID ||
-    process.env.NEXT_PUBLIC_STRIPE_STANDARD_PLAN_ID ||
-    process.env.NEXT_PUBLIC_STRIPE_BASIC_PLAN_ID ||
+    process.env.NEXT_PUBLIC_STRIPE_PRO_PLAN_ID ||
+    process.env.NEXT_PUBLIC_STRIPE_POWER_PLAN_ID ||
     "";
 
   const DEFAULT_TRIAL_CREDITS = 4;
-
-  const trialState = useMemo(() => {
-    const rawTrialCredits = subscriptionData?.trialCredits;
-    const trialCredits =
-      typeof rawTrialCredits === "number" && rawTrialCredits > 0
-        ? rawTrialCredits
-        : DEFAULT_TRIAL_CREDITS;
-    const trialCreditsUsed = subscriptionData?.trialCreditsUsed ?? 0;
-    const remainingCredits = Math.max(0, trialCredits - trialCreditsUsed);
-    const trialEndsAt = subscriptionData?.trialEndsAt
-      ? new Date(subscriptionData.trialEndsAt)
-      : null;
-    const daysRemaining = trialEndsAt
-      ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / 86400000))
-      : null;
-    const isTrialing = ["trialing", "ending"].includes(
-      subscriptionData?.trialStatus ?? ""
-    );
-    const hasUsedTrial = Boolean(subscriptionData?.trialCreditsAwarded);
-
-    return {
-      trialCredits,
-      remainingCredits,
-      daysRemaining,
-      trialEndsAt,
-      isTrialing,
-      hasUsedTrial,
-    };
-  }, [subscriptionData]);
-
-  const handleStartTrial = async () => {
-    if (!defaultTrialPriceId) {
-      setTrialError("Trial plan is not configured yet.");
+  const trialCredits =
+    typeof subscriptionData?.trialCredits === "number"
+      ? subscriptionData.trialCredits
+      : DEFAULT_TRIAL_CREDITS;
+  const trialCreditsUsed = subscriptionData?.trialCreditsUsed ?? 0;
+  const remainingTrialCredits = Math.max(0, trialCredits - trialCreditsUsed);
+  const trialEndsAt = subscriptionData?.trialEndsAt
+    ? new Date(subscriptionData.trialEndsAt)
+    : null;
+  const isTrialing = ["trialing", "ending"].includes(
+    subscriptionData?.trialStatus ?? ""
+  );
+  const handleCheckout = async (priceId?: string) => {
+    const targetPriceId = priceId || defaultPaidPriceId;
+    if (!targetPriceId) {
+      setBillingError("No plan is configured yet. Please contact support.");
       return;
     }
 
+    setBillingError(null);
+    setIsCheckoutLoading(true);
+
     try {
-      await startTrial(defaultTrialPriceId);
-      await fetchSubscription();
-    } catch {
-      // Error handled by hook
+      const response = await authFetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        body: JSON.stringify({ priceId: targetPriceId }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to start checkout.");
+      }
+
+      window.location.href = data.url;
+    } catch (error: any) {
+      setBillingError(
+        error?.message || "Failed to start checkout. Please try again."
+      );
+    } finally {
+      setIsCheckoutLoading(false);
     }
   };
 
-  const handleConvertTrial = async () => {
-    router.push("/pricing");
-  };
 
   const handleRefresh = () => {
     fetchSubscription();
   };
+
+  const formattedTrialEnds =
+    trialEndsAt &&
+    trialEndsAt.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+  const targetCheckoutPriceId = stripePriceId || defaultPaidPriceId;
+  const shouldPromptUpgrade = credits <= 0;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -145,66 +147,57 @@ const Billing = ({}: BillingProps) => {
         </Button>
       </div>
 
+      {billingError && (
+        <Alert variant="destructive">
+          <AlertDescription>{billingError}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="mb-8 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-500">Free trial</p>
-            {trialState.isTrialing ? (
-              <h2 className="text-xl font-semibold text-foreground">
-                {trialState.remainingCredits} credit
-                {trialState.remainingCredits === 1 ? "" : "s"} left •{" "}
-                {trialState.daysRemaining !== null
-                  ? `${trialState.daysRemaining} day${
-                      trialState.daysRemaining === 1 ? "" : "s"
-                    } remaining`
-                  : "trial ending soon"}
-              </h2>
-            ) : trialState.hasUsedTrial ? (
-              <h2 className="text-xl font-semibold text-foreground">
-                Trial completed
-              </h2>
-            ) : (
-              <h2 className="text-xl font-semibold text-foreground">
-                Start your {trialState.trialCredits}-credit trial
-              </h2>
-            )}
+            <p className="text-sm font-semibold text-blue-500 uppercase tracking-wide">
+              Complimentary credits
+            </p>
+            <h2 className="text-xl font-semibold text-foreground">
+              {remainingTrialCredits} credit
+              {remainingTrialCredits === 1 ? "" : "s"} remaining
+            </h2>
             <p className="text-sm text-muted-foreground">
-              {trialState.hasUsedTrial
-                ? "Your trial credits have been used. Pick a plan to keep generating thumbnails."
-                : "Test the full workflow with complimentary credits before upgrading."}
+              Every account starts with {DEFAULT_TRIAL_CREDITS} free credits to
+              test the workflow.
+              {isTrialing && formattedTrialEnds
+                ? ` Trial scheduled to end on ${formattedTrialEnds}.`
+                : ""}
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            {!trialState.hasUsedTrial && (
+            {shouldPromptUpgrade ? (
               <Button
-                onClick={handleStartTrial}
-                disabled={isStarting}
                 className="sm:min-w-[180px]"
+                disabled={isCheckoutLoading || !targetCheckoutPriceId}
+                onClick={() => handleCheckout(targetCheckoutPriceId)}
               >
-                {isStarting ? (
+                {isCheckoutLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Starting trial...
+                    Redirecting...
                   </div>
                 ) : (
-                  `Start free trial (${trialState.trialCredits} credits)`
+                  "Buy a plan"
                 )}
               </Button>
-            )}
-            {trialState.isTrialing && (
+            ) : (
               <Button
-                variant="secondary"
-                onClick={handleConvertTrial}
-                className="sm:min-w-[150px]"
+                variant="outline"
+                className="sm:min-w-[160px]"
+                onClick={() => router.push("/pricing")}
               >
-                {"Upgrade now"}
+                View plans
               </Button>
             )}
           </div>
         </div>
-        {trialError && (
-          <p className="mt-3 text-sm text-red-500">{trialError}</p>
-        )}
       </div>
 
       {isActive ? (
@@ -338,8 +331,20 @@ const Billing = ({}: BillingProps) => {
             </div>
           </CardContent>
           <CardFooter className="flex justify-end">
-            <Button variant="brand">
-              <Link href="/pricing">Subscribe Now</Link>
+            <Button
+              variant="brand"
+              disabled={isCheckoutLoading || !defaultPaidPriceId}
+              onClick={() => handleCheckout(defaultPaidPriceId)}
+              className="min-w-[160px]"
+            >
+              {isCheckoutLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Redirecting...
+                </div>
+              ) : (
+                "Subscribe Now"
+              )}
             </Button>
           </CardFooter>
         </Card>

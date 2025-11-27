@@ -1,14 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { PricingCard } from "@/components/cards/PricingCard";
 import { pricingPlans, type PricingPlan } from "@/lib/plans";
-import { Button } from "@/components/ui/button";
-import { useTrialActions } from "@/hooks/use-free-credits";
-import { Loader2 } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Pricing({ currentPlan }: { currentPlan: any }) {
   const router = useRouter();
@@ -16,14 +14,10 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
   const { authFetch } = useAuthFetch();
   const [loadingPlans, setLoadingPlans] = useState<Record<string, boolean>>({});
   const [subscription, setSubscription] = useState(currentPlan);
-  const {
-    startTrial,
-    isStarting,
-    error: trialError,
-    setError: setTrialError,
-  } = useTrialActions();
+  const [pricingError, setPricingError] = useState<string | null>(null);
   const handleSubscribe = async (priceId: string, planName: string) => {
     setLoadingPlans((prev) => ({ ...prev, [planName]: true }));
+    setPricingError(null);
 
     try {
       const response = await authFetch("/api/stripe/create-checkout-session", {
@@ -35,9 +29,12 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
         const data = await response.json();
         window.location.href = data.url;
       } else {
+        const data = await response.json().catch(() => ({}));
+        setPricingError(data?.message || "Failed to start checkout.");
         setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
       }
     } catch {
+      setPricingError("Failed to start checkout. Please try again.");
       setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
     }
   };
@@ -58,108 +55,9 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
     setSubscription(currentPlan);
   }, [currentPlan]);
 
-  const defaultTrialPriceId =
-    process.env.NEXT_PUBLIC_STRIPE_FREE_PLAN_ID ||
-    process.env.NEXT_PUBLIC_STRIPE_STARTER_PLAN_ID ||
-    process.env.NEXT_PUBLIC_STRIPE_STANDARD_PLAN_ID ||
-    process.env.NEXT_PUBLIC_STRIPE_BASIC_PLAN_ID ||
-    "";
-
-  const DEFAULT_TRIAL_CREDITS = 4;
-
-  const trialState = useMemo(() => {
-    const rawTrialCredits = subscription?.trialCredits;
-    const trialCredits =
-      typeof rawTrialCredits === "number" && rawTrialCredits > 0
-        ? rawTrialCredits
-        : DEFAULT_TRIAL_CREDITS;
-    const trialCreditsUsed = subscription?.trialCreditsUsed ?? 0;
-    const remainingCredits = Math.max(0, trialCredits - trialCreditsUsed);
-    const trialEndsAt = subscription?.trialEndsAt
-      ? new Date(subscription.trialEndsAt)
-      : null;
-    const daysRemaining = trialEndsAt
-      ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / 86400000))
-      : null;
-    const isTrialing = ["trialing", "ending"].includes(
-      subscription?.trialStatus ?? ""
-    );
-    const hasUsedTrial = Boolean(subscription?.trialCreditsAwarded);
-
-    return {
-      trialCredits,
-      remainingCredits,
-      daysRemaining,
-      isTrialing,
-      hasUsedTrial,
-    };
-  }, [subscription]);
-
-  const handleStartTrial = async (priceId?: string) => {
-    if (!isSignedIn) {
-      router.push("/sign-in?redirect_url=/pricing");
-      return;
-    }
-
-    setTrialError(null);
-
-    const targetPriceId = priceId || defaultTrialPriceId;
-
-    if (!targetPriceId) {
-      setTrialError("Trial plan is not configured yet.");
-      return;
-    }
-
-    try {
-      await startTrial(targetPriceId);
-      await refreshSubscription();
-    } catch {
-      // handled by hook
-    }
-  };
-
-  const handleConvertTrial = async () => {
-    if (!isSignedIn) {
-      router.push("/sign-in?redirect_url=/pricing");
-      return;
-    }
-    router.push("/dashboard/billing");
-  };
-
-  const handleUpgradeOrDowngrade = async (
-    priceId: string,
-    planName: string
-  ) => {
-    setLoadingPlans((prev) => ({ ...prev, [planName]: true }));
-
-    try {
-      const response = await authFetch(
-        "/api/stripe/upgrade-or-downgrade-subscription",
-        {
-          method: "POST",
-          body: JSON.stringify({ priceId }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        router.push(data.url);
-      } else {
-        setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
-      }
-    } catch {
-      setLoadingPlans((prev) => ({ ...prev, [planName]: false }));
-    }
-  };
-
   const handlePlanSelection = async (plan: PricingPlan) => {
     if (!plan.priceId) {
-      setTrialError("Plan is not available right now.");
-      return;
-    }
-
-    if (plan.isFree || plan.tier === "free") {
-      await handleStartTrial(plan.priceId);
+      setPricingError("Plan is not available right now.");
       return;
     }
 
@@ -177,95 +75,36 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
         {/* Header Section */}
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            Simple, Transparent Pricing
+            Start free, upgrade when you&apos;re ready
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Choose the perfect plan for your YouTube thumbnail needs. Create stunning thumbnails that get clicks.
+            Every plan begins with 4 complimentary credits—enough to ship a full thumbnail so you can feel the workflow before paying a dollar.
           </p>
         </div>
 
-        <div className="mb-12 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="text-left">
-              <p className="text-sm font-semibold text-blue-500 uppercase tracking-wide">
-                Free Trial
-              </p>
-              {trialState.isTrialing ? (
-                <h2 className="text-2xl font-semibold text-foreground">
-                  {trialState.remainingCredits} credit
-                  {trialState.remainingCredits === 1 ? "" : "s"} left ·{" "}
-                  {trialState.daysRemaining !== null
-                    ? `${trialState.daysRemaining} day${
-                        trialState.daysRemaining === 1 ? "" : "s"
-                      } remaining`
-                    : "trial ending soon"}
-                </h2>
-              ) : trialState.hasUsedTrial ? (
-                <h2 className="text-2xl font-semibold text-foreground">
-                  Trial completed
-                </h2>
-              ) : (
-                <h2 className="text-2xl font-semibold text-foreground">
-                  Get {trialState.trialCredits} free credits before you commit
-                </h2>
-              )}
-              <p className="mt-2 text-muted-foreground">
-                {trialState.hasUsedTrial
-                  ? "You’ve experienced ThumbMaker’s workflow. Pick a plan to keep generating winning thumbnails."
-                  : "Start designing immediately with complimentary credits. No card required to begin."}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {!trialState.hasUsedTrial && (
-                <Button
-                  onClick={() => handleStartTrial()}
-                  disabled={isStarting}
-                  className="sm:min-w-[200px]"
-                >
-                  {isStarting ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Starting trial...
-                    </div>
-                  ) : (
-                    `Start free trial (${trialState.trialCredits} credits)`
-                  )}
-                </Button>
-              )}
-              {trialState.isTrialing && (
-                <Button
-                  variant="outline"
-                  onClick={handleConvertTrial}
-                  className="sm:min-w-[160px]"
-                >
-                  Manage billing
-                </Button>
-              )}
-            </div>
-          </div>
-          {trialError && (
-            <p className="mt-3 text-sm text-red-500">{trialError}</p>
-          )}
-        </div>
+        {pricingError && (
+          <Alert variant="destructive" className="mb-6 max-w-3xl mx-auto">
+            <AlertDescription>{pricingError}</AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-8 max-w-7xl mx-auto">
           {pricingPlans
             .filter((plan) => !(plan.isFree || plan.tier === "free"))
             .map((plan) => (
-            <div key={plan.name}>
+              <div key={plan.name}>
                 <PricingCard
                   plan={plan}
                   isLoading={loadingPlans[plan.name] || false}
-                  onSubscribe={() => handlePlanSelection(plan)}
-                onUpgradeOrDowngrade={handleUpgradeOrDowngrade}
-                isCurrentPlan={
-                  plan.name.toLowerCase() === subscription?.plan?.toLowerCase()
-                }
-                stripeCustomerId={subscription?.stripeCustomerId}
-                currentPlanCredits={currentPlanDetails?.credits || 0}
-              />
-            </div>
-          ))}
+                  onSelect={handlePlanSelection}
+                  isCurrentPlan={
+                    plan.name.toLowerCase() === subscription?.plan?.toLowerCase()
+                  }
+                  stripeCustomerId={subscription?.stripeCustomerId}
+                  currentPlanCredits={currentPlanDetails?.credits || 0}
+                />
+              </div>
+            ))}
         </div>
 
         {/* FAQ Section */}
