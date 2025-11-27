@@ -179,7 +179,7 @@ export default function ThumbnailCreationSheet({
   } = useQuery({
     queryKey: ["thumbnail-subscription"],
     queryFn: async () => {
-      const response = await authFetch("/api/user/subscription");
+      const response = await authFetch("/user/subscription");
       if (!response.ok) {
         throw new Error("Failed to load subscription details");
       }
@@ -559,7 +559,7 @@ export default function ThumbnailCreationSheet({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      const response = await authFetch("/api/thumbnails/create", {
+      const response = await authFetch("/thumbnails/create", {
         method: "POST",
         body: JSON.stringify(requestBody),
         signal: controller.signal,

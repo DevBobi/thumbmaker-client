@@ -228,7 +228,7 @@ export default function CreateYoutubeThumbnail() {
   // Fetch projects on mount
   const fetchProjects = async () => {
     try {
-      const response = await authFetch("/api/projects");
+      const response = await authFetch("/projects");
       if (response.ok) {
         const data = await response.json();
         // Handle different response structures
@@ -301,8 +301,8 @@ export default function CreateYoutubeThumbnail() {
     try {
       // Fetch templates from both preset and user endpoints with higher limit
       const [presetResponse, userResponse] = await Promise.all([
-        authFetch(`/api/templates/presets?limit=2000`).catch(() => null),
-        authFetch(`/api/templates/user?limit=2000`).catch(() => null),
+        authFetch(`/templates/presets?limit=2000`).catch(() => null),
+        authFetch(`/templates/user?limit=2000`).catch(() => null),
       ]);
 
       const templates: any[] = [...existingObjects]; // Start with existing
@@ -901,7 +901,7 @@ export default function CreateYoutubeThumbnail() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await authFetch("/api/thumbnails/create", {
+      const response = await authFetch("/thumbnails/create", {
         method: "POST",
         body: JSON.stringify(requestBody),
         signal: controller.signal,

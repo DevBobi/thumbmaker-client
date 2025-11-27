@@ -55,7 +55,7 @@ const CreateTemplateThumbnail = ({
         projectId: selectedProject?.id,
       };
 
-      const response = await fetch('/api/thumbnails/create', {
+      const response = await fetch('/thumbnails/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ const CreateTemplateThumbnail = ({
         projectId: selectedProject?.id,
       };
 
-      const response = await fetch('/api/thumbnails/create', {
+      const response = await fetch('/thumbnails/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

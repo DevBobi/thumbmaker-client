@@ -131,7 +131,7 @@ export function VideoProjectSheet({
   const loadProjectData = async () => {
     setIsLoading(true);
     try {
-      const response = await authFetch(`/api/projects/${projectId}`);
+      const response = await authFetch(`/projects/${projectId}`);
       if (!response.ok) {
         throw new Error("Failed to load project");
       }
@@ -205,7 +205,7 @@ export function VideoProjectSheet({
           setIsSaving(false);
           return;
         }
-        endpoint = "/api/projects/create-with-text";
+        endpoint = "/projects/create-with-text";
         body.content = textContent;
       } else if (method === "youtube") {
         if (!youtubeLink) {
@@ -217,7 +217,7 @@ export function VideoProjectSheet({
           setIsSaving(false);
           return;
         }
-        endpoint = "/api/projects/create-with-youtube";
+        endpoint = "/projects/create-with-youtube";
         body.youtubeLink = youtubeLink;
       } else if (method === "document") {
         if (!documentFile) {
@@ -235,7 +235,7 @@ export function VideoProjectSheet({
         if (!docUpload.success || !docUpload.fileUrl) {
           throw new Error("Failed to upload document");
         }
-        endpoint = "/api/projects/create-with-document";
+        endpoint = "/projects/create-with-document";
         body.document = docUpload.fileUrl;
       }
 
@@ -317,7 +317,7 @@ export function VideoProjectSheet({
         image: imageUrl,
       };
 
-      const url = currentMode === "edit" ? `/api/projects/${projectId}` : "/api/projects/create";
+      const url = currentMode === "edit" ? `/projects/${projectId}` : "/projects/create";
       const method = currentMode === "edit" ? "PUT" : "POST";
 
       const response = await authFetch(url, {
@@ -396,7 +396,7 @@ export function VideoProjectSheet({
     
     setIsDeleting(true);
     try {
-      const response = await authFetch(`/api/projects/${projectId}`, {
+      const response = await authFetch(`/projects/${projectId}`, {
         method: "DELETE",
       });
 

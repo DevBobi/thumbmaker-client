@@ -40,7 +40,7 @@ export function useGenerationProgress(setId: string | undefined) {
 
     const fetchProgress = async () => {
       try {
-        const response = await authFetch(`/api/metrics/set/${setId}`);
+        const response = await authFetch(`/metrics/set/${setId}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch progress: ${response.status}`);
         }

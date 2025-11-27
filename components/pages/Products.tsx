@@ -45,7 +45,7 @@ const Products = () => {
 
   // Function to fetch products from the API
   const fetchProducts = async (): Promise<Product[]> => {
-    const response = await authFetch("/api/projects");
+    const response = await authFetch("/projects");
     if (!response.ok) {
       throw new Error("Failed to fetch products");
     }

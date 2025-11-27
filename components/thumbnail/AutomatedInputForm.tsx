@@ -111,7 +111,7 @@ const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) =>
           imageUrl = uploadResult.fileUrl;
         }
 
-        const response = await authFetch("/api/projects/create-with-text", {
+        const response = await authFetch("/projects/create-with-text", {
           method: "POST",
           body: JSON.stringify({
             title: values.videoTitle,
@@ -164,7 +164,7 @@ const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) =>
           imageUrl = uploadResult.fileUrl;
         }
 
-        const response = await authFetch("/api/projects/create-with-youtube", {
+        const response = await authFetch("/projects/create-with-youtube", {
           method: "POST",
           body: JSON.stringify({
             title: values.videoTitle,
@@ -237,7 +237,7 @@ const AutomatedInputForm = ({ defaultTab = "text" }: AutomatedInputFormProps) =>
           throw new Error("Failed to upload document");
         }
 
-        const response = await authFetch("/api/projects/create-with-document", {
+        const response = await authFetch("/projects/create-with-document", {
           method: "POST",
           body: JSON.stringify({
             title: values.videoTitle,

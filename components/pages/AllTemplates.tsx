@@ -110,8 +110,8 @@ const AllTemplates = () => {
       });
 
       const endpoint = activeTab === "user-templates" 
-        ? `/api/templates/user?${params.toString()}`
-        : `/api/templates/presets?${params.toString()}`;
+        ? `/templates/user?${params.toString()}`
+        : `/templates/presets?${params.toString()}`;
       
       const response = await authFetch(endpoint);
 
@@ -149,7 +149,7 @@ const AllTemplates = () => {
     queryKey: ["presetTemplates", page, limit, searchTerm, filters, activeTab],
     queryFn: async () => {
       const response = await authFetch(
-        `/api/templates/presets?${buildQueryParams()}`
+        `/templates/presets?${buildQueryParams()}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch preset templates");
@@ -169,7 +169,7 @@ const AllTemplates = () => {
     queryKey: ["userTemplates", page, limit, searchTerm, filters, activeTab],
     queryFn: async () => {
       const response = await authFetch(
-        `/api/templates/user?${buildQueryParams()}`
+        `/templates/user?${buildQueryParams()}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch user templates");
@@ -310,7 +310,7 @@ const AllTemplates = () => {
 
   const handleDeleteTemplate = async (templateId: string) => {
     try {
-      const response = await authFetch(`/api/templates/${templateId}`, {
+      const response = await authFetch(`/templates/${templateId}`, {
         method: "DELETE",
       });
 

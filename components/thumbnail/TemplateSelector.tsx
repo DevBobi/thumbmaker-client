@@ -213,8 +213,8 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       if (templateType === "user") params.append("type", "user");
 
       const endpoint = templateType === "user" 
-        ? `/api/templates/user?${params.toString()}`
-        : `/api/templates/presets?${params.toString()}`;
+        ? `/templates/user?${params.toString()}`
+        : `/templates/presets?${params.toString()}`;
       
       const response = await authFetch(endpoint);
 
@@ -249,8 +249,8 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
       // Use different endpoint based on template type
       const endpoint = templateType === "user" 
-        ? `/api/templates/user?${params.toString()}`
-        : `/api/templates/presets?${params.toString()}`;
+        ? `/templates/user?${params.toString()}`
+        : `/templates/presets?${params.toString()}`;
       
       console.log("📡 API Request:", endpoint);
       

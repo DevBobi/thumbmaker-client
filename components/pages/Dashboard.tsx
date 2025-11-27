@@ -70,11 +70,26 @@ const Dashboard = () => {
 
   // Fetch projects using React Query
   const fetchProjects = async (): Promise<Project[]> => {
-    const response = await authFetch("/api/projects");
-    if (!response.ok) {
-      throw new Error("Failed to fetch projects");
+    try {
+      const response = await authFetch("/projects");
+      if (!response.ok) {
+        // If 404 or empty, return empty array instead of throwing error
+        // This allows the UI to show the "create first project" state
+        if (response.status === 404 || response.status === 401) {
+          return [];
+        }
+        // For other errors, return empty array to show empty state
+        console.warn("Failed to fetch projects:", response.status);
+        return [];
+      }
+      const data = await response.json();
+      // Handle case where API returns empty array or null
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      // On any error (network, etc.), return empty array to show empty state
+      console.warn("Error fetching projects:", error);
+      return [];
     }
-    return response.json();
   };
 
   const {
@@ -84,6 +99,7 @@ const Dashboard = () => {
   } = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
+    retry: false, // Don't retry - show empty state immediately
   });
 
   const handleEditProject = (projectId: string) => {

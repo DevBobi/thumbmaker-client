@@ -46,7 +46,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     queryFn: async () => {
       if (!debouncedSearchTerm.trim()) {
         // Return recent products when no search term is provided
-        const response = await authFetch("/api/projects/recent?take=3");
+        const response = await authFetch("/projects/recent?take=3");
         if (!response.ok) {
           throw new Error("Failed to fetch recent products");
         }
@@ -54,7 +54,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       }
 
       const response = await authFetch(
-        `/api/projects/search?query=${encodeURIComponent(
+        `/projects/search?query=${encodeURIComponent(
           debouncedSearchTerm
         )}&take=3`
       );

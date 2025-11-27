@@ -7,7 +7,7 @@ export default async function PricingPage() {
   let currentPlan = null;
 
   try {
-    const res = await serverAuthFetch("/api/user/subscription");
+    const res = await serverAuthFetch("/user/subscription");
     if (res.ok) {
       currentPlan = await res.json();
     }

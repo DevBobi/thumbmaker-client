@@ -17,7 +17,7 @@ export const useTemplateFilters = () => {
   return useQuery<TemplateFilterOptions>({
     queryKey: ["templateFilterOptions"],
     queryFn: async () => {
-      const response = await authFetch("/api/templates/filter-options");
+      const response = await authFetch("/templates/filter-options");
       if (!response.ok) {
         throw new Error("Failed to fetch filter options");
       }

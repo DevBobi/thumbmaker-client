@@ -33,14 +33,23 @@ export const BillingButton = ({
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data?.message || "Unable to open billing portal.");
+        const errorMessage = data?.message || data?.error || `Server returned ${response.status}`;
+        console.error("Billing portal error:", {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+        });
+        throw new Error(errorMessage);
       }
 
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error("No portal URL received from server");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error managing subscription:", error);
+      alert(error?.message || "Unable to open billing portal. Please try again.");
     } finally {
       setTimeout(() => {
         setLoading(false);

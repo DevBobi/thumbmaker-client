@@ -55,7 +55,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     queryKey: ["presetTemplates", page, limit, searchTerm, creatorFilter, nicheFilter, activeTab],
     queryFn: async () => {
       const response = await authFetch(
-        `/api/templates/presets?${buildQueryParams()}`
+        `/templates/presets?${buildQueryParams()}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch preset templates");
@@ -73,7 +73,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     queryKey: ["userTemplates", page, limit, searchTerm, creatorFilter, nicheFilter, activeTab],
     queryFn: async () => {
       const response = await authFetch(
-        `/api/templates/user?${buildQueryParams()}`
+        `/templates/user?${buildQueryParams()}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch user templates");
@@ -87,7 +87,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const { data: filterOptions } = useQuery({
     queryKey: ["templateFilters"],
     queryFn: async () => {
-      const response = await authFetch("/api/templates/filters");
+      const response = await authFetch("/templates/filters");
       if (!response.ok) {
         throw new Error("Failed to fetch filters");
       }

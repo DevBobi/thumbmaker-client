@@ -92,7 +92,7 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
     queryKey: ["presetTemplates", page, limit, searchTerm, filters, activeTab],
     queryFn: async () => {
       const response = await authFetch(
-        `/api/templates/presets?${buildQueryParams()}`
+        `/templates/presets?${buildQueryParams()}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch preset templates");
@@ -112,7 +112,7 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
     queryKey: ["userTemplates", page, limit, searchTerm, filters, activeTab],
     queryFn: async () => {
       const response = await authFetch(
-        `/api/templates/user?${buildQueryParams()}`
+        `/templates/user?${buildQueryParams()}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch user templates");
@@ -131,9 +131,9 @@ const AdTemplateSearch: React.FC<AdTemplateSearchProps> = ({ onBack }) => {
     queryFn: async () => {
       // Fetch both preset and user templates without pagination
       const presetResponse = await authFetch(
-        `/api/templates/presets?limit=100`
+        `/templates/presets?limit=100`
       );
-      const userResponse = await authFetch(`/api/templates/user?limit=100`);
+      const userResponse = await authFetch(`/templates/user?limit=100`);
 
       if (!presetResponse.ok || !userResponse.ok) {
         throw new Error("Failed to fetch all templates");

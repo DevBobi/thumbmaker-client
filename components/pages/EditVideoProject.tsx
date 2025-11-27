@@ -46,7 +46,7 @@ const EditVideoProject = () => {
     if (id) {
       setIsDeleting(true);
       try {
-        const response = await authFetch(`/api/projects/${id}`, {
+        const response = await authFetch(`/projects/${id}`, {
           method: "DELETE",
         });
 

@@ -9,7 +9,6 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { GeneratedThumbnailCard } from "../cards/GeneratedThumbnailCard";
 import { io, Socket } from "socket.io-client";
 import { useGenerationProgress } from "@/hooks/use-generation-progress";
-import { Progress } from "@/components/ui/progress";
 
 interface GeneratedThumbnail {
   id: string;
@@ -33,12 +32,12 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
   const [setStatus, setSetStatus] = useState<string>("");
   const socketRef = useRef<Socket | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { progress: genProgress, loading: genProgressLoading } = useGenerationProgress(id);
+  const { progress: genProgress } = useGenerationProgress(id);
 
   useEffect(() => {
     const fetchThumbnails = async () => {
       try {
-        const response = await authFetch(`/api/thumbnails/${id}`);
+        const response = await authFetch(`/thumbnails/${id}`);
         
         console.log('📊 API Response status:', response.status);
         console.log('📊 API Response headers:', response.headers);
@@ -164,7 +163,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
       if (data.setId === id) {
         // Fetch the latest data to ensure we have the complete thumbnail set
         try {
-          const response = await authFetch(`/api/thumbnails/${id}`);
+          const response = await authFetch(`/thumbnails/${id}`);
           if (response.ok) {
             const latestData = await response.json();
             console.log('📊 Latest data after completion:', latestData);
@@ -231,7 +230,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
     pollIntervalRef.current = setInterval(async () => {
       console.log('🔄 Fallback polling for status update...');
       try {
-        const response = await authFetch(`/api/thumbnails/${id}`);
+        const response = await authFetch(`/thumbnails/${id}`);
         if (response.ok) {
           const data = await response.json();
           const status = (data.status || "").toString().toUpperCase();
@@ -318,14 +317,16 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             </Button>
           </div>
           
-          <div className="space-y-2">
-            <Progress 
-              value={genProgress.percent} 
-              className="h-2 w-full" 
-            />
-            <p className="text-sm text-muted-foreground">
-              {genProgress.status === 'PENDING' ? 'Starting generation...' : 
-               `Generating thumbnail ${genProgress.completed} of ${genProgress.total}`}
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <p className="text-sm text-blue-900 dark:text-blue-200">
+              <strong>💡 You can leave this page anytime.</strong> Your thumbnails will continue generating in the background. Check back later in your{" "}
+              <button
+                onClick={() => router.push('/dashboard/history')}
+                className="underline font-semibold hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+              >
+                History
+              </button>
+              {" "}to see them when they're ready.
             </p>
           </div>
         </div>

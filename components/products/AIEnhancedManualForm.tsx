@@ -82,7 +82,7 @@ const AIEnhancedManualForm = () => {
     setIsEnhancing(true);
 
     try {
-      const response = await authFetch("/api/projects/enhance-brief", {
+      const response = await authFetch("/projects/enhance-brief", {
         method: "POST",
         body: JSON.stringify({
           title,
@@ -167,7 +167,7 @@ const AIEnhancedManualForm = () => {
         image: imageUrl,
       };
 
-      const response = await authFetch("/api/projects/create", {
+      const response = await authFetch("/projects/create", {
         method: "POST",
         body: JSON.stringify(projectData),
       });

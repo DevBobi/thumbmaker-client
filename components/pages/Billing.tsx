@@ -38,7 +38,7 @@ const Billing = ({}: BillingProps) => {
 
   const fetchSubscription = useCallback(async () => {
     try {
-      const response = await authFetch("/api/user/subscription");
+      const response = await authFetch("/user/subscription");
       if (response.ok) {
         const data = await response.json();
         setSubscriptionData(data);
@@ -66,7 +66,12 @@ const Billing = ({}: BillingProps) => {
       ? subscriptionData.trialCredits
       : DEFAULT_TRIAL_CREDITS;
   const trialCreditsUsed = subscriptionData?.trialCreditsUsed ?? 0;
+  
+  // For paid plans, show plan credits. For trial/free, show remaining trial credits
+  const isPaidPlan = isActive && credits > DEFAULT_TRIAL_CREDITS;
   const remainingTrialCredits = Math.max(0, trialCredits - trialCreditsUsed);
+  const displayCredits = isPaidPlan ? credits : remainingTrialCredits;
+  
   const trialEndsAt = subscriptionData?.trialEndsAt
     ? new Date(subscriptionData.trialEndsAt)
     : null;
@@ -84,7 +89,7 @@ const Billing = ({}: BillingProps) => {
     setIsCheckoutLoading(true);
 
     try {
-      const response = await authFetch("/api/stripe/create-checkout-session", {
+      const response = await authFetch("/stripe/create-checkout-session", {
         method: "POST",
         body: JSON.stringify({ priceId: targetPriceId }),
       });
@@ -157,16 +162,17 @@ const Billing = ({}: BillingProps) => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-blue-500 uppercase tracking-wide">
-              Complimentary credits
+              {isPaidPlan ? "Plan Credits" : "Complimentary credits"}
             </p>
             <h2 className="text-xl font-semibold text-foreground">
-              {remainingTrialCredits} credit
-              {remainingTrialCredits === 1 ? "" : "s"} remaining
+              {displayCredits} credit
+              {displayCredits === 1 ? "" : "s"} {isPaidPlan ? "available" : "remaining"}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Every account starts with {DEFAULT_TRIAL_CREDITS} free credits to
-              test the workflow.
-              {isTrialing && formattedTrialEnds
+              {isPaidPlan 
+                ? `You have ${credits} credits from your ${plan?.name || "paid"} plan.`
+                : `Every account starts with ${DEFAULT_TRIAL_CREDITS} free credits to test the workflow.`}
+              {isTrialing && formattedTrialEnds && !isPaidPlan
                 ? ` Trial scheduled to end on ${formattedTrialEnds}.`
                 : ""}
             </p>

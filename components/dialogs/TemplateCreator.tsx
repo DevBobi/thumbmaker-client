@@ -280,7 +280,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
         let aiTags: string[] = [];
         if (title && channelName) {
           try {
-            const nicheResponse = await authFetch("/api/templates/detect-niche", {
+            const nicheResponse = await authFetch("/templates/detect-niche", {
               method: "POST",
               body: JSON.stringify({ title, channelName }),
             });
@@ -311,7 +311,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
           : "Imported from YouTube";
 
         // Create template
-        const response = await authFetch("/api/templates/create", {
+        const response = await authFetch("/templates/create", {
           method: "POST",
           body: JSON.stringify({
             image: fileUrl,
@@ -405,7 +405,7 @@ const TemplateCreator: React.FC<TemplateCreatorProps> = ({
       const { fileUrl } = await uploadToStorage(formData);
 
       // Create new template
-      const response = await authFetch("/api/templates/create", {
+      const response = await authFetch("/templates/create", {
         method: "POST",
         body: JSON.stringify({
           image: fileUrl,

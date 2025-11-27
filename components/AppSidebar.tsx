@@ -94,26 +94,51 @@ export function AppSidebar({
   const { state } = useSidebar();
   const { authFetch } = useAuthFetch();
   const [subscriptionState, setSubscriptionState] = useState<Subscription>(subscription);
+  // Track if we've received valid data from API (not just initial props which might be defaults)
+  // Check if initial subscription prop has meaningful data (not just defaults like credits: 0, isActive: false)
+  const hasInitialData = subscription.credits > 0 || subscription.isActive || subscription.plan;
+  const [hasLoadedSubscription, setHasLoadedSubscription] = useState(hasInitialData);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(!hasInitialData); // Start with true if no initial data
 
   useEffect(() => {
-    setSubscriptionState(subscription);
+    // Update state when subscription prop changes (e.g., from server-side fetch)
+    if (subscription && subscription.credits !== undefined) {
+      setSubscriptionState(subscription);
+      // Mark as loaded if subscription has meaningful data
+      const hasValidData = subscription.credits > 0 || subscription.isActive || subscription.plan;
+      if (hasValidData) {
+        setHasLoadedSubscription(true);
+        setIsLoadingSubscription(false);
+      }
+    }
   }, [subscription]);
 
   const refreshSubscription = useCallback(async () => {
     try {
-      const response = await authFetch("/api/user/subscription");
-      if (!response.ok) return;
+      setIsLoadingSubscription(true);
+      const response = await authFetch("/user/subscription");
+      if (!response.ok) {
+        setIsLoadingSubscription(false);
+        return;
+      }
       const data = await response.json();
 
       setSubscriptionState((prev) => ({
         ...prev,
         ...data,
       }));
+      // Always mark as loaded after successful API call (even if credits are 0)
+      // This ensures we have the most up-to-date data before showing/hiding upgrade card
+      setHasLoadedSubscription(true);
     } catch (error) {
       console.error("Failed to refresh subscription", error);
+    } finally {
+      setIsLoadingSubscription(false);
     }
   }, [authFetch]);
 
+  // Always fetch on mount to get latest data from API
+  // This ensures we have the most up-to-date subscription state before showing UI
   useEffect(() => {
     refreshSubscription();
   }, [refreshSubscription]);
@@ -141,14 +166,36 @@ export function AppSidebar({
     typeof subscriptionState.credits === "number" ? subscriptionState.credits : 0;
   const isTrialing = ["trialing", "ending"].includes(subscriptionState.trialStatus || "");
   const hasUsedTrial = Boolean(subscriptionState.trialCreditsAwarded);
-  const showUpgradeCTA =
-    !subscriptionState.isActive || normalizedCredits <= 0 || (isTrialing && hasUsedTrial);
+  const hasPaidPlanCredits = normalizedCredits > 4; // Paid plans have more than 4 credits
+  const isPaidPlan = subscriptionState.isActive && hasPaidPlanCredits;
+  const isTrialEnding = subscriptionState.trialStatus === "ending";
+  
+  // Show upgrade CTA only when:
+  // 1. Data is loaded from API (hasLoadedSubscription), AND
+  // 2. Not currently loading (isLoadingSubscription), AND
+  // 3. User has NO paid plan credits available (credits <= 4), AND
+  //    - Subscription is not active, OR
+  //    - Credits are 0, OR
+  //    - On trial and used all trial credits
+  // Don't show if user has paid plan credits available (they're good to go!)
+  // Don't show while loading to prevent flash of incorrect state
+  const showUpgradeCTA = hasLoadedSubscription && !isLoadingSubscription && hasPaidPlanCredits 
+    ? false // User has paid plan credits, don't show upgrade card
+    : hasLoadedSubscription && !isLoadingSubscription && (
+        !subscriptionState.isActive || 
+        normalizedCredits <= 0 || 
+        (isTrialing && hasUsedTrial && normalizedCredits <= 0)
+      );
 
   const upgradeMessage = !subscriptionState.isActive
     ? "Unlock premium features and generate high-converting thumbnails every month."
-    : normalizedCredits <= 0 && isTrialing
-      ? "You’ve used your trial credits. Upgrade to keep generating thumbnails."
-      : "You’re out of credits. Upgrade to keep generating thumbnails.";
+    : isPaidPlan && normalizedCredits <= 0
+      ? "You've used all your plan credits. Upgrade or wait for your next billing cycle."
+      : normalizedCredits <= 0 && isTrialing
+        ? isTrialEnding
+          ? "Your trial period is ending. Upgrade to keep generating thumbnails."
+          : "You've used your trial credits. Upgrade to keep generating thumbnails."
+        : "You're out of credits. Upgrade to keep generating thumbnails.";
 
   const upgradeLink = !subscriptionState.isActive ? "/pricing" : "/dashboard/billing";
 
@@ -277,9 +324,9 @@ export function AppSidebar({
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
                   {upgradeMessage}
                 </p>
-                <Button
-                  size="sm"
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200"
+                <Button 
+                  size="sm" 
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200" 
                   asChild
                 >
                   <Link href={upgradeLink} className="flex items-center justify-center gap-2">
