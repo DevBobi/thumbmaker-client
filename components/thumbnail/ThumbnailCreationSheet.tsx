@@ -199,9 +199,8 @@ export default function ThumbnailCreationSheet({
     }
   }, [subscriptionError, toast]);
 
-  const isTrialingUser = ["trialing", "ending"].includes(subscription?.trialStatus ?? "");
-  const hasCredits = (subscription?.credits ?? 0) > 0;
-  const showGenerationLocked = !isSubscriptionLoading && !hasCredits && !isTrialingUser;
+  const creditsAvailable = subscription?.credits ?? 0;
+  const showGenerationLocked = !isSubscriptionLoading && creditsAvailable <= 0;
 
   // Use projects passed from parent
   const projects = availableProjects;
@@ -667,14 +666,14 @@ export default function ThumbnailCreationSheet({
             <AlertTitle>Generation locked</AlertTitle>
             <AlertDescription>
               <p className="mb-3 text-sm">
-                You’ve run out of credits. Start your free trial or upgrade your plan to continue generating thumbnails.
+                You’ve used all available credits. Pick a plan to keep generating thumbnails with ThumbMaker AI.
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button size="sm" className="w-full sm:w-auto" asChild>
-                  <Link href="/dashboard/billing">Start Free Trial</Link>
+                  <Link href="/pricing">Choose a plan</Link>
                 </Button>
                 <Button size="sm" variant="outline" className="w-full sm:w-auto" asChild>
-                  <Link href="/pricing">View Plans</Link>
+                  <Link href="/dashboard/billing">Open billing</Link>
                 </Button>
               </div>
             </AlertDescription>

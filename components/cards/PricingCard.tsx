@@ -1,15 +1,14 @@
 import { Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BillingButton } from "../BillingButton";
+import type { PricingPlan } from "@/lib/plans";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import type { PricingPlan } from "@/lib/plans";
 
 interface PricingCardProps {
   plan: PricingPlan;
   isLoading: boolean;
-  onSubscribe: (priceId: string, planName: string) => void;
-  onUpgradeOrDowngrade: (priceId: string, planName: string) => void;
+  onSelect: (plan: PricingPlan) => void;
   isCurrentPlan: boolean;
   stripeCustomerId: string;
   currentPlanCredits?: number;
@@ -18,8 +17,7 @@ interface PricingCardProps {
 export function PricingCard({
   plan,
   isLoading,
-  onSubscribe,
-  onUpgradeOrDowngrade,
+  onSelect,
   isCurrentPlan,
   stripeCustomerId,
   currentPlanCredits,
@@ -32,20 +30,11 @@ export function PricingCard({
       router.push("/sign-in?redirect_url=/pricing");
       return;
     }
-    if (plan.priceId) {
-      onSubscribe(plan.priceId, plan.name);
-    }
-  };
-
-  const handleUpgradeOrDowngrade = () => {
-    if (plan.priceId) {
-      onUpgradeOrDowngrade(plan.priceId, plan.name);
-    }
+    onSelect(plan);
   };
 
   const getButtonText = () => {
     if (isCurrentPlan) return "Current Plan";
-    if (plan.isFree) return "Start for Free";
     if (!currentPlanCredits) return "Get Started";
 
     const isUpgrade = plan.credits && plan.credits > currentPlanCredits;

@@ -6,6 +6,7 @@ type TrialActionResponse = {
   error?: string;
   trialEndsAt?: string;
   checkoutUrl?: string;
+  url?: string;
 };
 
 export function useTrialActions() {
@@ -33,7 +34,7 @@ export function useTrialActions() {
       setError(null);
 
       try {
-        const response = await authFetch("/api/stripe/start-trial", {
+        const response = await authFetch("/api/stripe/create-checkout-session", {
           method: "POST",
           body: JSON.stringify({ priceId: resolvedPriceId }),
         });
@@ -43,17 +44,17 @@ export function useTrialActions() {
           .catch(() => ({}));
 
         if (!response.ok) {
-          throw new Error(data?.message || data?.error || "Failed to start trial.");
+          throw new Error(data?.message || data?.error || "Failed to start checkout.");
         }
 
-        if (data?.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
+        if (data?.url) {
+          window.location.href = data.url;
         }
 
         return data;
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : "Failed to start trial.";
+          err instanceof Error ? err.message : "Failed to start checkout.";
         setError(message);
         throw err;
       } finally {
@@ -68,28 +69,12 @@ export function useTrialActions() {
     setError(null);
 
     try {
-      const response = await authFetch("/api/stripe/convert-trial", {
-        method: "POST",
-      });
-
-      const data: TrialActionResponse = await response
-        .json()
-        .catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data?.message || data?.error || "Failed to convert trial.");
-      }
-
-      return data;
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to convert trial.";
-      setError(message);
-      throw err;
+      window.location.href = "/pricing";
+      return null;
     } finally {
       setIsConverting(false);
     }
-  }, [authFetch]);
+  }, []);
 
   return {
     startTrial,
