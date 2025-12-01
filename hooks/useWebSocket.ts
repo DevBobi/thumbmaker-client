@@ -5,10 +5,12 @@ export const useWebSocket = () => {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    console.log('🔌 Connecting to WebSocket:', apiUrl);
+    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    // Strip trailing /api if present so Socket.IO connects to the server origin, not the REST base path
+    const socketUrl = rawApiUrl.replace(/\/api\/?$/, '');
+    console.log('🔌 Connecting to WebSocket:', socketUrl);
     
-    socketRef.current = io(apiUrl, {
+    socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
       forceNew: true

@@ -100,14 +100,16 @@ const History = () => {
   const [promptText, setPromptText] = useState("");
   const [isSubmittingPrompt, setIsSubmittingPrompt] = useState(false);
   const [clientNow, setClientNow] = useState<number | null>(null);
-  const [pendingGeneration, setPendingGeneration] = useState<{
+  const [pendingGenerations, setPendingGenerations] = useState<Array<{
+    setId: string;
     projectId: string;
     createdAt: string;
-  } | null>(null);
-  const [failedGeneration, setFailedGeneration] = useState<{
+  }>>([]);
+  const [failedGenerations, setFailedGenerations] = useState<Array<{
+    setId: string;
     projectId: string;
     createdAt: string;
-  } | null>(null);
+  }>>([]);
   const NewBadge = () => (
     <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 animate-pulse flex items-center gap-1">
       <Sparkles className="h-3 w-3" />
@@ -122,21 +124,49 @@ const History = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Load pending generation (if any) from localStorage so we can show skeletons
+  // Load pending generations (if any) from localStorage so we can show skeletons
   useEffect(() => {
     try {
       const stored = typeof window !== "undefined"
-        ? window.localStorage.getItem("pendingThumbnailGeneration")
+        ? window.localStorage.getItem("pendingThumbnailGenerations")
         : null;
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed?.projectId && parsed?.createdAt) {
-          setPendingGeneration(parsed);
+        // Support both old format (single object) and new format (array)
+        const pendingArray = Array.isArray(parsed) 
+          ? parsed 
+          : parsed?.projectId 
+            ? [parsed] 
+            : [];
+        
+        // Filter out old pending generations (older than 10 minutes)
+        const validPending = pendingArray.filter((pending: any) => {
+          if (!pending?.projectId || !pending?.createdAt) return false;
+          const ageMs = Date.now() - new Date(pending.createdAt).getTime();
+          return ageMs < 10 * 60 * 1000;
+        });
+        
+        if (validPending.length > 0) {
+          setPendingGenerations(validPending);
+          // Update localStorage with cleaned array
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("pendingThumbnailGenerations", JSON.stringify(validPending));
+          }
+          // Immediately fetch to check if thumbnails are already ready (silent to prevent blinking)
+          fetchCampaigns(true);
+        } else {
+          // Clean up if no valid pending generations
+          if (typeof window !== "undefined") {
+            window.localStorage.removeItem("pendingThumbnailGenerations");
+            // Also clean up old single-item format
+            window.localStorage.removeItem("pendingThumbnailGeneration");
+          }
         }
       }
     } catch (e) {
       console.warn("Failed to load pending thumbnail generation state:", e);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isThumbnailNew = useCallback(
@@ -198,8 +228,10 @@ const History = () => {
   }, [selectedThumbnail]);
 
   // Fetch campaigns function
-  const fetchCampaigns = useCallback(async () => {
-    setIsLoading(true);
+  const fetchCampaigns = useCallback(async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
     try {
       // Build the API URL with query parameters
       const params = new URLSearchParams();
@@ -223,14 +255,44 @@ const History = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setCampaigns(data.data || []);
+        const newCampaigns = data.data || [];
+        // Only update state if data actually changed to prevent unnecessary re-renders
+        setCampaigns((prevCampaigns) => {
+          // Compare by IDs to see if anything changed
+          const prevIds = new Set(prevCampaigns.map((c: any) => c.id));
+          const newIds = new Set(newCampaigns.map((c: any) => c.id));
+          
+          // Check if sets are different
+          if (prevIds.size !== newIds.size) {
+            return newCampaigns;
+          }
+          
+          // Check if any IDs are different
+          for (const id of newIds) {
+            if (!prevIds.has(id)) {
+              return newCampaigns;
+            }
+          }
+          
+          // Check if any existing thumbnails have updated (e.g., status changed)
+          const hasUpdates = prevCampaigns.some((prev: any) => {
+            const updated = newCampaigns.find((n: any) => n.id === prev.id);
+            if (!updated) return false;
+            // Check if status or image changed
+            return updated.status !== prev.status || updated.image !== prev.image;
+          });
+          
+          return hasUpdates ? newCampaigns : prevCampaigns;
+        });
       } else {
         console.error("Failed to fetch thumbnails");
       }
     } catch (error) {
       console.error("Error fetching thumbnails:", error);
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, filterBy]);
@@ -240,45 +302,137 @@ const History = () => {
     fetchCampaigns();
   }, [fetchCampaigns]);
 
+  // Poll for new thumbnails when there are pending generations (silent refresh to prevent blinking)
+  useEffect(() => {
+    if (pendingGenerations.length === 0) return;
+
+    // Poll every 5 seconds to check for new thumbnails (silent to prevent blinking)
+    const pollInterval = setInterval(() => {
+      fetchCampaigns(true); // Silent refresh
+    }, 5000);
+
+    // Also check when window gains focus or becomes visible (user comes back to tab)
+    const handleFocus = () => {
+      fetchCampaigns(true); // Silent refresh
+    };
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchCampaigns(true); // Silent refresh
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [pendingGenerations.length, fetchCampaigns]);
+
   // Reset to page 1 when campaigns data changes
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, filterBy]);
 
-  // Clear pending generation once real thumbnails for that project show up
+  // Clear pending generations once real thumbnails for those projects show up
   useEffect(() => {
-    if (!pendingGeneration || campaigns.length === 0) return;
+    if (pendingGenerations.length === 0 || campaigns.length === 0) return;
 
     try {
-      const hasNewForProject = campaigns.some((thumbnail: any) => {
-        if (!thumbnail?.projectId || !thumbnail?.createdAt) return false;
-        if (thumbnail.projectId !== pendingGeneration.projectId) return false;
-        return (
-          new Date(thumbnail.createdAt).getTime() >=
-          new Date(pendingGeneration.createdAt).getTime()
-        );
+      const updatedPending: typeof pendingGenerations = [];
+      const newFailed: typeof failedGenerations = [];
+
+      pendingGenerations.forEach((pending) => {
+        // Check if we have thumbnails for this pending generation
+        const matchingThumbnails = campaigns.filter((thumbnail: any) => {
+          if (!thumbnail?.projectId || !thumbnail?.createdAt) return false;
+          
+          // Primary: Match by setId (most accurate)
+          if (pending.setId) {
+            // Check both thumbnail.setId and thumbnail.set?.id (in case set is included as relation)
+            const thumbnailSetId = thumbnail.setId || thumbnail.set?.id;
+            if (thumbnailSetId === pending.setId) {
+              return true;
+            }
+          }
+          
+          // Fallback: Match by projectId and createdAt (with 10 minute buffer for timing differences and queue delays)
+          if (thumbnail.projectId === pending.projectId) {
+            const thumbnailTime = new Date(thumbnail.createdAt).getTime();
+            const pendingTime = new Date(pending.createdAt).getTime();
+            // Allow thumbnails created up to 10 minutes before pending time (for queue delays)
+            // and any time after pending time
+            const timeDiff = thumbnailTime - pendingTime;
+            return timeDiff >= -10 * 60 * 1000; // 10 minutes before is acceptable for queued batches
+          }
+          
+          return false;
+        });
+
+        const hasNewForProject = matchingThumbnails.length > 0;
+        const ageMs = Date.now() - new Date(pending.createdAt).getTime();
+
+        if (hasNewForProject) {
+          // This pending generation is complete, don't add it back
+          // Log for debugging
+          console.log(`✅ Pending generation completed:`, {
+            setId: pending.setId,
+            projectId: pending.projectId,
+            matchedThumbnails: matchingThumbnails.length,
+          });
+        } else if (ageMs > 20 * 60 * 1000) {
+          // Consider this generation failed/timed-out after 20 minutes (increased for queued batches)
+          // Only mark as failed if we're really sure it's not coming
+          // Check if there are other pending generations for the same project (might be queued)
+          const hasOtherPendingForProject = pendingGenerations.some(
+            (p) => p.projectId === pending.projectId && p.setId !== pending.setId
+          );
+          
+          if (!hasOtherPendingForProject) {
+            // Only mark as failed if there are no other pending generations for this project
+            newFailed.push(pending);
+            console.log(`❌ Marking generation as failed (timeout):`, {
+              setId: pending.setId,
+              projectId: pending.projectId,
+              ageMinutes: Math.round(ageMs / 60000),
+            });
+          } else {
+            // Keep it pending if there are other batches for the same project (might be queued)
+            updatedPending.push(pending);
+          }
+        } else {
+          // Still pending, keep it
+          updatedPending.push(pending);
+        }
       });
 
-      const ageMs =
-        Date.now() - new Date(pendingGeneration.createdAt).getTime();
-
-      if (hasNewForProject) {
-        setPendingGeneration(null);
-        if (typeof window !== "undefined") {
-          window.localStorage.removeItem("pendingThumbnailGeneration");
+      // Update state if anything changed
+      if (updatedPending.length !== pendingGenerations.length || newFailed.length > 0) {
+        setPendingGenerations(updatedPending);
+        if (newFailed.length > 0) {
+          setFailedGenerations((prev) => [...prev, ...newFailed]);
         }
-      } else if (ageMs > 10 * 60 * 1000) {
-        // Consider this generation failed/timed-out after 10 minutes
-        setFailedGeneration(pendingGeneration);
-        setPendingGeneration(null);
+        
+        // Update localStorage
         if (typeof window !== "undefined") {
-          window.localStorage.removeItem("pendingThumbnailGeneration");
+          if (updatedPending.length > 0) {
+            window.localStorage.setItem("pendingThumbnailGenerations", JSON.stringify(updatedPending));
+          } else {
+            window.localStorage.removeItem("pendingThumbnailGenerations");
+          }
+        }
+        
+        // Refresh once more to ensure all thumbnails are loaded (silent to prevent blinking)
+        if (updatedPending.length !== pendingGenerations.length) {
+          fetchCampaigns(true);
         }
       }
     } catch (e) {
       console.warn("Error reconciling pending generation state:", e);
     }
-  }, [campaigns, pendingGeneration]);
+  }, [campaigns, pendingGenerations, fetchCampaigns]);
 
   const closePromptDialog = useCallback(() => {
     setIsPromptDialogOpen(false);
@@ -450,13 +604,14 @@ const History = () => {
     return sortedGroups;
   }, [campaigns, getDayLabel]);
 
-  const pendingProject = useMemo(
-    () =>
-      pendingGeneration
-        ? projects.find((project) => project.id === pendingGeneration.projectId) || null
-        : null,
-    [pendingGeneration, projects]
-  );
+  const pendingProjects = useMemo(() => {
+    return pendingGenerations
+      .map((pending) => {
+        const project = projects.find((p) => p.id === pending.projectId);
+        return project ? { ...pending, project } : null;
+      })
+      .filter((item): item is { project: Project; setId: string; projectId: string; createdAt: string } => item !== null);
+  }, [pendingGenerations, projects]);
 
   // Client-side pagination for projects
   const paginatedProjects = useMemo(() => {
@@ -722,15 +877,31 @@ const History = () => {
       const data = await response.json();
       // Only record pending after successful edit creation
       try {
-        if (editingProject?.id) {
-          const payload = {
+        if (editingProject?.id && data?.id) {
+          // Get existing pending generations
+          const existingPending = typeof window !== "undefined"
+            ? window.localStorage.getItem("pendingThumbnailGenerations")
+            : null;
+          
+          const pendingArray = existingPending ? JSON.parse(existingPending) : [];
+          
+          // Add new pending generation with setId
+          const newPending = {
+            setId: data.id,
             projectId: editingProject.id,
             createdAt: new Date().toISOString(),
           };
-          setPendingGeneration(payload);
+          
+          // Add to array (avoid duplicates)
+          const updatedPending = [
+            ...pendingArray.filter((p: any) => p.setId !== data.id),
+            newPending,
+          ];
+          
+          setPendingGenerations(updatedPending);
           window.localStorage.setItem(
-            "pendingThumbnailGeneration",
-            JSON.stringify(payload)
+            "pendingThumbnailGenerations",
+            JSON.stringify(updatedPending)
           );
         }
       } catch (e) {
@@ -894,8 +1065,8 @@ const History = () => {
       campaigns.length === 0 &&
       !isLoading &&
       !hasActiveFilters &&
-      !pendingGeneration &&
-      !failedGeneration ? (
+      pendingGenerations.length === 0 &&
+      failedGenerations.length === 0 ? (
         <Card className="border-dashed border-2">
           <CardContent className="p-12 text-center">
             <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
@@ -1042,15 +1213,15 @@ const History = () => {
               </Card>
             ) : (
               <>
-                {pendingGeneration && pendingProject && (
-                  <Card className="border-dashed border-2 mt-6">
+                {pendingProjects.map((pending) => (
+                  <Card key={pending.setId || pending.projectId} className="border-dashed border-2 mt-6">
                     <CardContent className="p-4 flex items-center gap-4">
                       <Skeleton className="w-24 h-16 rounded-md" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">
                           Generating new thumbnails for{" "}
                           <span className="font-semibold">
-                            {pendingProject.title || "your project"}
+                            {pending.project.title || "your project"}
                           </span>
                           …
                         </p>
@@ -1061,9 +1232,33 @@ const History = () => {
                       <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     </CardContent>
                   </Card>
-                )}
+                ))}
 
-                {!pendingGeneration && failedGeneration && (
+                {pendingProjects.length === 0 && failedGenerations.length > 0 && failedGenerations.map((failed) => {
+                  const failedProject = projects.find((p) => p.id === failed.projectId);
+                  return (
+                    <Card key={failed.setId || failed.projectId} className="border-2 border-destructive/40 bg-destructive/5 mt-6">
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-24 h-16 rounded-md bg-destructive/10 flex items-center justify-center">
+                            <X className="h-6 w-6 text-destructive" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-destructive">
+                            Latest thumbnail generation failed.
+                          </p>
+                          {failedProject && (
+                            <p className="text-xs text-destructive/80 mt-1 truncate">
+                              Project: {failedProject.title}
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+                {pendingProjects.length === 0 && failedGenerations.length === 0 && (
                   <Card className="border-2 border-destructive/40 bg-destructive/5 mt-6">
                     <CardContent className="p-4 flex items-center gap-4">
                       <div className="flex-shrink-0">
@@ -1075,13 +1270,13 @@ const History = () => {
                         <p className="text-sm font-medium text-destructive">
                           Latest thumbnail generation failed.
                         </p>
-                        {failedGeneration.projectId && (
+                        {failedGenerations.length > 0 && failedGenerations[0].projectId && (
                           <p className="text-xs text-destructive/80 mt-1 truncate">
                             Project:{" "}
                             {
                               (projects.find(
-                                (p) => p.id === failedGeneration.projectId
-                              ) || pendingProject || { title: "Unknown project" })
+                                (p) => p.id === failedGenerations[0].projectId
+                              ) || { title: "Unknown project" })
                                 .title
                             }
                           </p>
@@ -1263,7 +1458,7 @@ const History = () => {
             <div className="mt-6">
               {isLoading ? (
                 <TimelineSkeleton />
-              ) : timelineGroups.length === 0 && !pendingGeneration && !failedGeneration ? (
+              ) : timelineGroups.length === 0 && pendingGenerations.length === 0 && failedGenerations.length === 0 ? (
                 <Card className="border-dashed border-2">
                   <CardContent className="p-12 text-center">
                     <div className="flex flex-col items-center gap-4">
@@ -1282,8 +1477,8 @@ const History = () => {
                 </Card>
               ) : (
                 <div className="space-y-10">
-                  {pendingGeneration && pendingProject && (
-                    <div className="relative pl-6 sm:pl-10">
+                  {pendingProjects.map((pending) => (
+                    <div key={pending.setId || pending.projectId} className="relative pl-6 sm:pl-10">
                       <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
                       <div className="absolute left-2 top-2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-primary bg-background" />
 
@@ -1293,7 +1488,7 @@ const History = () => {
                           <span>Generating thumbnails…</span>
                         </div>
                         <span className="text-sm text-muted-foreground">
-                          {pendingProject.title}
+                          {pending.project.title}
                         </span>
                       </div>
 
@@ -1311,38 +1506,36 @@ const History = () => {
                         </div>
                       </div>
                     </div>
-                  )}
+                  ))}
 
-                  {!pendingGeneration && failedGeneration && (
-                    <div className="relative pl-6 sm:pl-10">
-                      <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
-                      <div className="absolute left-2 top-2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-destructive bg-background" />
+                  {pendingProjects.length === 0 && failedGenerations.map((failed) => {
+                    const failedProject = projects.find((p) => p.id === failed.projectId);
+                    return (
+                      <div key={failed.setId || failed.projectId} className="relative pl-6 sm:pl-10">
+                        <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
+                        <div className="absolute left-2 top-2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-destructive bg-background" />
 
-                      <div className="flex flex-wrap items-center gap-3 mb-4">
-                        <div className="flex items-center gap-2 text-destructive font-semibold text-lg">
-                          <X className="h-4 w-4" />
-                          <span>Last generation failed</span>
+                        <div className="flex flex-wrap items-center gap-3 mb-4">
+                          <div className="flex items-center gap-2 text-destructive font-semibold text-lg">
+                            <X className="h-4 w-4" />
+                            <span>Generation failed</span>
+                          </div>
+                          {failedProject && (
+                            <span className="text-sm text-destructive/80">
+                              {failedProject.title}
+                            </span>
+                          )}
                         </div>
-                        {failedGeneration.projectId && (
-                          <span className="text-sm text-destructive/80">
-                            {
-                              (projects.find(
-                                (p) => p.id === failedGeneration.projectId
-                              ) || pendingProject || { title: "Unknown project" })
-                                .title
-                            }
-                          </span>
-                        )}
-                      </div>
 
-                      <div className="border rounded-xl p-4 space-y-2 bg-destructive/5">
-                        <p className="text-sm text-destructive">
-                          We couldn&apos;t complete your last thumbnail batch. Try again or adjust
-                          your settings.
-                        </p>
+                        <div className="border rounded-xl p-4 space-y-2 bg-destructive/5">
+                          <p className="text-sm text-destructive">
+                            We couldn&apos;t complete this thumbnail batch. Try again or adjust
+                            your settings.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })}
 
                   {timelineGroups.map((group) => (
                     <div key={group.key} className="relative pl-6 sm:pl-10">

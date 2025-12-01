@@ -7,7 +7,11 @@ import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useUser } from "@clerk/nextjs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function PricingScreen() {
+interface PricingScreenProps {
+  onComplete?: () => void;
+}
+
+export default function PricingScreen({ onComplete }: PricingScreenProps) {
   const { authFetch } = useAuthFetch();
   const { user } = useUser();
   const [loadingPlans, setLoadingPlans] = useState<Record<string, boolean>>(
@@ -29,13 +33,32 @@ export default function PricingScreen() {
         if (response.ok) {
           const data = await response.json();
           // Mark onboarding as complete before redirecting
+          if (user) {
+            try {
+              await user.update({
+                unsafeMetadata: {
+                  ...user.unsafeMetadata,
+                  hasCompletedOnboarding: true,
+                  hasCompletedNewOnboarding: true,
+                  onboardingCompletedAt: new Date().toISOString(),
+                },
+              });
+            } catch (error) {
+              console.error("Error updating user metadata:", error);
+            }
+          }
           if (user?.id) {
             localStorage.setItem(
               `hasCompletedNewOnboarding_${user.id}`,
               "true"
             );
           }
-          window.location.href = data.url;
+          // Call onComplete callback if provided (for non-checkout flow)
+          if (onComplete) {
+            onComplete();
+          } else {
+            window.location.href = data.url;
+          }
         } else {
           const data = await response.json().catch(() => ({}));
           setPricingError(data?.message || "Failed to start checkout.");

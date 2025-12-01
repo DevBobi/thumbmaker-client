@@ -9,6 +9,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { GeneratedThumbnailCard } from "../cards/GeneratedThumbnailCard";
 import { io, Socket } from "socket.io-client";
 import { useGenerationProgress } from "@/hooks/use-generation-progress";
+import { emitCreditsUpdated } from "@/lib/credit-events";
 
 interface GeneratedThumbnail {
   id: string;
@@ -37,6 +38,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
   const [setStatus, setSetStatus] = useState<string>("");
   const socketRef = useRef<Socket | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const creditsUpdatedRef = useRef(false); // Track if we've already emitted credit update
   const { progress: genProgress } = useGenerationProgress(id);
 
   useEffect(() => {
@@ -125,6 +127,12 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
         setThumbnails(formattedThumbnails);
         setSetStatus(status);
         
+        // Emit credit update event when generation completes
+        if (status === "COMPLETED" && !creditsUpdatedRef.current) {
+          emitCreditsUpdated();
+          creditsUpdatedRef.current = true;
+        }
+        
         // Check if processing or failed
         if (status === "FAILED") {
           // Mark as a graceful failure but keep any partial thumbnails visible
@@ -179,10 +187,12 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
     };
 
     // Setup WebSocket connection
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    console.log('🔌 Connecting to WebSocket:', apiUrl);
+    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    // Strip trailing /api if present so Socket.IO connects to the server origin, not the REST base path
+    const socketUrl = rawApiUrl.replace(/\/api\/?$/, '');
+    console.log('🔌 Connecting to WebSocket:', socketUrl);
     
-    socketRef.current = io(apiUrl, {
+    socketRef.current = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
       forceNew: true
@@ -223,6 +233,11 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             setIsProcessing(false);
             setIsLoading(false);
             setError(null);
+            // Emit credit update event to refresh navbar credits
+            if (!creditsUpdatedRef.current) {
+              emitCreditsUpdated();
+              creditsUpdatedRef.current = true;
+            }
             // Clear polling since we got the update via WebSocket
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
@@ -237,6 +252,11 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
           setIsProcessing(false);
           setIsLoading(false);
           setError(null);
+          // Emit credit update event to refresh navbar credits
+          if (!creditsUpdatedRef.current) {
+            emitCreditsUpdated();
+            creditsUpdatedRef.current = true;
+          }
           // Clear polling since we got the update via WebSocket
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
@@ -293,6 +313,11 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             console.log('✅ Status changed to COMPLETED via polling');
             setThumbnails(data.thumbnails);
             setSetStatus('COMPLETED');
+            // Emit credit update event to refresh navbar credits
+            if (!creditsUpdatedRef.current) {
+              emitCreditsUpdated();
+              creditsUpdatedRef.current = true;
+            }
             setIsProcessing(false);
             setIsLoading(false);
             setError(null);
