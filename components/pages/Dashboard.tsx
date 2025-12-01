@@ -450,7 +450,7 @@ const Dashboard = () => {
             <p className="text-muted-foreground mt-1">Your latest generated thumbnails</p>
           </div>
           <Button variant="outline" className="gap-2" asChild>
-            <Link href="/dashboard/generated-thumbnails">
+            <Link href="/dashboard/history">
               All Thumbnails
               <ArrowRight className="h-4 w-4" />
             </Link>
