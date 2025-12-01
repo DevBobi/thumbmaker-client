@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/products/ProductCard";
-import { GuaranteePopup } from "@/components/GuaranteePopup";
 import { Project } from "@/types";
 import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +28,15 @@ import {
 } from "@/components/ui/dialog";
 import { UserOnboarding } from "@/components/onboarding/UserOnboarding";
 import { useUser } from "@clerk/nextjs";
+
+interface GeneratedThumbnail {
+  id: string;
+  title: string;
+  description: string;
+  aspectRatio: string;
+  image: string;
+  createdAt: string;
+}
 
 const Dashboard = () => {
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
@@ -68,6 +76,37 @@ const Dashboard = () => {
     setIsOnboardingOpen(false);
   };
 
+  // Fetch recent thumbnails for current user
+  const fetchRecentThumbnails = async (): Promise<GeneratedThumbnail[]> => {
+    try {
+      const response = await authFetch(`/thumbnails?page=1&limit=6`);
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 401) {
+          return [];
+        }
+        console.warn("Failed to fetch thumbnails:", response.status);
+        return [];
+      }
+
+      const data = await response.json();
+
+      // Expected shape: { data: thumbnails, pagination: {...} }
+      if (data && Array.isArray(data.data)) {
+        return data.data;
+      }
+
+      if (Array.isArray(data)) {
+        return data;
+      }
+
+      return [];
+    } catch (error) {
+      console.warn("Error fetching thumbnails:", error);
+      return [];
+    }
+  };
+
   // Fetch projects using React Query
   const fetchProjects = async (): Promise<Project[]> => {
     try {
@@ -102,6 +141,15 @@ const Dashboard = () => {
     retry: false, // Don't retry - show empty state immediately
   });
 
+  const {
+    data: recentThumbnails = [],
+    isLoading: isLoadingThumbnails,
+  } = useQuery({
+    queryKey: ["recent-thumbnails"],
+    queryFn: fetchRecentThumbnails,
+    retry: false,
+  });
+
   const handleEditProject = (projectId: string) => {
     setEditingProjectId(projectId);
     setIsEditSheetOpen(true);
@@ -116,8 +164,6 @@ const Dashboard = () => {
 
   return (
     <div className="mx-auto space-y-6">
-      <GuaranteePopup />
-      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -325,37 +371,6 @@ const Dashboard = () => {
                 {sortedProjects.slice(0, 6).map((project: Project) => (
               <ProductCard key={project.id} project={project} onEdit={handleEditProject} />
                 ))}
-                {sortedProjects.length > 6 && (
-                  <Card className="relative border-2 border-dashed border-border hover:border-primary/50 hover:bg-gradient-to-br hover:from-primary/5 hover:to-purple-500/5 transition-all duration-500 h-full flex flex-col group overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 bg-card">
-                    {/* Animated background circles */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
-                    </div>
-                    
-                    <CardContent className="p-6 flex-1 flex items-center justify-center relative z-10">
-                      <Link href="/dashboard/projects" className="flex flex-col items-center gap-4 text-center w-full">
-                        <div className="relative">
-                          <div className="p-4 bg-gradient-to-br from-primary/10 to-purple-500/10 rounded-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 border border-primary/20">
-                            <FolderOpen className="h-8 w-8 text-primary" />
-                          </div>
-                          {/* Floating badge */}
-                          <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
-                            {sortedProjects.length - 6}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="font-bold text-base mb-1 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                            View All Projects
-                          </p>
-                          <p className="text-xs text-muted-foreground font-medium">
-                            {sortedProjects.length - 6} more project{sortedProjects.length - 6 !== 1 ? 's' : ''} waiting
-                          </p>
-                        </div>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                )}
               </>
             ) : (
               <div className="col-span-full">
@@ -396,6 +411,75 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+        )}
+      </section>
+
+      {/* Recent Thumbnails Section */}
+      <section>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Recent Thumbnails</h2>
+            <p className="text-muted-foreground mt-1">Your latest generated thumbnails</p>
+          </div>
+          <Button variant="outline" className="gap-2" asChild>
+            <Link href="/dashboard/generated-thumbnails">
+              All Thumbnails
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+
+        {isLoadingThumbnails ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="bg-card border overflow-hidden">
+                <div className="h-40 bg-muted animate-pulse" />
+                <CardContent className="p-4 space-y-3">
+                  <div className="h-5 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-muted rounded w-3/4 animate-pulse" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : recentThumbnails && recentThumbnails.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentThumbnails.map((thumb) => (
+              <Card
+                key={thumb.id}
+                className="bg-card border rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full shadow-sm hover:shadow-lg"
+              >
+                <div className="aspect-video relative bg-muted flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={thumb.image}
+                    alt={thumb.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <CardContent className="p-4 flex flex-col flex-grow">
+                  <h3 className="font-bold text-lg text-foreground mb-2 line-clamp-2">
+                    {thumb.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {thumb.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="bg-card border-2 border-dashed">
+            <CardContent className="p-8 text-center">
+              <p className="text-sm text-muted-foreground mb-4">
+                No thumbnails have been generated yet.
+              </p>
+              <Button asChild>
+                <Link href="/dashboard/create-youtube-thumbnail">
+                  Generate Your First Thumbnail
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </section>
 

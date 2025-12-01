@@ -18,6 +18,7 @@ import {
   Pencil,
   Loader2,
   Sparkles,
+  ArrowUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -25,9 +26,8 @@ import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import Zoom from "react-medium-image-zoom";
-import "react-medium-image-zoom/dist/styles.css";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,9 +58,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
-import ThumbnailCreationSheet from "@/components/thumbnail/ThumbnailCreationSheet";
 import { Project } from "@/types";
 
 const ITEMS_PER_PAGE = 50; // Fetch more thumbnails to group properly
@@ -85,12 +92,22 @@ const History = () => {
   const [viewMode, setViewMode] = useState<'list' | 'project'>('list'); // 'list' shows grouped projects, 'project' shows thumbnails in selected project
   const [historyTab, setHistoryTab] = useState<'projects' | 'timeline'>('timeline');
   const [projects, setProjects] = useState<Project[]>([]);
-  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
   const [editingThumbnail, setEditingThumbnail] = useState<any | null>(null);
   const [editingSetDetails, setEditingSetDetails] = useState<any | null>(null);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const [activeEditThumbnailId, setActiveEditThumbnailId] = useState<string | null>(null);
+  const [promptText, setPromptText] = useState("");
+  const [isSubmittingPrompt, setIsSubmittingPrompt] = useState(false);
   const [clientNow, setClientNow] = useState<number | null>(null);
+  const [pendingGeneration, setPendingGeneration] = useState<{
+    projectId: string;
+    createdAt: string;
+  } | null>(null);
+  const [failedGeneration, setFailedGeneration] = useState<{
+    projectId: string;
+    createdAt: string;
+  } | null>(null);
   const NewBadge = () => (
     <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 animate-pulse flex items-center gap-1">
       <Sparkles className="h-3 w-3" />
@@ -103,6 +120,23 @@ const History = () => {
       setClientNow(Date.now());
     }, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Load pending generation (if any) from localStorage so we can show skeletons
+  useEffect(() => {
+    try {
+      const stored = typeof window !== "undefined"
+        ? window.localStorage.getItem("pendingThumbnailGeneration")
+        : null;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.projectId && parsed?.createdAt) {
+          setPendingGeneration(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load pending thumbnail generation state:", e);
+    }
   }, []);
 
   const isThumbnailNew = useCallback(
@@ -211,10 +245,46 @@ const History = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, filterBy]);
 
-  const closeEditSheet = useCallback(() => {
-    setIsEditSheetOpen(false);
+  // Clear pending generation once real thumbnails for that project show up
+  useEffect(() => {
+    if (!pendingGeneration || campaigns.length === 0) return;
+
+    try {
+      const hasNewForProject = campaigns.some((thumbnail: any) => {
+        if (!thumbnail?.projectId || !thumbnail?.createdAt) return false;
+        if (thumbnail.projectId !== pendingGeneration.projectId) return false;
+        return (
+          new Date(thumbnail.createdAt).getTime() >=
+          new Date(pendingGeneration.createdAt).getTime()
+        );
+      });
+
+      const ageMs =
+        Date.now() - new Date(pendingGeneration.createdAt).getTime();
+
+      if (hasNewForProject) {
+        setPendingGeneration(null);
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("pendingThumbnailGeneration");
+        }
+      } else if (ageMs > 10 * 60 * 1000) {
+        // Consider this generation failed/timed-out after 10 minutes
+        setFailedGeneration(pendingGeneration);
+        setPendingGeneration(null);
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("pendingThumbnailGeneration");
+        }
+      }
+    } catch (e) {
+      console.warn("Error reconciling pending generation state:", e);
+    }
+  }, [campaigns, pendingGeneration]);
+
+  const closePromptDialog = useCallback(() => {
+    setIsPromptDialogOpen(false);
     setEditingThumbnail(null);
     setEditingSetDetails(null);
+    setPromptText("");
   }, []);
 
   const handleEditThumbnail = useCallback(async (thumbnail: any) => {
@@ -237,7 +307,8 @@ const History = () => {
       const data = await response.json();
       setEditingSetDetails(data);
       setEditingThumbnail(thumbnail);
-      setIsEditSheetOpen(true);
+      setPromptText(data.additionalInstructions || "");
+      setIsPromptDialogOpen(true);
     } catch (error) {
       console.error("Failed to load edit data:", error);
       toast({
@@ -379,6 +450,14 @@ const History = () => {
     return sortedGroups;
   }, [campaigns, getDayLabel]);
 
+  const pendingProject = useMemo(
+    () =>
+      pendingGeneration
+        ? projects.find((project) => project.id === pendingGeneration.projectId) || null
+        : null,
+    [pendingGeneration, projects]
+  );
+
   // Client-side pagination for projects
   const paginatedProjects = useMemo(() => {
     const startIndex = (currentPage - 1) * PROJECTS_PER_PAGE;
@@ -406,29 +485,6 @@ const History = () => {
     }
     return editingThumbnail?.project || null;
   }, [editingSetDetails, projects, editingThumbnail]);
-
-  const availableProjectsForEdit = useMemo(() => {
-    if (projects.length > 0) {
-      return projects;
-    }
-    if (editingSetDetails?.project) {
-      return [editingSetDetails.project];
-    }
-    if (editingThumbnail?.project) {
-      return [editingThumbnail.project];
-    }
-    return [];
-  }, [projects, editingSetDetails, editingThumbnail]);
-
-  const editInitialMode = editingSetDetails?.templates?.length ? "template" : "youtube";
-  const editYoutubeLinks = editingSetDetails?.youtubeLinks || [];
-  const editLockedTemplateIds = useMemo(() => {
-    if (editingThumbnail?.templateId) return [editingThumbnail.templateId];
-    if (editingSetDetails?.templates) {
-      return editingSetDetails.templates.map((template: any) => template.id);
-    }
-    return [];
-  }, [editingThumbnail?.templateId, editingSetDetails?.templates]);
 
   const handleViewProject = (project: any) => {
     setSelectedProject(project);
@@ -579,12 +635,120 @@ const History = () => {
       title: "Regeneration in progress",
       description: "We’re creating a new thumbnail with your updated instructions.",
     });
-    closeEditSheet();
+    closePromptDialog();
     fetchCampaigns();
     if (data?.id) {
       router.push(`/dashboard/generated-thumbnails/${data.id}`);
     }
-  }, [toast, closeEditSheet, fetchCampaigns, router]);
+  }, [toast, closePromptDialog, fetchCampaigns, router]);
+
+  // Submit a simple prompt-only edit from history
+  const handlePromptSubmit = useCallback(async () => {
+    if (!editingSetDetails || !editingProject) {
+      toast({
+        title: "Unable to edit",
+        description: "We couldn't load the original generation details for this thumbnail.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!promptText.trim()) {
+      toast({
+        title: "Prompt required",
+        description: "Describe what you want to change before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmittingPrompt(true);
+    try {
+      const mediaFiles: string[] = [];
+      const appendMedia = (url?: string | null) => {
+        if (!url) return;
+        if (!mediaFiles.includes(url)) mediaFiles.push(url);
+      };
+
+      // Keep original uploaded assets
+      (editingSetDetails.assets || []).forEach((url: string) => appendMedia(url));
+      // Keep project image
+      if (editingProject.image) {
+        appendMedia(editingProject.image);
+      }
+
+      const templates: string[] = (editingSetDetails.templates || []).map((t: any) =>
+        String(t.id)
+      );
+      const youtubeLinks: string[] = editingSetDetails.youtubeLinks || [];
+      const inspirationUrl: string | undefined = editingSetDetails.inspirationUrl;
+
+      const requestBody: any = {
+        projectId: editingProject.id,
+        mediaFiles,
+        channelStyle: editingSetDetails.channelStyle || "",
+        thumbnailGoal: editingSetDetails.thumbnailGoal || "",
+        additionalInstructions: promptText,
+        variations: 1,
+      };
+
+      if (templates.length > 0) {
+        requestBody.templates = templates;
+      } else {
+        if (youtubeLinks.length > 0) {
+          requestBody.youtubeLinks = youtubeLinks;
+        }
+        if (inspirationUrl) {
+          requestBody.inspirationUrl = inspirationUrl;
+        }
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await authFetch("/thumbnails/create", {
+        method: "POST",
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const message =
+          errorData.error || errorData.message || "Failed to submit prompt fix.";
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+      // Only record pending after successful edit creation
+      try {
+        if (editingProject?.id) {
+          const payload = {
+            projectId: editingProject.id,
+            createdAt: new Date().toISOString(),
+          };
+          setPendingGeneration(payload);
+          window.localStorage.setItem(
+            "pendingThumbnailGeneration",
+            JSON.stringify(payload)
+          );
+        }
+      } catch (e) {
+        console.warn("Unable to persist pending generation state:", e);
+      }
+      handleEditSuccess(data);
+    } catch (error: any) {
+      console.error("Prompt fix failed:", error);
+      toast({
+        title: "Prompt fix failed",
+        description:
+          error?.message || "Something went wrong while submitting your fix.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingPrompt(false);
+    }
+  }, [authFetch, editingProject, editingSetDetails, handleEditSuccess, promptText, toast]);
 
   // Handle search with debounce
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -726,7 +890,12 @@ const History = () => {
         </div>
       )}
 
-      {viewMode === 'list' && campaigns.length === 0 && !isLoading && !hasActiveFilters ? (
+      {viewMode === 'list' &&
+      campaigns.length === 0 &&
+      !isLoading &&
+      !hasActiveFilters &&
+      !pendingGeneration &&
+      !failedGeneration ? (
         <Card className="border-dashed border-2">
           <CardContent className="p-12 text-center">
             <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
@@ -873,6 +1042,55 @@ const History = () => {
               </Card>
             ) : (
               <>
+                {pendingGeneration && pendingProject && (
+                  <Card className="border-dashed border-2 mt-6">
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <Skeleton className="w-24 h-16 rounded-md" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">
+                          Generating new thumbnails for{" "}
+                          <span className="font-semibold">
+                            {pendingProject.title || "your project"}
+                          </span>
+                          …
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          This will appear in your history as soon as the first image is ready.
+                        </p>
+                      </div>
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {!pendingGeneration && failedGeneration && (
+                  <Card className="border-2 border-destructive/40 bg-destructive/5 mt-6">
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-24 h-16 rounded-md bg-destructive/10 flex items-center justify-center">
+                          <X className="h-6 w-6 text-destructive" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-destructive">
+                          Latest thumbnail generation failed.
+                        </p>
+                        {failedGeneration.projectId && (
+                          <p className="text-xs text-destructive/80 mt-1 truncate">
+                            Project:{" "}
+                            {
+                              (projects.find(
+                                (p) => p.id === failedGeneration.projectId
+                              ) || pendingProject || { title: "Unknown project" })
+                                .title
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="space-y-4 mt-6">
                   {paginatedProjects.map((project: any) => {
                     const hasRecent =
@@ -1045,7 +1263,7 @@ const History = () => {
             <div className="mt-6">
               {isLoading ? (
                 <TimelineSkeleton />
-              ) : timelineGroups.length === 0 ? (
+              ) : timelineGroups.length === 0 && !pendingGeneration && !failedGeneration ? (
                 <Card className="border-dashed border-2">
                   <CardContent className="p-12 text-center">
                     <div className="flex flex-col items-center gap-4">
@@ -1064,6 +1282,68 @@ const History = () => {
                 </Card>
               ) : (
                 <div className="space-y-10">
+                  {pendingGeneration && pendingProject && (
+                    <div className="relative pl-6 sm:pl-10">
+                      <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
+                      <div className="absolute left-2 top-2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-primary bg-background" />
+
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <div className="flex items-center gap-2 text-foreground font-semibold text-lg">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span>Generating thumbnails…</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {pendingProject.title}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="border rounded-xl p-4 space-y-3">
+                          <Skeleton className="h-4 w-28" />
+                          <div className="flex gap-3">
+                            <Skeleton className="w-32 aspect-video rounded-lg" />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton className="h-5 w-3/4" />
+                              <Skeleton className="h-4 w-1/2" />
+                              <Skeleton className="h-4 w-1/3" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!pendingGeneration && failedGeneration && (
+                    <div className="relative pl-6 sm:pl-10">
+                      <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
+                      <div className="absolute left-2 top-2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-destructive bg-background" />
+
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <div className="flex items-center gap-2 text-destructive font-semibold text-lg">
+                          <X className="h-4 w-4" />
+                          <span>Last generation failed</span>
+                        </div>
+                        {failedGeneration.projectId && (
+                          <span className="text-sm text-destructive/80">
+                            {
+                              (projects.find(
+                                (p) => p.id === failedGeneration.projectId
+                              ) || pendingProject || { title: "Unknown project" })
+                                .title
+                            }
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="border rounded-xl p-4 space-y-2 bg-destructive/5">
+                        <p className="text-sm text-destructive">
+                          We couldn&apos;t complete your last thumbnail batch. Try again or adjust
+                          your settings.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {timelineGroups.map((group) => (
                     <div key={group.key} className="relative pl-6 sm:pl-10">
                       <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
@@ -1426,16 +1706,6 @@ const History = () => {
               />
             </div>
 
-            {/* Info Footer */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
-              <div className="flex items-end justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-bold text-xl mb-2 truncate">
-                    {selectedThumbnail.title || `Thumbnail ${selectedThumbnail.id.slice(-8).toUpperCase()}`}
-                  </h3>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -1464,27 +1734,97 @@ const History = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {editingSetDetails && editingProject && (
-        <ThumbnailCreationSheet
-          isOpen={isEditSheetOpen}
-          onClose={closeEditSheet}
-          selectedTemplates={editingSetDetails.templates || []}
-          selectedProject={editingProject}
-          availableProjects={availableProjectsForEdit}
-          youtubeLinks={editYoutubeLinks}
-          initialMode={editInitialMode}
-          initialInspirationUrl={editingSetDetails.inspirationUrl || ""}
-          mode="edit"
-          existingAssetUrls={editingSetDetails.assets || []}
-          initialChannelStyle={editingSetDetails.channelStyle || ""}
-          initialThumbnailGoal={editingSetDetails.thumbnailGoal || ""}
-          initialVariations={editingSetDetails.variations || 1}
-          initialInstructions={editingSetDetails.additionalInstructions || ""}
-          lockedTemplateIds={editLockedTemplateIds}
-          showCreditReminder
-          creditReminderMessage="Each edit or regeneration deducts credits from your balance."
-          onGenerateComplete={handleEditSuccess}
-        />
+      {/* Simple Prompt Edit Dialog */}
+      {editingSetDetails && editingProject && editingThumbnail && (
+        <Dialog open={isPromptDialogOpen} onOpenChange={(open) => !open && closePromptDialog()}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Fix this thumbnail</DialogTitle>
+              <DialogDescription>
+                Refine the AI instructions and we’ll generate a new improved version.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Prompt input – chat-style with tiny thumbnail inside the box */}
+            <div className="space-y-2 mt-2">
+              <label className="text-sm font-medium text-foreground">
+                Prompt fix
+              </label>
+              <div className="rounded-2xl border bg-muted/40 px-3 py-2.5">
+                <div className="flex flex-wrap items-stretch gap-3 w-full">
+                  {/* Tiny thumbnail + name as a mini card inside the input */}
+                  <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-background/70 border flex-shrink-0 max-w-full sm:max-w-xs">
+                    <div className="relative h-7 w-7 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                      {editingThumbnail.image ? (
+                        <Image
+                          src={editingThumbnail.image}
+                          alt={editingThumbnail.title || "Thumbnail preview"}
+                          fill
+                          className="object-cover"
+                          sizes="28px"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-foreground truncate">
+                        {editingThumbnail.title ||
+                          `Thumbnail ${editingThumbnail.id.slice(-8).toUpperCase()}`}
+                      </p>
+                      {editingProject?.title && (
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {editingProject.title}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Textarea behaves like a prompt box, with send button inside */}
+                  <div className="flex items-end gap-2 flex-1 min-w-[200px]">
+                    <Textarea
+                      rows={3}
+                      value={promptText}
+                      onChange={(e) => setPromptText(e.target.value)}
+                      placeholder='Example: "Remove the brown door behind me and soften the background blur."'
+                      className="border-0 bg-transparent shadow-none resize-none px-0 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm flex-1 min-w-0"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (!isSubmittingPrompt) {
+                            handlePromptSubmit();
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="brand"
+                      size="icon"
+                      className="rounded-full shrink-0"
+                      onClick={handlePromptSubmit}
+                      disabled={isSubmittingPrompt}
+                    >
+                      {isSubmittingPrompt ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ArrowUp className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This keeps your original photo, project, and templates—only the prompt changes.
+              </p>
+            </div>
+
+            <DialogFooter className="mt-2" />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

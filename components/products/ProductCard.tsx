@@ -44,7 +44,7 @@ const ProductCard = ({ project, onEdit }: ProductCardProps) => {
                 <div className="w-16 h-16 mx-auto mb-2 bg-muted/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
                   <ImageIcon className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <span className="text-xs text-muted-foreground">No thumbnail</span>
+                <span className="text-xs text-muted-foreground">No Assets Uploaded</span>
               </div>
             </div>
           )}

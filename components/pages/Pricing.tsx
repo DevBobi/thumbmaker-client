@@ -98,6 +98,15 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
     (plan) => plan.name.toLowerCase() === subscription?.plan?.toLowerCase()
   );
 
+  // Treat only paid, active subscriptions as "current plan" in the UI.
+  // During free trial (4 credits / trialing status), we don't show
+  // "Manage billing / upgrade / downgrade" controls.
+  const isPaidSubscription =
+    !!subscription &&
+    subscription.isActive &&
+    typeof subscription.credits === "number" &&
+    subscription.credits > 4;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
       <div className="container mx-auto max-w-6xl px-4 py-16 lg:py-20">
@@ -127,10 +136,16 @@ export default function Pricing({ currentPlan }: { currentPlan: any }) {
                   isLoading={loadingPlans[plan.name] || false}
                   onSelect={handlePlanSelection}
                   isCurrentPlan={
+                    isPaidSubscription &&
                     plan.name.toLowerCase() === subscription?.plan?.toLowerCase()
                   }
                   stripeCustomerId={subscription?.stripeCustomerId}
-                  currentPlanCredits={currentPlanDetails?.credits || 0}
+                  // Only use current plan credits when the user is actually on a paid plan.
+                  // During free trial, this stays undefined so buttons just show "Get Started"
+                  // instead of "Upgrade/Downgrade plan".
+                  currentPlanCredits={
+                    isPaidSubscription ? currentPlanDetails?.credits || 0 : undefined
+                  }
                 />
               </div>
             ))}

@@ -3,6 +3,7 @@ import AppSidebar from "@/components/AppSidebar";
 import Navbar from "@/components/Navbar";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { serverAuthFetch } from "@/lib/server-auth-fetch";
+import OnboardingRedirect from "@/components/onboarding/OnboardingRedirect";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -49,32 +50,34 @@ export async function AppLayout({ children }: LayoutProps) {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar
-          user={{
-            name: user?.firstName || "User",
-            email: user?.emailAddresses?.[0]?.emailAddress || "user@example.com",
-            avatar: user?.imageUrl || "",
-          }}
-          subscription={{
-            isActive: subscription.isActive,
-            credits: subscription.credits,
-            gotFreeCredits: subscription.gotFreeCredits,
-            trialStatus: subscription.trialStatus,
-            trialCreditsAwarded: subscription.trialCreditsAwarded,
-          }}
-        />
-        <div className="flex flex-col flex-1 overflow-x-hidden">
-          <Navbar />
-          <main className="flex-1">
-            <div className="py-6 px-4 md:px-6 max-w-6xl mx-auto">
-              {children}
-            </div>
-          </main>
+    <OnboardingRedirect>
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar
+            user={{
+              name: user?.firstName || "User",
+              email: user?.emailAddresses?.[0]?.emailAddress || "user@example.com",
+              avatar: user?.imageUrl || "",
+            }}
+            subscription={{
+              isActive: subscription.isActive,
+              credits: subscription.credits,
+              gotFreeCredits: subscription.gotFreeCredits,
+              trialStatus: subscription.trialStatus,
+              trialCreditsAwarded: subscription.trialCreditsAwarded,
+            }}
+          />
+          <div className="flex flex-col flex-1 overflow-x-hidden">
+            <Navbar />
+            <main className="flex-1">
+              <div className="py-6 px-4 md:px-6 max-w-6xl mx-auto">
+                {children}
+              </div>
+            </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </OnboardingRedirect>
   );
 }
 
