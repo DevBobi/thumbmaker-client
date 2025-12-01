@@ -75,7 +75,8 @@ export function VideoProjectSheet({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   // New states for creation methods
-  const [creationMethod, setCreationMethod] = useState<"manual" | "text" | "youtube" | "document">("text");
+  // Default to YouTube so the YouTube tab is selected initially
+  const [creationMethod, setCreationMethod] = useState<"manual" | "text" | "youtube" | "document">("youtube");
   const [textContent, setTextContent] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -167,9 +168,26 @@ export function VideoProjectSheet({
     }
   };
 
+  const isValidYoutubeUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.replace("www.", "");
+      if (host === "youtu.be") {
+        return !!parsed.pathname.slice(1);
+      }
+      if (host === "youtube.com") {
+        return !!parsed.searchParams.get("v");
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   const handleAutomatedCreation = async (method: "text" | "youtube" | "document") => {
-    const title = form.getValues("videoTitle");
-    if (!title) {
+    const title = form.getValues("videoTitle")?.trim();
+    const requiresTitle = method !== "youtube";
+    if (requiresTitle && !title) {
       toast({
         title: "Title required",
         description: "Please enter a project title.",
@@ -193,7 +211,10 @@ export function VideoProjectSheet({
       }
 
       let endpoint = "";
-      const body: any = { title, image: imageUrl };
+      const body: any = { image: imageUrl };
+      if (requiresTitle) {
+        body.title = title;
+      }
 
       if (method === "text") {
         if (!textContent || textContent.length < 100) {
@@ -208,17 +229,18 @@ export function VideoProjectSheet({
         endpoint = "/projects/create-with-text";
         body.content = textContent;
       } else if (method === "youtube") {
-        if (!youtubeLink) {
+        const link = youtubeLink.trim();
+        if (!link || !isValidYoutubeUrl(link)) {
           toast({
-            title: "YouTube link required",
-            description: "Please provide a YouTube video URL.",
+            title: "Valid YouTube link required",
+            description: "Use a full YouTube URL like https://youtube.com/watch?v=...",
             variant: "destructive",
           });
           setIsSaving(false);
           return;
         }
         endpoint = "/projects/create-with-youtube";
-        body.youtubeLink = youtubeLink;
+        body.youtubeLink = link;
       } else if (method === "document") {
         if (!documentFile) {
           toast({
@@ -574,7 +596,7 @@ export function VideoProjectSheet({
             }
           }}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="ai">AI-Enhanced</TabsTrigger>
+              <TabsTrigger value="ai">AI-Powered</TabsTrigger>
               <TabsTrigger value="manual">Manual</TabsTrigger>
             </TabsList>
 
@@ -583,18 +605,18 @@ export function VideoProjectSheet({
             </TabsContent>
             
             <TabsContent value="ai">
-              <Tabs value={creationMethod === "manual" ? "text" : creationMethod} onValueChange={(value: any) => setCreationMethod(value)}>
+              <Tabs value={creationMethod === "manual" ? "youtube" : creationMethod} onValueChange={(value: any) => setCreationMethod(value)}>
                 <TabsList className="grid w-full grid-cols-3 mb-4">
-                  <TabsTrigger value="text">Text</TabsTrigger>
                   <TabsTrigger value="youtube">YouTube</TabsTrigger>
+                  <TabsTrigger value="text">Text</TabsTrigger>
                   <TabsTrigger value="document">Document</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="text">
-                  <p className="text-sm text-muted-foreground mb-4">Paste your content and AI will analyze it</p>
-                </TabsContent>
                 <TabsContent value="youtube">
                   <p className="text-sm text-muted-foreground mb-4">Provide a YouTube link for automatic extraction</p>
+                </TabsContent>
+                <TabsContent value="text">
+                  <p className="text-sm text-muted-foreground mb-4">Paste your content and AI will analyze it</p>
                 </TabsContent>
                 <TabsContent value="document">
                   <p className="text-sm text-muted-foreground mb-4">Upload a document for AI analysis</p>
@@ -604,7 +626,7 @@ export function VideoProjectSheet({
           </Tabs>
 
           {/* Method-specific content */}
-          {(creationMethod === "text" || creationMethod === "youtube" || creationMethod === "document") && (
+          {(creationMethod === "text" || creationMethod === "document") && (
             <Form {...form}>
               <FormField
                 control={form.control}
@@ -620,6 +642,12 @@ export function VideoProjectSheet({
                 )}
               />
             </Form>
+          )}
+          
+          {creationMethod === "youtube" && (
+            <p className="text-sm text-muted-foreground">
+              Title will be pulled automatically from the YouTube video.
+            </p>
           )}
           
           {creationMethod === "text" && (

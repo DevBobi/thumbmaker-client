@@ -107,51 +107,108 @@ const ThumbnailAssetPreview: React.FC<{ asset: ThumbnailAsset; onRemove: () => v
 
 const channelStyles = [
   {
-    value: "professional & educational",
+    value: "professional_educational",
     label: "Professional & Educational",
     description:
-      "Clean, informative, and authoritative style suitable for educational content",
+      "Tutorials, courses, explainer videos, industry insights, study channels.",
   },
   {
-    value: "entertainment & gaming",
-    label: "Entertainment & Gaming",
+    value: "entertainment_comedy",
+    label: "Entertainment & Comedy",
     description:
-      "Dynamic, energetic, and engaging style for entertainment content",
+      "Skits, memes, challenges, reaction content, funny compilations.",
   },
   {
-    value: "lifestyle & vlog",
+    value: "gaming_esports",
+    label: "Gaming & Esports",
+    description:
+      "Let’s plays, walkthroughs, streams, highlights, game reviews.",
+  },
+  {
+    value: "lifestyle_vlog",
     label: "Lifestyle & Vlog",
     description:
-      "Personal, authentic, and relatable style for lifestyle content",
+      "Daily vlogs, routines, travel, storytime, family/relationship content.",
   },
   {
-    value: "tech & reviews",
+    value: "tech_reviews",
     label: "Tech & Reviews",
-    description: "Modern, sleek, and technical style for technology content",
+    description:
+      "Gadgets, software, unboxings, comparisons, product reviews.",
+  },
+  {
+    value: "news_commentary",
+    label: "News & Commentary",
+    description:
+      "Current events, politics, drama breakdowns, analysis, opinion pieces.",
+  },
+  {
+    value: "business_finance_self_improvement",
+    label: "Business, Finance & Self-Improvement",
+    description:
+      "Money, investing, entrepreneurship, productivity, mindset, career advice.",
   },
 ];
 
 const thumbnailGoals = [
   {
-    value: "clickbait & curiosity",
-    label: "Clickbait & Curiosity",
-    description: "Create intrigue and curiosity to drive clicks",
+    value: "curiosity_clickbait",
+    label: "Curiosity & Clickbait",
+    description:
+      "Make viewers wonder what’s inside (mystery, open loops, shock).",
   },
   {
-    value: "content preview",
-    label: "Content Preview",
-    description: "Show a preview of the video content",
+    value: "content_preview_informational",
+    label: "Content Preview / Informational",
+    description:
+      "Clearly show what the video teaches, covers, or includes.",
   },
   {
-    value: "branding recognition",
+    value: "brand_recognition",
     label: "Brand Recognition",
-    description: "Focus on brand identity and recognition",
+    description:
+      "Make the channel instantly recognizable (faces, logo, consistent style).",
   },
   {
-    value: "emotion response",
-    label: "Emotional Response",
-    description: "Evoke specific emotions from viewers",
+    value: "emotional_impact",
+    label: "Emotional Impact",
+    description:
+      "Trigger strong feelings (awe, fear, joy, nostalgia, empathy).",
   },
+  {
+    value: "results_transformation",
+    label: "Results & Transformation",
+    description:
+      "Before/after, progress, stats—“look what happened” thumbnails.",
+  },
+  {
+    value: "offer_conversion_focused",
+    label: "Offer / Conversion Focused",
+    description:
+      "Push a clear action: sign up, download, buy, subscribe, join, etc.",
+  },
+  {
+    value: "authority_social_proof",
+    label: "Authority & Social Proof",
+    description:
+      "Show expertise or trust: credentials, testimonials, big numbers, awards.",
+  },
+];
+
+const settingsTooltipClass =
+  "max-w-xs px-3 py-2 rounded-md border shadow-md bg-primary text-primary-foreground border-primary/40 text-xs sm:text-sm";
+
+const facialExpressions = [
+  { value: "neutral", label: "Neutral", emoji: "😐" },
+  { value: "soft_smile", label: "Soft Smile", emoji: "🙂" },
+  { value: "big_smile", label: "Big Smile", emoji: "😄" },
+  { value: "surprised", label: "Surprised", emoji: "😲" },
+  { value: "confused", label: "Confused", emoji: "😕" },
+  { value: "worried", label: "Worried", emoji: "😟" },
+  { value: "angry", label: "Angry", emoji: "😠" },
+  { value: "sad", label: "Sad", emoji: "🙁" },
+  { value: "disgusted", label: "Disgusted", emoji: "🤢" },
+  { value: "determined", label: "Determined", emoji: "😤" },
 ];
 
 export default function CreateYoutubeThumbnail() {
@@ -167,6 +224,7 @@ export default function CreateYoutubeThumbnail() {
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
   const [channelStyle, setChannelStyle] = useState<string>("");
   const [thumbnailGoal, setThumbnailGoal] = useState<string>("");
+  const [facialExpression, setFacialExpression] = useState<string>("");
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [templateVariations, setTemplateVariations] = useState(1);
   const [thumbnailAssets, setThumbnailAssets] = useState<ThumbnailAsset[]>([]);
@@ -180,6 +238,7 @@ export default function CreateYoutubeThumbnail() {
   }>({});
   const MAX_SELECTIONS = 20; // Maximum templates user can select
   const assetsRef = useRef<ThumbnailAsset[]>([]);
+  const isSubmittingRef = useRef(false);
 
   const createPreviewUrl = useCallback((file: File) => {
     try {
@@ -366,58 +425,19 @@ export default function CreateYoutubeThumbnail() {
     }
   }, [authFetch]);
 
-  // Load selected templates from localStorage on mount
+  // Ensure no templates are auto-selected when the page loads
+  // We intentionally clear any persisted selections so that users
+  // always start with a clean slate.
   useEffect(() => {
     try {
-      const storedIds = localStorage.getItem(STORAGE_KEY_IDS);
-      const storedObjects = localStorage.getItem(STORAGE_KEY_OBJECTS);
-      
-      let templateIds: string[] = [];
-      let templateObjects: any[] = [];
-      
-      if (storedIds) {
-        const parsedIds = JSON.parse(storedIds);
-        if (Array.isArray(parsedIds) && parsedIds.length > 0) {
-          templateIds = parsedIds;
-        }
-      }
-      
-      if (storedObjects) {
-        const parsedObjects = JSON.parse(storedObjects);
-        if (Array.isArray(parsedObjects) && parsedObjects.length > 0) {
-          // Validate that template objects have required fields (id, image, title)
-          templateObjects = parsedObjects.filter((t: any) => 
-            t && 
-            typeof t.id === 'string' && 
-            t.id.length > 0 &&
-            (t.image || t.link) && // At least one image source
-            t.title // Title is required
-          );
-        }
-      }
-      
-      if (templateIds.length > 0) {
-        // Order template objects according to templateIds order
-        const orderedObjects = templateIds
-          .map((id) => templateObjects.find((t) => t && t.id === id))
-          .filter((t) => t !== undefined);
-        
-        setAllSelectedTemplates(templateIds);
-        
-        // Use stored objects immediately if we have them
-        if (orderedObjects.length > 0) {
-          setPreSelectedTemplateObjects(orderedObjects);
-        }
-        
-        // Fetch details for any missing templates (this will update if needed)
-        if (orderedObjects.length < templateIds.length) {
-          fetchTemplateDetails(templateIds, orderedObjects);
-        }
-      }
+      localStorage.removeItem(STORAGE_KEY_IDS);
+      localStorage.removeItem(STORAGE_KEY_OBJECTS);
+      setAllSelectedTemplates([]);
+      setPreSelectedTemplateObjects([]);
     } catch (error) {
-      console.error("Error loading selected templates from storage:", error);
+      console.error("Error clearing selected templates from storage:", error);
     }
-  }, [fetchTemplateDetails]);
+  }, []);
 
   // Persist selected template IDs to localStorage whenever they change
   useEffect(() => {
@@ -766,11 +786,17 @@ export default function CreateYoutubeThumbnail() {
   const assetPreviewCount = thumbnailAssets.length + (selectedProject?.image ? 1 : 0);
 
   const handleGenerate = async () => {
+    // Extra guard with ref to prevent ultra-fast double submissions
+    if (isSubmittingRef.current) {
+      return;
+    }
+
     if (isGenerating || hasSubmitted) {
       return;
     }
 
     try {
+      isSubmittingRef.current = true;
       setIsGenerating(true);
       setHasSubmitted(true);
 
@@ -891,6 +917,10 @@ export default function CreateYoutubeThumbnail() {
         variations: templateVariations,
       };
 
+      if (facialExpression) {
+        requestBody.facialExpression = facialExpression;
+      }
+
       if (hasTemplates) {
         const templateIds = allSelectedTemplates.map(id => String(id));
         requestBody.templates = templateIds;
@@ -931,6 +961,19 @@ export default function CreateYoutubeThumbnail() {
       if (!data.id) {
         throw new Error("Invalid response from server");
       }
+
+      // Only record pending generation after a successful creation response
+      try {
+        localStorage.setItem(
+          "pendingThumbnailGeneration",
+          JSON.stringify({
+            projectId: selectedProject.id,
+            createdAt: new Date().toISOString(),
+          })
+        );
+      } catch (e) {
+        console.warn("Unable to persist pending generation state:", e);
+      }
       
       // Clear selected templates from storage after successful generation
       try {
@@ -954,6 +997,8 @@ export default function CreateYoutubeThumbnail() {
       
       setHasSubmitted(false);
       setIsGenerating(false);
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -1001,27 +1046,37 @@ export default function CreateYoutubeThumbnail() {
                 </CardDescription>
               </div>
               
-              {/* Search Input - Top Right */}
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search projects..."
-                  value={projectSearchQuery}
-                  onChange={(e) => {
-                    setProjectSearchQuery(e.target.value);
-                    // Auto-open dropdown when typing
-                    if (!showProjectSelector && e.target.value.trim()) {
-                      setShowProjectSelector(true);
-                    }
-                  }}
-                  onFocus={() => {
-                    // Open dropdown on focus if there's text or no project selected
-                    if (projectSearchQuery.trim() || !selectedProject) {
-                      setShowProjectSelector(true);
-                    }
-                  }}
-                  className="pl-9 h-9"
-                />
+              {/* Search + Create Project actions */}
+              <div className="flex w-full sm:w-auto items-center gap-2">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search projects..."
+                    value={projectSearchQuery}
+                    onChange={(e) => {
+                      setProjectSearchQuery(e.target.value);
+                      // Auto-open dropdown when typing
+                      if (!showProjectSelector && e.target.value.trim()) {
+                        setShowProjectSelector(true);
+                      }
+                    }}
+                    onFocus={() => {
+                      // Open dropdown on focus if there's text or no project selected
+                      if (projectSearchQuery.trim() || !selectedProject) {
+                        setShowProjectSelector(true);
+                      }
+                    }}
+                    className="pl-9 h-9"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 whitespace-nowrap"
+                  onClick={() => router.push("/dashboard/create-project")}
+                >
+                  Create a Project
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -1198,6 +1253,87 @@ export default function CreateYoutubeThumbnail() {
             </CardContent>
           </Card>
 
+        {/* Thumbnail Assets (moved directly after project selection) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Thumbnail Assets</CardTitle>
+            <CardDescription>
+              Upload images to use in your thumbnail
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border-2 border-dashed rounded-lg p-6">
+              <div className="flex flex-col items-center">
+                <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">
+                  Click to upload additional assets (optional)
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  JPG, PNG, GIF, WebP, SVG, BMP, TIFF, HEIC, HEIF, AVIF formats accepted (you can upload multiple files, up to 4)
+                </p>
+                {selectedProject?.image && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    ℹ️ Project image will be used automatically
+                  </p>
+                )}
+              </div>
+              <Input
+                type="file"
+                className="hidden"
+                multiple
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml,image/bmp,image/tiff,image/x-icon,image/heic,image/heif,image/avif,.heic,.heif,.avif"
+                onChange={handleFileChange}
+                id="thumbnail-assets"
+                disabled={thumbnailAssets.length >= 4}
+              />
+              <Button
+                variant="outline"
+                className="mt-4 w-full"
+                onClick={() =>
+                  document.getElementById("thumbnail-assets")?.click()
+                }
+                disabled={thumbnailAssets.length >= 4}
+              >
+                {thumbnailAssets.length >= 4
+                  ? "Maximum files reached"
+                  : "Upload Files"}
+              </Button>
+            </div>
+            {hasAssetPreviews && (
+              <div className="mt-4">
+                <p className="text-sm text-muted-foreground mb-3">
+                  {assetPreviewCount} asset{assetPreviewCount !== 1 ? "s" : ""} ready for generation
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {selectedProject?.image && (
+                    <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                      <Image
+                        src={selectedProject.image}
+                        alt={selectedProject.title || "Project image"}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <Badge variant="secondary" className="text-xs">
+                          Project image
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                  {thumbnailAssets.map((asset, index) => (
+                    <ThumbnailAssetPreview
+                      key={asset.id}
+                      asset={asset}
+                      onRemove={() => handleRemoveFile(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            </CardContent>
+          </Card>
+
                   {/* Generation Method Tabs */}
         <Card>
           <CardHeader>
@@ -1359,84 +1495,62 @@ export default function CreateYoutubeThumbnail() {
           </CardContent>
         </Card>
 
-        {/* Thumbnail Assets */}
+        {/* Facial Expression (Optional) */}
         <Card>
           <CardHeader>
-            <CardTitle>Thumbnail Assets</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Facial Expression (Optional)
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="inline-flex items-center justify-center">
+                    <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className={settingsTooltipClass}>
+                  <p>
+                    Choose a facial expression to guide how the subject&apos;s face should look.
+                    This works best when you upload a selfie or close-up image.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
             <CardDescription>
-              Upload images to use in your thumbnail
+              Optional hint for how the face should feel in the final thumbnail.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="border-2 border-dashed rounded-lg p-6">
-              <div className="flex flex-col items-center">
-                <Upload className="h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">
-                  Click to upload additional assets (optional)
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  JPG, PNG, GIF, WebP, SVG, BMP, TIFF, HEIC, HEIF, AVIF formats accepted (max 4 files)
-                </p>
-                {selectedProject?.image && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    ℹ️ Project image will be used automatically
-                  </p>
-                )}
-              </div>
-              <Input
-                type="file"
-                className="hidden"
-                multiple
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml,image/bmp,image/tiff,image/x-icon,image/heic,image/heif,image/avif,.heic,.heif,.avif"
-                onChange={handleFileChange}
-                id="thumbnail-assets"
-                disabled={thumbnailAssets.length >= 4}
-              />
-              <Button
-                variant="outline"
-                className="mt-4 w-full"
-                onClick={() =>
-                  document.getElementById("thumbnail-assets")?.click()
-                }
-                disabled={thumbnailAssets.length >= 4}
-              >
-                {thumbnailAssets.length >= 4
-                  ? "Maximum files reached"
-                  : "Upload Files"}
-              </Button>
+            <div className="flex flex-wrap gap-2">
+              {facialExpressions.map((expression) => (
+                <Tooltip key={expression.value}>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant={facialExpression === expression.value ? "default" : "outline"}
+                      className={`group cursor-pointer p-2 text-lg flex items-center justify-center transition-all hover:scale-105 ${
+                        facialExpression === expression.value ? "shadow-sm" : "border-muted-foreground/40"
+                      }`}
+                      onClick={() =>
+                        setFacialExpression((prev) =>
+                          prev === expression.value ? "" : expression.value
+                        )
+                      }
+                    >
+                      <span
+                        className={`leading-none ${
+                          facialExpression === expression.value
+                            ? ""
+                            : "text-muted-foreground grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100"
+                        }`}
+                      >
+                        {expression.emoji}
+                      </span>
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className={settingsTooltipClass}>
+                    <p>{expression.label}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
             </div>
-            {hasAssetPreviews && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground mb-3">
-                  {assetPreviewCount} asset{assetPreviewCount !== 1 ? "s" : ""} ready for generation
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {selectedProject?.image && (
-                    <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
-                      <Image
-                        src={selectedProject.image}
-                        alt={selectedProject.title || "Project image"}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                      />
-                      <div className="absolute top-2 left-2">
-                        <Badge variant="secondary" className="text-xs">
-                          Project image
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
-                  {thumbnailAssets.map((asset, index) => (
-                    <ThumbnailAssetPreview
-                      key={asset.id}
-                      asset={asset}
-                      onRemove={() => handleRemoveFile(index)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -1454,7 +1568,7 @@ export default function CreateYoutubeThumbnail() {
                     <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs bg-white text-foreground border shadow-lg dark:bg-gray-800 dark:text-white">
+                <TooltipContent side="right" className={settingsTooltipClass}>
                   <p>
                     Choose the visual style that aligns with your channel's branding and content type. 
                     This helps tailor the thumbnail design to match your audience's expectations.
@@ -1491,15 +1605,14 @@ export default function CreateYoutubeThumbnail() {
                       )}
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs bg-white text-foreground border shadow-lg dark:bg-gray-800 dark:text-white">
-                    {/* <p className="font-medium mb-1">{style.label}</p> */}
-                    <p className="text-sm">{style.description}</p>
+                  <TooltipContent side="top" className={settingsTooltipClass}>
+                    <p>{style.description}</p>
                   </TooltipContent>
                 </Tooltip>
               ))}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Primary Thumbnail Goal */}
         <Card id="thumbnail-goal-card" className={validationErrors.thumbnailGoal ? "ring-2 ring-destructive" : ""}>
@@ -1515,7 +1628,7 @@ export default function CreateYoutubeThumbnail() {
                     <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs bg-white text-foreground border shadow-lg dark:bg-gray-800 dark:text-white">
+                <TooltipContent side="right" className={settingsTooltipClass}>
                   <p>
                     Define the primary objective for your thumbnail. This influences the visual hierarchy, 
                     emotional tone, and design elements to maximize your desired outcome.
@@ -1552,12 +1665,12 @@ export default function CreateYoutubeThumbnail() {
                       )}
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs bg-white text-foreground border shadow-lg dark:bg-gray-800 dark:text-white">
-                    <p className="text-sm">{goal.description}</p>
+                  <TooltipContent side="top" className={settingsTooltipClass}>
+                    <p>{goal.description}</p>
                   </TooltipContent>
                 </Tooltip>
               ))}
-        </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -1571,7 +1684,7 @@ export default function CreateYoutubeThumbnail() {
           </CardHeader>
           <CardContent>
             <Textarea
-              placeholder="Enter any additional instructions or requirements for the thumbnail generation..."
+              placeholder="e.g: put the Nissan on the left side of the thumbnail."
               value={additionalInstructions}
               onChange={(e) => setAdditionalInstructions(e.target.value)}
               rows={4}

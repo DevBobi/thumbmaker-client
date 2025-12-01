@@ -11,7 +11,7 @@ if (!stripeApiKey) {
 
 export const stripe = stripeApiKey
   ? new Stripe(stripeApiKey, {
-      apiVersion: "2025-08-27.basil",
-      typescript: true,
+  apiVersion: "2025-08-27.basil",
+  typescript: true,
     })
   : (null as unknown as Stripe);

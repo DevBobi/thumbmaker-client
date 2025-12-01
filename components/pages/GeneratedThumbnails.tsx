@@ -28,7 +28,12 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
   const [thumbnails, setThumbnails] = useState<GeneratedThumbnail[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<{
+    code?: number;
+    message?: string;
+    details?: string;
+    kind?: "failed" | "not_found" | "network";
+  } | null>(null);
   const [setStatus, setSetStatus] = useState<string>("");
   const socketRef = useRef<Socket | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -44,7 +49,37 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
         
         if (!response.ok) {
           console.error('❌ API Error:', response.status, response.statusText);
-          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+
+          // Try to get more context from the response body
+          let body: any = null;
+          try {
+            body = await response.json();
+          } catch {
+            // ignore parse error, we'll fall back to status text
+          }
+
+          if (response.status === 404) {
+            setError({
+              code: 404,
+              kind: "not_found",
+              message:
+                body?.message ||
+                "We couldn’t find a generation batch for this link. Make sure you’re using the batch link we show after generation, or open it from your History page.",
+            });
+          } else {
+            setError({
+              code: response.status,
+              kind: "network",
+              message:
+                body?.message ||
+                body?.error ||
+                `Request failed with status ${response.status} ${response.statusText}`,
+            });
+          }
+
+          setIsProcessing(false);
+          setIsLoading(false);
+          return false;
         }
         
         const data: any = await response.json();
@@ -92,7 +127,12 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
         
         // Check if processing or failed
         if (status === "FAILED") {
-          setError(true);
+          // Mark as a graceful failure but keep any partial thumbnails visible
+          setError({
+            kind: "failed",
+            message:
+              "This generation batch was marked as failed. Any thumbnails that did complete are shown below, and credits for failed items should have been refunded.",
+          });
           setIsProcessing(false);
           setIsLoading(false);
           return false; // Stop polling on failure
@@ -121,9 +161,17 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
 
         // If status is not completed, continue polling
         return status !== "COMPLETED";
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching thumbnails:", error);
-        setError(true);
+        setError((prev) => {
+          if (prev) return prev;
+          return {
+            kind: "network",
+            message:
+              error?.message ||
+              "We couldn’t load this generation batch. Please check your connection and try again, or open the thumbnails from your History page.",
+          };
+        });
         setIsProcessing(false);
         setIsLoading(false);
         return false; // Stop polling on error
@@ -174,7 +222,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             setSetStatus('COMPLETED');
             setIsProcessing(false);
             setIsLoading(false);
-            setError(false);
+            setError(null);
             // Clear polling since we got the update via WebSocket
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
@@ -188,7 +236,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
           setSetStatus('COMPLETED');
           setIsProcessing(false);
           setIsLoading(false);
-          setError(false);
+          setError(null);
           // Clear polling since we got the update via WebSocket
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
@@ -201,7 +249,13 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
     socketRef.current.on('thumbnail:failed', (data) => {
       console.log('❌ Thumbnail failed via WebSocket:', data);
       if (data.setId === id) {
-        setError(true);
+        setError({
+          kind: "failed",
+          message:
+            data?.error ||
+            "This generation batch failed while processing. You can try again from the History page; any credits for the failed batch should be refunded automatically.",
+          details: data?.errorDetails,
+        });
         setIsProcessing(false);
         setIsLoading(false);
         setSetStatus('FAILED');
@@ -218,7 +272,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
       if (data.setId === id) {
         setIsProcessing(true);
         setIsLoading(false);
-        setError(false);
+        setError(null);
         setSetStatus('PROCESSING');
       }
     });
@@ -241,7 +295,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             setSetStatus('COMPLETED');
             setIsProcessing(false);
             setIsLoading(false);
-            setError(false);
+            setError(null);
             // Clear polling once completed
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
@@ -249,7 +303,23 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             }
           } else if (status === "FAILED") {
             console.log('❌ Status changed to FAILED via polling');
-            setError(true);
+            // If any thumbnail in this set has an error message, surface the first one
+            let details: string | undefined;
+            if (Array.isArray(data.thumbnails)) {
+              const firstWithError = data.thumbnails.find(
+                (t: any) => typeof t.error === "string" && t.error.length > 0
+              );
+              if (firstWithError) {
+                details = firstWithError.error;
+              }
+            }
+
+            setError({
+              kind: "failed",
+              message:
+                "This generation batch was marked as failed. Any thumbnails that did complete are shown below, and credits for failed items should have been refunded.",
+              details,
+            });
             setIsProcessing(false);
             setIsLoading(false);
             setSetStatus('FAILED');
@@ -277,7 +347,7 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
         pollIntervalRef.current = null;
       }
     };
-  }, [id, authFetch]);
+  }, [id, authFetch, genProgress]);
 
   const handleDownload = (imageUrl: string, title: string) => {
     const link = document.createElement("a");
@@ -410,18 +480,64 @@ const GeneratedThumbnailsPage = ({ id }: { id: string }) => {
             },
           ]}
         />
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h1 className="text-2xl font-bold mb-4 text-red-700">Generation Failed</h1>
-          <p className="text-red-600 mb-4">
-            {setStatus === "FAILED" 
-              ? "The thumbnail generation process failed. This could be due to insufficient credits, API errors, or invalid inputs."
-              : "Failed to load generated thumbnails."}
-          </p>
-          <div className="space-y-2 mb-4 text-sm text-red-600">
-            <p>• Check if you have sufficient credits</p>
-            <p>• Verify your API keys are configured correctly</p>
-            <p>• Try generating again with different settings</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 space-y-4">
+          <div>
+            <h1 className="text-2xl font-bold mb-2 text-red-700">
+              {error.kind === "not_found"
+                ? "Generation batch not found"
+                : "Generation issue"}
+            </h1>
+            <p className="text-red-600 mb-2">
+              {error.message ||
+                (setStatus === "FAILED"
+                  ? "The thumbnail generation process failed. This could be due to upstream AI errors or invalid inputs."
+                  : "We couldn’t load generated thumbnails for this link.")}
+            </p>
           </div>
+
+          {error.details && (
+            <div className="rounded-md bg-red-100 border border-red-200 px-3 py-2 text-xs text-red-700 whitespace-pre-line">
+              {error.details}
+            </div>
+          )}
+
+          {error.kind === "not_found" && (
+            <div className="space-y-1 text-sm text-red-600">
+              <p>• This page expects a <strong>batch ID</strong> (set ID), not a single thumbnail ID.</p>
+              <p>• Open the same batch from your <strong>History</strong> page, or trigger a new generation and follow the redirect link.</p>
+            </div>
+          )}
+
+          {error.kind !== "not_found" && (
+            <div className="space-y-1 text-sm text-red-600">
+              <p>• Check your connection and try refreshing this page.</p>
+              <p>• If this keeps happening, open the thumbnails from your <strong>History</strong> page instead.</p>
+            </div>
+          )}
+
+          {thumbnails.length > 0 && (
+            <div className="mt-4 border-t border-red-100 pt-4">
+              <p className="text-sm font-medium text-red-700 mb-2">
+                Partial results
+              </p>
+              <p className="text-xs text-red-600 mb-3">
+                We still found {thumbnails.length} thumbnail
+                {thumbnails.length > 1 ? "s" : ""} in this batch. You can download them below.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {thumbnails.map((thumbnail) => (
+                  <GeneratedThumbnailCard
+                    key={thumbnail.id}
+                    ad={thumbnail}
+                    download={() =>
+                      handleDownload(thumbnail.image, thumbnail.title)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Button onClick={handleBack} variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard

@@ -206,7 +206,7 @@ const Billing = ({}: BillingProps) => {
         </div>
       </div>
 
-      {isActive ? (
+      {isPaidPlan ? (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
