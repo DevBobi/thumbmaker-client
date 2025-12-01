@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useAuthFetch } from "@/hooks/use-auth-fetch";
 import { useAuth, useUser } from "@clerk/nextjs";
 import {
   CreditCardIcon,
@@ -20,10 +19,9 @@ import {
   UserCircleIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { CREDIT_EVENT_NAME } from "@/lib/credit-events";
+import { useSubscription } from "@/hooks/use-subscription";
 import { CoinsIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const NavbarItems = [
   {
@@ -46,44 +44,26 @@ const NavbarItems = [
 export default function Navbar() {
   const { user } = useUser();
   const { signOut } = useAuth();
-  const { authFetch } = useAuthFetch();
-  const pathname = usePathname();
-  const [credits, setCredits] = useState<number | null>(null); // null = loading, number = loaded
-  const [isLoadingCredits, setIsLoadingCredits] = useState(true);
+  const { credits, isLoading: isLoadingCredits, subscription } = useSubscription();
+  const [hasLoadedCredits, setHasLoadedCredits] = useState(false);
+  const [displayCredits, setDisplayCredits] = useState(credits);
 
-  const refreshCredits = useCallback(async () => {
-    try {
-      setIsLoadingCredits(true);
-      const response = await authFetch("/user/credits");
-      if (!response.ok) return;
-      const data = await response.json();
-      setCredits(typeof data.credits === "number" ? data.credits : 0);
-    } catch (error) {
-      console.error("Failed to refresh credits", error);
-    } finally {
-      setIsLoadingCredits(false);
+  // Track if we've ever loaded credits to prevent blinking during refreshes
+  useEffect(() => {
+    if (subscription) {
+      if (!hasLoadedCredits) {
+        // First time we have subscription data
+        setHasLoadedCredits(true);
+      }
+      // Always update display credits when subscription data is available
+      // This ensures we show the latest credits without blinking
+      setDisplayCredits(credits);
     }
-  }, [authFetch]);
+  }, [subscription, credits, hasLoadedCredits]);
 
-  useEffect(() => {
-    refreshCredits();
-  }, [refreshCredits, pathname]);
-
-  useEffect(() => {
-    const handleFocus = () => refreshCredits();
-
-    if (typeof window === "undefined") return;
-
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener(CREDIT_EVENT_NAME, handleFocus);
-    const interval = setInterval(handleFocus, 15000);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener(CREDIT_EVENT_NAME, handleFocus);
-      clearInterval(interval);
-    };
-  }, [refreshCredits]);
+  // Only show loading state on initial load, not during background refreshes
+  // Once we have subscription data, we keep showing credits even during refreshes
+  const showLoadingState = isLoadingCredits && !hasLoadedCredits;
 
   return (
     <header className="border-b border-border bg-background">
@@ -97,7 +77,7 @@ export default function Navbar() {
 
         {/* Right section: credits + user */}
         <div className="flex items-center gap-4 md:gap-6">
-          {isLoadingCredits ? (
+          {showLoadingState ? (
             <div className="flex items-center gap-2 rounded-full border border-dashed border-muted-foreground/20 px-2.5 py-1 text-xs text-muted-foreground">
               <CoinsIcon className="h-3.5 w-3.5" />
               <span className="tracking-tight">Checking credits…</span>
@@ -106,7 +86,7 @@ export default function Navbar() {
             <div className="flex items-center gap-2 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
               <CoinsIcon className="h-3.5 w-3.5 text-amber-500" />
               <span className="font-medium text-foreground">
-                {credits ?? 0}
+                {displayCredits}
               </span>
               <span className="text-[11px] uppercase tracking-[0.16em]">
                 Credits

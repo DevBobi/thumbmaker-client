@@ -52,14 +52,42 @@ const Dashboard = () => {
     return null;
   }, [user?.id]);
 
-  // Check if user is visiting dashboard for the first time
+  // Check if user just completed onboarding and show tutorial modal
   useEffect(() => {
-    const hasVisitedDashboard = localStorage.getItem("hasVisitedDashboard");
-    if (!hasVisitedDashboard) {
+    if (!isLoaded || !user) return;
+
+    // Check if user just completed onboarding (from Clerk metadata)
+    const hasCompletedOnboarding = 
+      user.unsafeMetadata?.hasCompletedOnboarding === true ||
+      user.unsafeMetadata?.hasCompletedNewOnboarding === true ||
+      user.publicMetadata?.hasCompletedOnboarding === true ||
+      user.publicMetadata?.hasCompletedNewOnboarding === true;
+
+    // Check if onboarding was completed recently (within last 5 minutes)
+    const onboardingCompletedAt = (user.unsafeMetadata?.onboardingCompletedAt || user.publicMetadata?.onboardingCompletedAt) as string | undefined;
+    const recentlyCompleted = onboardingCompletedAt 
+      ? (Date.now() - new Date(onboardingCompletedAt).getTime()) < 5 * 60 * 1000
+      : false;
+
+    // Check if we've already shown the tutorial for this onboarding completion
+    const tutorialShownKey = `tutorialShown_${user.id}_${onboardingCompletedAt || 'default'}`;
+    const hasShownTutorial = localStorage.getItem(tutorialShownKey);
+
+    // Show tutorial if:
+    // 1. User just completed onboarding (recently completed)
+    // 2. We haven't shown the tutorial for this completion yet
+    if (hasCompletedOnboarding && recentlyCompleted && !hasShownTutorial) {
       setIsTutorialOpen(true);
-      localStorage.setItem("hasVisitedDashboard", "true");
+      localStorage.setItem(tutorialShownKey, "true");
+    } else {
+      // Fallback: Check if user is visiting dashboard for the first time (legacy behavior)
+      const hasVisitedDashboard = localStorage.getItem(`hasVisitedDashboard_${user.id}`);
+      if (!hasVisitedDashboard && !hasCompletedOnboarding) {
+        setIsTutorialOpen(true);
+        localStorage.setItem(`hasVisitedDashboard_${user.id}`, "true");
+      }
     }
-  }, []);
+  }, [isLoaded, user]);
 
   // Commented out onboarding after login
   // useEffect(() => {

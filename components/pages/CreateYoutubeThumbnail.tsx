@@ -25,11 +25,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Project } from "@/types";
 import TemplateSelector from "@/components/thumbnail/TemplateSelector";
 import { uploadToStorage } from "@/actions/upload";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/use-subscription";
 import Link from "next/link";
 
 type GenerationMode = "template" | "youtube";
@@ -215,6 +224,7 @@ export default function CreateYoutubeThumbnail() {
   const router = useRouter();
   const { authFetch } = useAuthFetch();
   const { toast } = useToast();
+  const { credits, subscription } = useSubscription();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("template");
@@ -232,6 +242,7 @@ export default function CreateYoutubeThumbnail() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
+  const [showCreditModal, setShowCreditModal] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{
     channelStyle?: boolean;
     thumbnailGoal?: boolean;
@@ -795,6 +806,12 @@ export default function CreateYoutubeThumbnail() {
       return;
     }
 
+    // Check if user has credits
+    if (credits <= 0) {
+      setShowCreditModal(true);
+      return;
+    }
+
     try {
       isSubmittingRef.current = true;
       setIsGenerating(true);
@@ -964,7 +981,33 @@ export default function CreateYoutubeThumbnail() {
 
       // Only record pending generation after a successful creation response
       try {
-        localStorage.setItem(
+        // Get existing pending generations
+        const existingPending = typeof window !== "undefined"
+          ? window.localStorage.getItem("pendingThumbnailGenerations")
+          : null;
+        
+        const pendingArray = existingPending ? JSON.parse(existingPending) : [];
+        
+        // Add new pending generation with setId
+        const newPending = {
+          setId: data.id,
+          projectId: selectedProject.id,
+          createdAt: new Date().toISOString(),
+        };
+        
+        // Add to array (avoid duplicates)
+        const updatedPending = [
+          ...pendingArray.filter((p: any) => p.setId !== data.id),
+          newPending,
+        ];
+        
+        window.localStorage.setItem(
+          "pendingThumbnailGenerations",
+          JSON.stringify(updatedPending)
+        );
+        
+        // Also keep old format for backward compatibility (will be cleaned up by History page)
+        window.localStorage.setItem(
           "pendingThumbnailGeneration",
           JSON.stringify({
             projectId: selectedProject.id,
@@ -1760,6 +1803,78 @@ export default function CreateYoutubeThumbnail() {
           </div>
         ) : null}
       </div>
+
+      {/* Credit Modal */}
+      <Dialog open={showCreditModal} onOpenChange={setShowCreditModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <DialogTitle className="text-xl">Out of Credits</DialogTitle>
+            </div>
+            <DialogDescription className="text-base pt-2">
+              You've run out of credits to generate thumbnails. Upgrade your plan to continue creating high-converting thumbnails.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="p-4 rounded-lg bg-muted/50 border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Current Plan:</span>
+                <Badge variant="secondary" className="font-semibold">
+                  {subscription?.plan || (subscription?.isActive ? "Starter" : "Free")}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">Available Credits:</span>
+                <span className="text-sm font-semibold text-destructive">{credits}</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <p className="text-sm text-foreground font-medium mb-1">
+                ✨ Upgrade to unlock more credits
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Get access to more credits and premium features to generate unlimited thumbnails.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowCreditModal(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            {subscription?.isActive ? (
+              <Button
+                onClick={() => {
+                  setShowCreditModal(false);
+                  router.push("/dashboard/billing");
+                }}
+                className="w-full sm:w-auto"
+              >
+                Go to Billing
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  setShowCreditModal(false);
+                  router.push("/pricing");
+                }}
+                className="w-full sm:w-auto"
+              >
+                View Plans
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

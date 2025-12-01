@@ -25,6 +25,7 @@ export async function AppLayout({ children }: LayoutProps) {
 
   // Fetch real subscription data from API
   let subscription = {
+    plan: null as string | null,
     isActive: false,
     credits: 0,
     gotFreeCredits: false,
@@ -37,6 +38,7 @@ export async function AppLayout({ children }: LayoutProps) {
     if (subscriptionResponse.ok) {
       const subscriptionData = await subscriptionResponse.json();
       subscription = {
+        plan: subscriptionData.plan || null,
         isActive: subscriptionData.isActive || false,
         credits: subscriptionData.credits ?? 0,
         gotFreeCredits: subscriptionData.gotFreeCredits || false,
@@ -60,6 +62,7 @@ export async function AppLayout({ children }: LayoutProps) {
               avatar: user?.imageUrl || "",
             }}
             subscription={{
+              plan: subscription.plan,
               isActive: subscription.isActive,
               credits: subscription.credits,
               gotFreeCredits: subscription.gotFreeCredits,

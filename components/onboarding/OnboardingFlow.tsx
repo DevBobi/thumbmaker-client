@@ -33,10 +33,40 @@ export default function OnboardingFlow() {
     }
   };
 
-  const handleSkip = () => {
-    if (user?.id) {
-      localStorage.setItem(`hasCompletedNewOnboarding_${user.id}`, "true");
+  const markOnboardingComplete = async () => {
+    if (!user) return;
+
+    try {
+      // Update Clerk metadata to mark onboarding as complete
+      await user.update({
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          hasCompletedOnboarding: true,
+          hasCompletedNewOnboarding: true,
+          onboardingCompletedAt: new Date().toISOString(),
+        },
+      });
+
+      // Also update localStorage for backward compatibility
+      if (user.id) {
+        localStorage.setItem(`hasCompletedNewOnboarding_${user.id}`, "true");
+      }
+    } catch (error) {
+      console.error("Error updating user metadata:", error);
+      // Fallback to localStorage only if metadata update fails
+      if (user.id) {
+        localStorage.setItem(`hasCompletedNewOnboarding_${user.id}`, "true");
+      }
     }
+  };
+
+  const handleSkip = async () => {
+    await markOnboardingComplete();
+    router.push("/dashboard");
+  };
+
+  const handleOnboardingComplete = async () => {
+    await markOnboardingComplete();
     router.push("/dashboard");
   };
 
@@ -72,7 +102,7 @@ export default function OnboardingFlow() {
       />
     );
   } else if (step === "pricing") {
-    content = <PricingScreen />;
+    content = <PricingScreen onComplete={handleOnboardingComplete} />;
   }
 
   return (

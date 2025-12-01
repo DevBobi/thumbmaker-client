@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavUser } from "@/components/NavUser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,8 +37,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useAuthFetch } from "@/hooks/use-auth-fetch";
-import { CREDIT_EVENT_NAME } from "@/lib/credit-events";
+import { useSubscription } from "@/hooks/use-subscription";
 
 type User = {
   name: string;
@@ -92,102 +91,56 @@ export function AppSidebar({
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { state } = useSidebar();
-  const { authFetch } = useAuthFetch();
-  const [subscriptionState, setSubscriptionState] = useState<Subscription>(subscription);
-  // Track if we've received valid data from API (not just initial props which might be defaults)
-  // Check if initial subscription prop has meaningful data (not just defaults like credits: 0, isActive: false)
-  const hasInitialData = subscription.credits > 0 || subscription.isActive || subscription.plan;
-  const [hasLoadedSubscription, setHasLoadedSubscription] = useState(hasInitialData);
-  const [isLoadingSubscription, setIsLoadingSubscription] = useState(!hasInitialData); // Start with true if no initial data
+  const { subscription: subscriptionState, isLoading: isLoadingSubscription } = useSubscription(subscription);
+  
+  // Track if we've received data from API (once loaded, stay loaded to prevent blinking)
+  // Use a ref to track if we've ever received data, so it doesn't toggle during refreshes
+  const [hasLoadedSubscription, setHasLoadedSubscription] = useState(() => {
+    // Check if initial subscription prop has meaningful data
+    return subscription.credits > 0 || subscription.isActive || subscription.plan;
+  });
 
   useEffect(() => {
-    // Update state when subscription prop changes (e.g., from server-side fetch)
-    if (subscription && subscription.credits !== undefined) {
-      setSubscriptionState(subscription);
-      // Mark as loaded if subscription has meaningful data
-      const hasValidData = subscription.credits > 0 || subscription.isActive || subscription.plan;
-      if (hasValidData) {
-        setHasLoadedSubscription(true);
-        setIsLoadingSubscription(false);
-      }
-    }
-  }, [subscription]);
-
-  const refreshSubscription = useCallback(async () => {
-    try {
-      setIsLoadingSubscription(true);
-      const response = await authFetch("/user/subscription");
-      if (!response.ok) {
-        setIsLoadingSubscription(false);
-        return;
-      }
-      const data = await response.json();
-
-      setSubscriptionState((prev) => ({
-        ...prev,
-        ...data,
-      }));
-      // Always mark as loaded after successful API call (even if credits are 0)
-      // This ensures we have the most up-to-date data before showing/hiding upgrade card
+    // Once we have subscription data (even if credits are 0), mark as loaded
+    // This prevents the card from blinking during background refreshes
+    if (subscriptionState && !hasLoadedSubscription) {
       setHasLoadedSubscription(true);
-    } catch (error) {
-      console.error("Failed to refresh subscription", error);
-    } finally {
-      setIsLoadingSubscription(false);
     }
-  }, [authFetch]);
-
-  // Always fetch on mount to get latest data from API
-  // This ensures we have the most up-to-date subscription state before showing UI
-  useEffect(() => {
-    refreshSubscription();
-  }, [refreshSubscription]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const handleRefresh = () => {
-      refreshSubscription();
-    };
-
-    window.addEventListener("focus", handleRefresh);
-    window.addEventListener(CREDIT_EVENT_NAME, handleRefresh);
-    const interval = setInterval(handleRefresh, 15000);
-
-    return () => {
-      window.removeEventListener("focus", handleRefresh);
-      window.removeEventListener(CREDIT_EVENT_NAME, handleRefresh);
-      clearInterval(interval);
-    };
-  }, [refreshSubscription]);
+  }, [subscriptionState, hasLoadedSubscription]);
 
   const isCollapsed = state === "collapsed";
+  // Use subscriptionState with fallback to subscription prop to prevent flickering
+  const currentSubscription = subscriptionState || subscription;
   const normalizedCredits =
-    typeof subscriptionState.credits === "number" ? subscriptionState.credits : 0;
-  const isTrialing = ["trialing", "ending"].includes(subscriptionState.trialStatus || "");
-  const hasUsedTrial = Boolean(subscriptionState.trialCreditsAwarded);
+    typeof currentSubscription?.credits === "number" ? currentSubscription.credits : 0;
+  const isTrialing = ["trialing", "ending"].includes(currentSubscription?.trialStatus || "");
+  const hasUsedTrial = Boolean(currentSubscription?.trialCreditsAwarded);
   const hasPaidPlanCredits = normalizedCredits > 4; // Paid plans have more than 4 credits
-  const isPaidPlan = subscriptionState.isActive && hasPaidPlanCredits;
-  const isTrialEnding = subscriptionState.trialStatus === "ending";
+  const isPaidPlan = currentSubscription?.isActive && hasPaidPlanCredits;
+  const isTrialEnding = currentSubscription?.trialStatus === "ending";
   
   // Show upgrade CTA only when:
   // 1. Data is loaded from API (hasLoadedSubscription), AND
-  // 2. Not currently loading (isLoadingSubscription), AND
+  // 2. We have subscription data (currentSubscription), AND
   // 3. User has NO paid plan credits available (credits <= 4), AND
   //    - Subscription is not active, OR
   //    - Credits are 0, OR
   //    - On trial and used all trial credits
   // Don't show if user has paid plan credits available (they're good to go!)
-  // Don't show while loading to prevent flash of incorrect state
-  const showUpgradeCTA = hasLoadedSubscription && !isLoadingSubscription && hasPaidPlanCredits 
-    ? false // User has paid plan credits, don't show upgrade card
-    : hasLoadedSubscription && !isLoadingSubscription && (
-        !subscriptionState.isActive || 
-        normalizedCredits <= 0 || 
-        (isTrialing && hasUsedTrial && normalizedCredits <= 0)
-      );
+  // Note: We don't check isLoadingSubscription here to prevent blinking during background refreshes
+  // Once loaded, we keep showing/hiding based on actual data, not loading state
+  const showUpgradeCTA = hasLoadedSubscription && 
+    currentSubscription && 
+    (hasPaidPlanCredits 
+      ? false // User has paid plan credits, don't show upgrade card
+      : (
+          !currentSubscription.isActive || 
+          normalizedCredits <= 0 || 
+          (isTrialing && hasUsedTrial && normalizedCredits <= 0)
+        )
+    );
 
-  const upgradeMessage = !subscriptionState.isActive
+  const upgradeMessage = !currentSubscription?.isActive
     ? "Unlock premium features and generate high-converting thumbnails every month."
     : isPaidPlan && normalizedCredits <= 0
       ? "You've used all your plan credits. Upgrade or wait for your next billing cycle."
@@ -197,9 +150,9 @@ export function AppSidebar({
           : "You've used your trial credits. Upgrade to keep generating thumbnails."
         : "You're out of credits. Upgrade to keep generating thumbnails.";
 
-  const upgradeLink = !subscriptionState.isActive ? "/pricing" : "/dashboard/billing";
+  const upgradeLink = !currentSubscription?.isActive ? "/pricing" : "/dashboard/billing";
 
-  const upgradeLabel = !subscriptionState.isActive
+  const upgradeLabel = !currentSubscription?.isActive
     ? "Choose a plan"
     : isTrialing
       ? "Upgrade now"
@@ -317,7 +270,7 @@ export function AppSidebar({
                   <div>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Current plan:</p>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      {subscriptionState.plan || (subscriptionState.isActive ? "Starter" : "Free")}
+                      {currentSubscription?.plan || (currentSubscription?.isActive ? "Starter" : "Free")}
                     </p>
                   </div>
                 </div>
